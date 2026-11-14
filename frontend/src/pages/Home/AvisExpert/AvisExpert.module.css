@@ -1,0 +1,228 @@
+/* Page publique « Avis d'expert » (couleurs unies) */
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: #eef3f9;
+}
+
+.carte {
+  width: min(640px, 100%);
+  padding: 26px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  color: #1b2333;
+}
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.entete h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.entete p {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  color: #6b7a90;
+}
+
+.icone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #1f6fc6;
+  color: #ffffff;
+  font-size: 1.2rem;
+}
+
+.chargement,
+.info {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: #4a5a70;
+}
+
+.erreur {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fde0e6;
+  color: #c4213f;
+  font-size: 0.86rem;
+}
+
+/* Dossier résumé */
+.dossier {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.dossier section {
+  padding: 14px;
+  border-radius: 12px;
+  background: #f4f7fb;
+}
+
+.dossier h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1f6fc6;
+}
+
+.dossier p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.dossier small {
+  display: block;
+  font-size: 0.78rem;
+  color: #6b7a90;
+}
+
+.patientNom {
+  display: block;
+  font-size: 1rem;
+}
+
+.observation {
+  margin-top: 6px !important;
+  font-style: italic;
+  color: #4a5a70;
+}
+
+.hopital {
+  margin-top: 2px;
+}
+
+.constantes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.constantes span {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.constantes strong {
+  font-size: 0.88rem;
+}
+
+/* Panneau dans l'appel (fond sombre) */
+.sombre {
+  margin: 0;
+  color: #ffffff;
+}
+
+.sombre section {
+  background: #0f172a;
+}
+
+.sombre h3 {
+  color: #7fb3ee;
+}
+
+.sombre small,
+.sombre .observation {
+  color: #a7b4c8;
+}
+
+.sombre .constantes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sombre .constantes span {
+  background: #1b2333;
+}
+
+/* Formulaire */
+.formulaire {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.formulaire label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.formulaire em {
+  color: #dc2626;
+  font-style: normal;
+}
+
+.formulaire input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #f6f8fb;
+  font: inherit;
+  font-weight: 400;
+}
+
+.formulaire input:focus {
+  outline: none;
+  border-color: #1f6fc6;
+  background: #ffffff;
+}
+
+.formulaire .erreur,
+.rejoindre {
+  grid-column: 1 / -1;
+}
+
+.rejoindre {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: #16a34a;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rejoindre:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 560px) {
+  .formulaire,
+  .constantes {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .formulaire label {
+    grid-column: 1 / -1;
+  }
+}

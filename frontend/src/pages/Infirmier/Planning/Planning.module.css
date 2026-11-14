@@ -1,0 +1,295 @@
+/* =========================================================
+   INFIRMIER > MON PLANNING (couleurs unies, pas de dégradé ni de bordure colorée)
+   ========================================================= */
+
+/* --- Bandeau « aujourd'hui » --- */
+.aujourdhui {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: #eef1f6;
+  color: var(--dash-text);
+}
+
+.aujourdhuiActif {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.aujourdhuiIcone {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f6fc6;
+  font-size: 1.4rem;
+}
+
+.aujourdhuiActif .aujourdhuiIcone {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.aujourdhuiTexte {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aujourdhuiTexte small {
+  font-size: 0.76rem;
+  text-transform: capitalize;
+  opacity: 0.75;
+}
+
+.aujourdhuiTexte strong {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.aujourdhuiTexte span {
+  font-size: 0.86rem;
+  opacity: 0.85;
+}
+
+.aujourdhuiInfos {
+  display: flex;
+  gap: 10px;
+}
+
+.aujourdhuiInfos div {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  min-width: 130px;
+}
+
+.aujourdhuiActif .aujourdhuiInfos div {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.aujourdhuiInfos dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.aujourdhuiInfos dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* --- Titres de blocs --- */
+.titreBloc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.titreBloc > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.titreBloc h2 {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.titreBloc p {
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.titreIcone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.compte {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* --- Semaine : frise horaire 0 h → 24 h --- */
+.semaine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jour {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 260px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.jourCourant {
+  background: #eaf3fe;
+}
+
+.echelle {
+  padding-top: 0;
+  padding-bottom: 0;
+  background: transparent;
+}
+
+.echelle .piste {
+  height: 16px;
+  background: transparent;
+}
+
+.echelle small {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
+  white-space: nowrap;
+  color: var(--dash-muted);
+}
+
+.echelle small:first-child {
+  transform: none;
+}
+
+.echelle small:last-child {
+  transform: translateX(-100%);
+}
+
+.jourNom {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.jourNom small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #1f6fc6;
+}
+
+.piste {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: #e4e8f0;
+}
+
+.piste i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #ffffff;
+}
+
+.plage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 6px;
+  border-radius: 999px;
+  background: #1f6fc6;
+}
+
+.curseur {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: #e8590c;
+}
+
+.jourHoraire {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.jourHoraire strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Rendez-vous --- */
+.tableCentree th,
+.tableCentree td {
+  text-align: center;
+}
+
+.ligneSec {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+.medecin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.medecin svg {
+  color: var(--dash-blue);
+}
+
+.badgeAttente {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+@media (max-width: 900px) {
+  .aujourdhui {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .aujourdhuiInfos {
+    grid-column: 1 / -1;
+  }
+  .jour {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .jourHoraire {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .echelle > span:last-child {
+    display: none;
+  }
+}

@@ -1,0 +1,59 @@
+/* =========================================================
+   ESPACES CONNECTÉS — même rendu que le tableau de bord Laravel
+   ========================================================= */
+
+.shell {
+  --sidebar-width: 240px;
+  --dash-bg: #edeffe; /* couleur du fond à motif */
+  --dash-text: #172b4c;
+  --dash-muted: #6c757d;
+  --dash-blue: #3596f7;
+  --dash-green: #0e8a62;
+  --dash-orange: #ffa500;
+
+  min-height: 100dvh;
+  font-family: 'Poppins', var(--font-body);
+  color: var(--dash-text);
+  background: var(--dash-bg) url('/images/dashboard/fond.jpg') center / cover fixed;
+}
+
+.main {
+  min-height: 100dvh;
+  margin-left: calc(var(--sidebar-width) + 4px);
+  padding: 6px 12px 32px 16px;
+  transition: margin-left 0.35s var(--ease-out);
+}
+
+.collapsed .main {
+  margin-left: 0;
+}
+
+/* --- Fil d'Ariane --- */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 26px 0 16px;
+  font-size: 0.95rem;
+}
+
+.homeIcon {
+  color: var(--dash-text);
+  font-size: 0.9rem;
+}
+
+.sep {
+  margin: 0 4px 0 2px;
+  color: var(--dash-muted);
+}
+
+.content {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .main {
+    margin-left: 0;
+    padding: 6px 10px 24px;
+  }
+}

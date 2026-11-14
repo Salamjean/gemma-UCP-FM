@@ -1,0 +1,341 @@
+/* =========================================================
+   Reproduction des PDF de Laravel (DomPDF, A4 portrait).
+   La feuille .page fait 210 × 297 mm ; les éléments « fixed » de DomPDF
+   (filigrane, pied de page) sont positionnés dans la feuille.
+   Styles repris des <style> des vues Blade.
+   ========================================================= */
+.page {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 1.2cm;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff;
+  color: #000000;
+  font-size: 16px;
+  line-height: 1.15;
+  /* Page DomPDF : police par défaut « serif » (ordonnance) */
+  font-family: 'Times New Roman', Times, serif;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page img {
+  display: inline-block;
+  max-width: none;
+}
+
+.page p {
+  margin: 16px 0;
+}
+
+.page h1,
+.page h2,
+.page h3,
+.page h4,
+.page h5 {
+  margin: 0.67em 0;
+  color: #000000;
+  font-family: inherit;
+  font-weight: bold;
+  letter-spacing: normal;
+}
+
+.page h1 {
+  font-size: 2em;
+}
+
+.page h2 {
+  font-size: 1.5em;
+}
+
+.page h3 {
+  font-size: 1.17em;
+}
+
+.page h4 {
+  font-size: 1em;
+}
+
+.page table {
+  color: #000000;
+}
+
+/* Polices des vues */
+.arial {
+  font-family: Arial, sans-serif;
+}
+
+.verdana {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+/* footer { position: fixed; bottom: 2px; height: 50px; color: gray; font-size: 14px; line-height: 20px } */
+.pied {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  padding: 0 1.2cm;
+  color: gray;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* .container { width: 700px; margin: 20px auto } */
+.container,
+.contenu {
+  position: relative;
+  z-index: 1;
+}
+
+.container {
+  width: 700px;
+  max-width: 100%;
+  margin: 20px auto;
+}
+
+.headerSection {
+  position: relative;
+}
+
+.headerSection img,
+.republique img {
+  width: 100px;
+}
+
+.republique {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* h1 { text-align: center; text-transform: uppercase; font-size: 28px; margin-bottom: 10px } */
+.page .h1 {
+  margin-bottom: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 28px;
+}
+
+.page .h5 {
+  margin-top: 0;
+  font-size: 0.83em;
+}
+
+.section {
+  margin-bottom: 10px;
+}
+
+.sectionContent {
+  padding: 10px;
+}
+
+.sectionContent p,
+.paragraphes p {
+  margin: 0;
+}
+
+.paragraphes p {
+  margin: 0 0 2px;
+}
+
+/* .content { margin-bottom: 30px } */
+.page .content {
+  margin-bottom: 30px;
+}
+
+/* ---------- Ordonnance ---------- */
+.ordonnance {
+  font-size: 16px;
+}
+
+.filigraneOrdonnance,
+.filigraneArret,
+.filigraneNaissance,
+.filigraneDeces {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* #watermark { top: 250px; left: 30px; opacity: 0.3 } .img__content { width: 90%; height: 40% } */
+.filigraneOrdonnance {
+  top: 250px;
+  left: 30px;
+  opacity: 0.3;
+}
+
+.imgOrdonnance {
+  width: 90%;
+  height: 40%;
+}
+
+.hospitalInfo {
+  float: left;
+  width: 50%;
+  text-align: left;
+}
+
+.hospitalInfo p {
+  margin: 4px 0;
+}
+
+.ministryLogo {
+  float: right;
+  width: 50%;
+  text-align: right;
+}
+
+.ministryLogo img {
+  max-width: 100px;
+}
+
+.headerOrdonnance {
+  text-align: center;
+  text-decoration: underline;
+}
+
+.patientName {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.prescriptions {
+  width: 100%;
+  margin-top: 30px;
+}
+
+.prescriptionTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prescriptionTable th,
+.prescriptionTable td {
+  padding: 5px;
+  text-align: left;
+}
+
+.doctorSignature {
+  margin-top: 150px;
+  text-align: right;
+}
+
+.doctorSignature p {
+  margin: 4px 0;
+}
+
+/* ---------- Bulletin d'examen ---------- */
+.filigraneBulletin img {
+  position: absolute;
+  top: 305px;
+  width: 700px;
+  max-width: 100%;
+  opacity: 0.1;
+}
+
+.tableBulletin {
+  width: 100%;
+  margin: 0 0 40px;
+  border: none;
+  border-collapse: collapse;
+}
+
+.tableBulletin td {
+  padding: 7px 10px;
+  border: none;
+  vertical-align: top;
+}
+
+.tableBulletin p {
+  margin: 0;
+}
+
+.listeExamen {
+  margin: 0 20px 0 -40px;
+  border: none;
+}
+
+.examen {
+  width: 100%;
+  border: none;
+  list-style: none;
+}
+
+/* ---------- Arrêt de travail : #watermark { top: 150px; left: 20px; opacity: 0.05 } img { height: 70% } ---------- */
+.filigraneArret {
+  top: 150px;
+  left: 20px;
+  opacity: 0.05;
+}
+
+.imgArret {
+  width: 100%;
+  height: 70%;
+}
+
+/* ---------- Certificat de naissance : top 150px, opacity 0.3, img height 60% ---------- */
+.filigraneNaissance {
+  top: 150px;
+  left: 30px;
+  opacity: 0.3;
+}
+
+.imgNaissance {
+  width: 100%;
+  height: 60%;
+}
+
+/* ---------- Certificat de décès : top 250px, opacity 0.3, img height 40% ---------- */
+.filigraneDeces {
+  top: 250px;
+  left: 30px;
+  opacity: 0.3;
+}
+
+.imgDeces {
+  width: 100%;
+  height: 40%;
+}
+
+/* ---------- Impression : seule la feuille, au format A4, sans marge du navigateur ---------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  :global(body) * {
+    visibility: hidden;
+  }
+
+  .page,
+  .page * {
+    visibility: visible;
+  }
+
+  .page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    box-shadow: none;
+  }
+}
+
+/* Écran étroit : la feuille A4 défile horizontalement plutôt que d'être déformée */
+@media (max-width: 860px) {
+  .page {
+    transform-origin: top left;
+  }
+}

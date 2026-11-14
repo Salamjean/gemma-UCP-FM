@@ -1,0 +1,371 @@
+/* Listes et fiches des hospitalisations / observations (le reste vient de styles/espace.module.css) */
+.compteurs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dash-muted);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+/* Filtre par statut (pastille qui glisse) */
+.onglets {
+  display: inline-flex;
+  gap: 4px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f3f5fb;
+}
+
+.onglet {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ongletActif {
+  color: var(--dash-text);
+}
+
+.ongletFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(23, 43, 76, 0.08);
+}
+
+.ongletTexte {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ongletTexte small {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e4e8f0;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.lien {
+  font-weight: 600;
+  color: var(--dash-text);
+  text-decoration: none;
+}
+
+.lien:hover {
+  color: var(--dash-blue);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Barre de progression d'une observation (début → fin) */
+.progression {
+  width: 120px;
+  height: 6px;
+  margin: 6px auto 0;
+  border-radius: 999px;
+  background: #eef0f6;
+  overflow: hidden;
+}
+
+.progression span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dash-blue);
+}
+
+/* État vide (aucune hospitalisation / observation) */
+.videIllustre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 12px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.videIllustre svg {
+  font-size: 2rem;
+  color: #c9d0dc;
+}
+
+.videIllustre strong {
+  color: var(--dash-text);
+  font-size: 0.95rem;
+}
+
+.videIllustre p {
+  max-width: 420px;
+  font-size: 0.82rem;
+}
+
+/* --- Fiche --- */
+.titre {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cartes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.carte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+  min-width: 0;
+}
+
+.carte span {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.carte strong {
+  font-size: 1rem;
+  color: var(--dash-text);
+  overflow-wrap: anywhere;
+}
+
+.carte small {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.dossier {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dossier div {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  min-width: 0;
+}
+
+.dossier dt {
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted);
+}
+
+.dossier dd {
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.dossier .large {
+  grid-column: 1 / -1;
+}
+
+/* Journées d'hospitalisation (frise) */
+.frise {
+  list-style: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 22px;
+}
+
+.frise::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 2px;
+  background: #e4e8f0;
+}
+
+.journee {
+  position: relative;
+  display: grid;
+  /* Colonnes fixes : toutes les journées restent alignées, avec ou sans prix */
+  grid-template-columns: 170px repeat(3, minmax(0, 1fr)) 120px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  font-size: 0.82rem;
+}
+
+.journee::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -21px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: var(--dash-blue);
+  transform: translateY(-50%);
+}
+
+.journeeTerminee::before {
+  background: #2bb673;
+}
+
+.journee strong {
+  display: block;
+}
+
+.journeePrix {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.journee small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+/* Pathologies / soins / traitements */
+.soins {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.soin {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+}
+
+.soin header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.soin h3 {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.soinIcone {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.soinNombre {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f3f8;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.soin ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.soin li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f6f8fc;
+  font-size: 0.84rem;
+}
+
+.soin li small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.soinVide {
+  padding: 14px 0;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+@media (max-width: 1100px) {
+  .compteurs,
+  .cartes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .soins,
+  .dossier {
+    grid-template-columns: 1fr;
+  }
+  .journee {
+    grid-template-columns: 1fr 1fr;
+  }
+}

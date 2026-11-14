@@ -1,0 +1,283 @@
+/* =========================================================
+   INFIRMIER > HOSPITALISATIONS & SUIVI DE SURVEILLANCE
+   ========================================================= */
+
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  margin-bottom: 22px;
+}
+
+.enteteGauche {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.iconeHospitalisation {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  border: 1px solid #fecaca;
+  flex-shrink: 0;
+}
+
+.barreOutils {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.recherche {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+}
+
+.recherche input {
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 42px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.recherche input:focus {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(31, 111, 198, 0.12);
+}
+
+.rechercheIcone {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.patientCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #e2e8f0;
+}
+
+.avatarInitiales {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  flex-shrink: 0;
+  border: 1.5px solid #dbeafe;
+}
+
+.avatarF {
+  background: #fde0e6;
+  color: #c4213f;
+  border-color: #fce7f3;
+}
+
+.btnSuivi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1.5px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnSuivi:hover {
+  background: #2563eb;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   MODAL SUIVI ET SURVEILLANCE CLINIQUE
+   ========================================================= */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalEnter 0.25s ease-out;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modalClose {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.modalClose:hover {
+  color: #0f172a;
+}
+
+/* En-tête résumé du patient hospitalisé dans le modal */
+.ficheResumeHosp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #dc2626;
+}
+
+/* Grille du formulaire d'ajout de surveillance */
+.formSurveillance {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.formSurveillanceGrille {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.saisieChamp {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.saisieChamp label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.saisieChamp input,
+.saisieChamp select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+}
+
+.saisieChamp input:focus,
+.saisieChamp select:focus {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px rgba(31, 111, 198, 0.12);
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .formSurveillanceGrille {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

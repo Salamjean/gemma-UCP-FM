@@ -1,0 +1,254 @@
+/* Bloc blanc sans bordure colorée */
+.panel {
+  padding: 24px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(23, 43, 76, 0.05);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.titre {
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.compte {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--dash-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border-radius: 6px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+  font-size: 0.8rem;
+}
+
+.recherche:focus-within {
+  box-shadow: 0 0 0 2px rgba(53, 150, 247, 0.35);
+}
+
+.recherche input {
+  width: 200px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--dash-text);
+}
+
+.ajouter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: var(--dash-blue);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.2s var(--ease-out);
+}
+
+.ajouter:hover {
+  background: #1f7fe0;
+  transform: translateY(-1px);
+}
+
+/* --- Tableau --- */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table th {
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-muted);
+  background: #f6f8fc;
+  white-space: nowrap;
+}
+
+.table th:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.table th:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef0f6;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.table tbody tr {
+  transition: background 0.2s;
+}
+
+.table tbody tr:hover {
+  background: #f9fafe;
+}
+
+.photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3f5fb;
+  display: block;
+  margin: 0 auto;
+}
+
+.nom {
+  display: block;
+  font-weight: 600;
+}
+
+.sousTexte {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+  text-transform: capitalize;
+}
+
+.date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badges : fond uni léger, sans bordure */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ok {
+  background: #e8f7f1;
+  color: #0b7a54;
+}
+
+.ko {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.vide {
+  padding: 28px 14px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+
+
+/* --- Colonne Actions (mêmes actions que Laravel) --- */
+.colActions {
+  text-align: center !important;
+}
+
+.actionsCellule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ouvrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: var(--dash-blue);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.2s var(--ease-out);
+}
+
+.ouvrir:hover {
+  background: #1f7fe0;
+  transform: translateY(-1px);
+}
+
+/* Boutons icônes : fond uni, sans bordure */
+.icone {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #eef0f6;
+  color: #6c757d;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+}
+
+.icone:hover {
+  transform: translateY(-1px);
+}
+
+/* Téléconsultation activée : sarcelle (couleur Laravel #0d9488) */
+.iconeTele {
+  background: #0d9488;
+  color: #ffffff;
+}
+
+/* Statut : vert = activé (cliquer pour désactiver), rouge = désactivé */
+.iconeActif {
+  background: #0e8a62;
+  color: #ffffff;
+}
+
+.iconeInactif {
+  background: #e72e4f;
+  color: #ffffff;
+}
+
+.iconeModifier:hover {
+  background: #e2e6f0;
+  color: var(--dash-text);
+}

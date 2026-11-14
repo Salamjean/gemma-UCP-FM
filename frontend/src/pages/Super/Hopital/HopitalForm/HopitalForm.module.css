@@ -1,0 +1,822 @@
+/* =========================================================
+   SUPER > HÔPITAL — formulaire en assistant (Ajouter / Modifier)
+   Couleurs unies, cartes sans bordure colorée
+   ========================================================= */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* --- En-tête --- */
+.entete {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.surtitre {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-blue);
+}
+
+.titre {
+  font-family: inherit;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.retour {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--dash-text);
+  font-size: 0.82rem;
+  box-shadow: 0 2px 10px rgba(23, 43, 76, 0.06);
+  transition: background 0.2s;
+}
+
+.retour:hover {
+  background: #f3f5fb;
+}
+
+/* --- Grille : formulaire + aperçu --- */
+.grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.carte {
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.06);
+  /* pas d'overflow: hidden : les listes déroulantes doivent pouvoir dépasser de la carte */
+}
+
+/* --- Barre d'étapes --- */
+.etapes {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 18px 18px 0;
+  border-radius: 14px 14px 0 0;
+  background: #f8f9fd;
+}
+
+.etape button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pastille {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e6eaf3;
+  color: #8a93a6;
+  font-size: 0.9rem;
+  transition: background 0.25s, color 0.25s, transform 0.25s var(--ease-out);
+}
+
+.etapeTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.etapeTexte strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #8a93a6;
+  white-space: nowrap;
+  transition: color 0.25s;
+}
+
+.etapeTexte small {
+  font-size: 0.72rem;
+  color: #a3abbb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.etape button:hover .pastille {
+  transform: scale(1.06);
+}
+
+.etapeActive .pastille {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.etapeActive .etapeTexte strong {
+  color: var(--dash-text);
+}
+
+.etapeFaite .pastille {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.etapeFaite .etapeTexte strong {
+  color: var(--dash-text);
+}
+
+/* Barre de progression sous les étapes */
+.progression {
+  height: 3px;
+  background: #e6eaf3;
+}
+
+.progression span {
+  display: block;
+  height: 100%;
+  background: var(--dash-blue);
+}
+
+/* --- Corps d'une étape --- */
+.corps {
+  min-height: 380px;
+  padding: 26px 28px 8px;
+}
+
+.enTeteEtape {
+  margin-bottom: 20px;
+}
+
+.enTeteEtape h2 {
+  font-family: inherit;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.enTeteEtape p {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  color: var(--dash-muted);
+}
+
+.champs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 20px;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.champLarge {
+  grid-column: 1 / -1;
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.requis {
+  color: #e72e4f;
+}
+
+.aideChamp {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+/* Champ avec icône à gauche */
+.avecIcone {
+  position: relative;
+}
+
+.iconeChamp {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: #9aa3b5;
+  font-size: 0.85rem;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.avecIcone:focus-within .iconeChamp {
+  color: var(--dash-blue);
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.88rem;
+  outline: none;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.input::placeholder {
+  color: #9aa3b5;
+}
+
+.input:hover {
+  background: #eef1f8;
+}
+
+.input:focus {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(53, 150, 247, 0.12);
+}
+
+.input:disabled {
+  background: #eceff5;
+  color: var(--dash-muted);
+  cursor: not-allowed;
+}
+
+/* Champ invalide : contour rouge (le message est dans le pop-up) */
+.champInvalide .input,
+.inputInvalide {
+  border-color: #e72e4f;
+  background: #fff7f8;
+}
+
+.champInvalide .iconeChamp {
+  color: #e72e4f;
+}
+
+/* Mot de passe : œil à droite */
+.inputOeil {
+  padding-right: 44px;
+}
+
+.oeil {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #9aa3b5;
+  cursor: pointer;
+}
+
+.oeil:hover {
+  color: var(--dash-blue);
+}
+
+/* --- Photo (glisser-déposer) --- */
+.sousTitreBloc {
+  margin: 24px 0 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.sousTitreBloc span {
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+.depot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 2px dashed #d5dbe7; /* pointillés gris neutres : zone de dépôt */
+  border-radius: 12px;
+  background: #fafbfe;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.depot:hover,
+.depotSurvol {
+  border-color: var(--dash-blue);
+  background: #f2f8ff;
+}
+
+.depotInvalide {
+  border-color: #e72e4f;
+}
+
+.depotIcone {
+  width: 56px;
+  height: 56px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #eaf3fe;
+  color: var(--dash-blue);
+  flex-shrink: 0;
+}
+
+.depotImage {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.depotTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.depotTexte strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.depotTexte small {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+.depotRetirer {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: #fde0e6;
+  color: #c4213f;
+  cursor: pointer;
+}
+
+.fichier {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Option téléconsultation (interrupteur) --- */
+.option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.25s;
+}
+
+.optionActive {
+  background: #e6f6f4;
+}
+
+.optionIcone {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0d9488;
+  flex-shrink: 0;
+}
+
+.optionTexte {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.optionTexte strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.optionTexte small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.piste {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #d5dbe7;
+  flex-shrink: 0;
+  transition: background 0.25s;
+}
+
+.piste::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.option input:checked ~ .piste {
+  background: #0d9488;
+}
+
+.option input:checked ~ .piste::after {
+  transform: translateX(20px);
+}
+
+.option input:focus-visible ~ .piste {
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+}
+
+/* --- Récapitulatif : 3 cartes sur la même ligne --- */
+.recapGrille {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.recap {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.recapHaut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.recapHaut h3 {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.recapHaut button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.recap dl div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 0;
+  border-bottom: 1px solid #e9edf5;
+  font-size: 0.84rem;
+}
+
+.recap dl div:last-child {
+  border-bottom: none;
+}
+
+.recap dt {
+  color: var(--dash-muted);
+}
+
+.recap dt {
+  font-size: 0.75rem;
+}
+
+.recap dd {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* --- Pied : navigation --- */
+.pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 28px 22px;
+}
+
+.compteur {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.principal,
+.secondaire {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.principal {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.principal:hover {
+  background: #1f7fe0;
+}
+
+.valider {
+  background: #0e8a62;
+}
+
+.valider:hover {
+  background: #0b7351;
+}
+
+.secondaire {
+  background: #f3f5fb;
+  color: var(--dash-text);
+}
+
+.secondaire:hover:not(:disabled) {
+  background: #e8ecf6;
+}
+
+.principal:disabled,
+.secondaire:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- Aperçu en direct --- */
+.apercu {
+  position: sticky;
+  top: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.apercuTitre {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-muted);
+}
+
+.fiche {
+  padding: 22px 20px 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.06);
+  text-align: center;
+}
+
+.ficheHaut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.fichePhoto {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: #eaf3fe;
+  color: var(--dash-blue);
+  font-size: 1.8rem;
+  overflow: hidden;
+}
+
+.fichePhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ficheNom {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  overflow-wrap: anywhere;
+}
+
+.ficheCode {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.ficheInfos {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+  text-align: left;
+}
+
+.ficheInfos li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--dash-text);
+  overflow-wrap: anywhere;
+}
+
+.ficheInfos svg {
+  color: #9aa3b5;
+  flex-shrink: 0;
+}
+
+.capitale {
+  text-transform: capitalize;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badgeOk {
+  background: #e6f6f4;
+  color: #0d7d73;
+}
+
+.badgeNeutre {
+  background: #f3f5fb;
+  color: var(--dash-muted);
+}
+
+/* Complétion */
+.completion {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.06);
+}
+
+.completionHaut {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.completionHaut strong {
+  color: var(--dash-text);
+}
+
+.jauge {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef0f6;
+  overflow: hidden;
+}
+
+.jauge span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dash-blue);
+}
+
+.jauge .jaugePleine {
+  background: #0e8a62;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1150px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+  .apercu {
+    position: static;
+    order: -1; /* l'aperçu passe au-dessus du formulaire */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .apercuTitre {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .recapGrille {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .etapeTexte small {
+    display: none;
+  }
+  .champs {
+    grid-template-columns: 1fr;
+  }
+  .corps {
+    padding: 20px 18px 4px;
+  }
+  .pied {
+    padding: 14px 18px 18px;
+  }
+  .compteur {
+    display: none;
+  }
+  .apercu {
+    grid-template-columns: 1fr;
+    order: 1; /* mobile : l'aperçu passe sous le formulaire */
+  }
+}
+
+@media (max-width: 560px) {
+  .etapeTexte {
+    display: none;
+  }
+  .etape button {
+    justify-content: center;
+  }
+}
+

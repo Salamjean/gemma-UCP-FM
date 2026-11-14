@@ -1,0 +1,35 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 64px 24px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(23, 43, 76, 0.05);
+  text-align: center;
+}
+
+.icon {
+  font-size: 2rem;
+  color: var(--dash-blue, #3596f7);
+  margin-bottom: 10px;
+}
+
+.module {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-muted, #6c757d);
+}
+
+.title {
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dash-text, #172b4c);
+}
+
+.text {
+  color: var(--dash-muted, #6c757d);
+}

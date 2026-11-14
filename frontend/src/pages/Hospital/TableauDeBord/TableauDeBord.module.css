@@ -1,0 +1,46 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* 4 cartes de même largeur */
+.cartes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.graphiques {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.chargement,
+.erreur {
+  padding: 24px;
+  color: var(--dash-muted);
+}
+
+.erreur {
+  color: #e72e4f;
+}
+
+@media (max-width: 900px) {
+  .graphiques {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .cartes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .cartes {
+    grid-template-columns: 1fr;
+  }
+}

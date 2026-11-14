@@ -1,0 +1,61 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+}
+
+.resume {
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.boutons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.groupe {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.boutons button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.boutons button:hover:not(:disabled) {
+  background: #e6ebf5;
+}
+
+.boutons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.boutons .actif {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.boutons .actif:hover {
+  background: var(--dash-blue) !important;
+}
+
+.ellipse {
+  padding: 0 2px;
+  color: var(--dash-muted);
+}

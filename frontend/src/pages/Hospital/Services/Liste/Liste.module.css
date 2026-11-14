@@ -1,0 +1,62 @@
+/* Styles propres à la liste des services (le reste vient de styles/espace.module.css) */
+.compteurs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dash-muted);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+.nom {
+  font-weight: 600;
+  color: var(--dash-text);
+  text-decoration: none;
+}
+
+.nom:hover {
+  color: var(--dash-blue);
+}
+
+.description {
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badgeKo {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+/* Bouton "modifier" : orange au survol */
+.iconeModifier:hover {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+/* Bouton "désactiver" d'un service actif : vert au survol */
+.iconeActif:hover {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+@media (max-width: 1100px) {
+  .compteurs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

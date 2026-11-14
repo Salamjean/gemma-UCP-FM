@@ -1,0 +1,45 @@
+/* Champ de recherche avec icône */
+.rechercheChamp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dash-muted);
+}
+
+.rechercheChamp input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+.colTitre {
+  min-width: 240px;
+  max-width: 360px;
+}
+
+.colTitre strong {
+  display: block;
+  font-weight: 600;
+}
+
+.cible {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.date {
+  white-space: nowrap;
+}
+
+.canaux {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}

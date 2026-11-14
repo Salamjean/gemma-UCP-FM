@@ -1,0 +1,282 @@
+/* =========================================================
+   INFIRMIER > PROGRAMME DES TÉLÉCONSULTATIONS
+   ========================================================= */
+
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  margin-bottom: 22px;
+}
+
+.enteteGauche {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.iconeCasque {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #ccfbf1;
+  color: #0d9488;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  border: 1px solid #99f6e4;
+  flex-shrink: 0;
+}
+
+/* Grille des cartes de statistiques / filtres cliquables */
+.cartesGrille {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.carteFiltre {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.carteFiltre:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.carteFiltreActive {
+  border-color: var(--dash-blue) !important;
+  box-shadow: 0 4px 16px rgba(31, 111, 198, 0.12) !important;
+}
+
+.carteFiltreEntete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.carteLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.carteIcone {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+}
+
+.iconeViolet {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.iconeBleu {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.iconeVert {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.iconeGris {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.carteValeur {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.carteNombre {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.carteLegende {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* Bloc Tableau */
+.barreOutils {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.recherche {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+}
+
+.recherche input {
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 42px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.recherche input:focus {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(31, 111, 198, 0.12);
+}
+
+.rechercheIcone {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* Badges de constantes dans le tableau */
+.constantesGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 220px;
+}
+
+.badgeConstante {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.badgeConstante strong {
+  color: #0f172a;
+  margin-left: 2px;
+}
+
+.patientCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #e2e8f0;
+}
+
+.avatarInitiales {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  flex-shrink: 0;
+  border: 1.5px solid #dbeafe;
+}
+
+.avatarF {
+  background: #fde0e6;
+  color: #c4213f;
+  border-color: #fce7f3;
+}
+
+.btnLancerAppel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: none;
+  background: #0d9488;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+}
+
+.btnLancerAppel:hover {
+  background: #0f766e;
+  transform: translateY(-1px);
+}
+
+.btnAppelActif {
+  background: #ea580c !important;
+  animation: pulseAppel 1.5s infinite;
+}
+
+@keyframes pulseAppel {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 88, 12, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .cartesGrille {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cartesGrille {
+    grid-template-columns: 1fr;
+  }
+}
+

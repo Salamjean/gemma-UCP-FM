@@ -1,0 +1,220 @@
+/* =========================================================
+   SUPER > RÉGLAGES > ICÔNES
+   Reprend fidèlement Laravel users/super/setting/logo.blade.php
+   ========================================================= */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.carte {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(23, 43, 76, 0.05);
+  overflow: hidden;
+  border: 1px solid #edf2f7;
+}
+
+.carteHeader {
+  padding: 18px 24px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  border-bottom: 1px solid #edf2f7;
+  background: #fafbfe;
+}
+
+.carteBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitre {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  position: relative;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #eef2f6;
+}
+
+.grille3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .grille3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.boiteIcone {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.boiteIcone:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.titreIcone {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.zoneImage {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  padding: 12px;
+}
+
+.imageActuelle {
+  max-height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.placeholder {
+  color: var(--dash-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* --- Formulaire d'upload --- */
+.zoneUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.champFichier {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--dash-text);
+  background: #f8fafc;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.champFichier:focus {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+}
+
+.apercuNouveau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.miniature {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 2px;
+}
+
+.infosFichier {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.nomFichier {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tailleFichier {
+  font-size: 0.72rem;
+  color: #3b82f6;
+}
+
+.aideFichier {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+.actionsFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 18px;
+  border-top: 1px solid #edf2f7;
+}
+
+.boutonEnregistrer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 8px;
+  border: none;
+  background: var(--dash-blue);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(31, 127, 224, 0.25);
+  transition: background 0.2s, transform 0.2s var(--ease-out);
+}
+
+.boutonEnregistrer:hover:not(:disabled) {
+  background: #1f7fe0;
+  transform: translateY(-1px);
+}
+
+.boutonEnregistrer:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.chargement {
+  padding: 32px;
+  text-align: center;
+  color: var(--dash-muted);
+  font-size: 0.9rem;
+}
+

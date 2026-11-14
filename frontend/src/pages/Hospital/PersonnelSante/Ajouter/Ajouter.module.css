@@ -1,0 +1,75 @@
+/* Choix du type d'agent (tuiles) */
+.types {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.type {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+  color: var(--dash-text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+
+.type:hover {
+  transform: translateY(-2px);
+}
+
+.typeActif {
+  box-shadow: 0 0 0 2px var(--dash-blue), 0 10px 26px rgba(31, 111, 198, 0.15);
+}
+
+.typeIcone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.typeTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.typeTexte strong {
+  font-size: 0.92rem;
+}
+
+.typeTexte small {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.typeCoche {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--dash-blue);
+  color: #ffffff;
+  font-size: 0.58rem;
+}
+
+@media (max-width: 1100px) {
+  .types {
+    grid-template-columns: 1fr 1fr;
+  }
+}

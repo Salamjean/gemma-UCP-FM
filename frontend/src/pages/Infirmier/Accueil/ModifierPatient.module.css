@@ -1,0 +1,146 @@
+/* Fenêtre « Mettre à jour les informations du patient » */
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.fenetre {
+  display: flex;
+  flex-direction: column;
+  width: min(860px, 100%);
+  max-height: calc(100vh - 32px);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.haut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.haut > div {
+  flex: 1;
+}
+
+.haut h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--dash-text);
+}
+
+.haut p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.icone {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #e8f1fc;
+  color: #1f6fc6;
+}
+
+.fermer {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f4f8;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+.corps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+
+.bandeau {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff3df;
+  color: #8a4b00;
+  font-size: 0.84rem;
+}
+
+.titre {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.pied {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #eef0f6;
+}
+
+/* Bouton « Mettre à jour » et rappel nouveau-né sur la fiche du patient choisi */
+.boutonMaj {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--dash-blue);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rappelNouveauNe {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff3df;
+  color: #8a4b00;
+  font-size: 0.82rem;
+}
+
+.rappelNouveauNe span {
+  flex: 1;
+}
+
+@media (max-width: 760px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,207 @@
+/* Tableau des actes médicaux (grille : intitulé | prix | précision | action) */
+.editeur {
+  --colonnes: minmax(0, 1.4fr) 170px minmax(0, 1fr) 40px;
+}
+
+.entetes {
+  display: grid;
+  grid-template-columns: var(--colonnes);
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f6f8fc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-muted);
+}
+
+.lignes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.ligne {
+  display: grid;
+  grid-template-columns: var(--colonnes);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.cellule {
+  min-width: 0;
+}
+
+.champ {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.champ:focus {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+}
+
+.invalide .champ,
+.champ.invalide {
+  border-color: #e72e4f;
+  background: #fff7f8;
+}
+
+.libelleFixe {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.libelleFixe small {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+/* Prix + devise collée à droite */
+.prix {
+  position: relative;
+}
+
+.prix .champ {
+  padding-right: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.devise {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  pointer-events: none;
+}
+
+.retirer,
+.verrou {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: #eef0f6;
+  color: #5d6577;
+  font-size: 0.8rem;
+}
+
+.retirer {
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.retirer:hover {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.verrou {
+  background: transparent;
+  color: #a6adbd;
+  cursor: help;
+}
+
+.vide {
+  padding: 22px 12px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+/* --- Bas du tableau : ajout libre + suggestions du catalogue --- */
+.pied {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.ajouter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ajouter:hover {
+  background: #dcebfd;
+}
+
+.suggestions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.suggestion svg {
+  font-size: 0.62rem;
+  color: var(--dash-blue);
+}
+
+.suggestion:hover {
+  background: #e8edf7;
+}
+
+@media (max-width: 760px) {
+  .entetes {
+    display: none;
+  }
+  .ligne {
+    grid-template-columns: 1fr 1fr 40px;
+  }
+  .ligne > .cellule:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+}

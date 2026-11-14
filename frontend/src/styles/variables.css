@@ -1,0 +1,38 @@
+/* =========================================================
+   COULEURS, TYPO, ESPACEMENTS — tout le thème est ici.
+   Couleurs unies uniquement (aucun dégradé).
+   ========================================================= */
+:root {
+  --color-bg: #ffffff;
+  --color-bg-soft: #f4f7fc; /* fonds secondaires (champs, zones) */
+  --color-navy: #13213c; /* titres */
+  --color-text: #3a3f4b; /* texte courant */
+  --color-muted: #7a8194;
+  --color-primary: #2f7bf5; /* bleu Gemma : boutons, liens actifs */
+  --color-primary-dark: #1f63d6;
+  --color-green: #2e9e5b; /* vert du logo */
+
+  /* Pages Auth (connexion…) */
+  --color-auth-bg: #1d5c88; /* bleu du fond de l'image */
+  --color-auth-button: #e8264f; /* bouton "Se connecter" */
+  --color-auth-button-dark: #c91d42;
+  --color-auth-input: #e8f0fe; /* fond des champs */
+  --color-auth-border: #c9d3e0; /* contour gris des champs */
+
+  --font-title: 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Mulish', system-ui, sans-serif;
+
+  --container: 100%; /* pleine largeur ; mettre ex. 1280px pour limiter */
+  --gutter: clamp(16px, 5vw, 80px);
+  --nav-height: 104px;
+  --radius: 8px;
+  --shadow: 0 10px 30px rgba(47, 123, 245, 0.25);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 72px;
+  }
+}

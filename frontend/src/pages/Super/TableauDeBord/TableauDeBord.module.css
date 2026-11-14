@@ -1,0 +1,46 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* 5 cartes : la 2e et la 3e sont plus larges, comme sur Laravel */
+.cartes {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
+  gap: 18px;
+}
+
+.graphiques {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.chargement,
+.erreur {
+  padding: 24px;
+  color: var(--dash-muted);
+}
+
+.erreur {
+  color: #e72e4f;
+}
+
+@media (max-width: 1200px) {
+  .cartes {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .graphiques {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cartes {
+    grid-template-columns: 1fr 1fr;
+  }
+}

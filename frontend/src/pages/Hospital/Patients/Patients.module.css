@@ -1,0 +1,289 @@
+/* =========================================================
+   HÔPITAL > PATIENTS — liste & fiche détaillée
+   Suit le design de espace.module.css & Hospitalisation
+   ========================================================= */
+
+.compteurs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recherche input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+/* --- Onglets de filtre --- */
+.onglets {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f3f5fb;
+  gap: 2px;
+}
+
+.onglet {
+  position: relative;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ongletActif {
+  color: var(--dash-text);
+  font-weight: 600;
+}
+
+.ongletFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(23, 43, 76, 0.08);
+}
+
+.ongletTexte {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ongletTexte small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+/* --- Tableau --- */
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  white-space: nowrap;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eef2f8;
+  display: block;
+  margin: 0 auto;
+}
+
+.avatarInitiales {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
+
+.genreM {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.genreF {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 44px 16px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.vide svg {
+  font-size: 1.8rem;
+  color: #b7bfcf;
+}
+
+.vide strong {
+  color: var(--dash-text);
+  font-size: 0.95rem;
+}
+
+.vide p {
+  max-width: 440px;
+  font-size: 0.82rem;
+}
+
+/* =========================================================
+   FICHE DÉTAILLÉE DU PATIENT
+   ========================================================= */
+.banniere {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 24px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+}
+
+.profilGauche {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.grandAvatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #eaf3fe;
+  background: #f3f5fb;
+}
+
+.grandAvatarInitiales {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 3px solid #dbeafe;
+}
+
+.identiteTitre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.identiteTitre h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.metaLigne {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grilleDetail {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.champsGrille {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.champInfo {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f8f9fd;
+}
+
+.champInfo span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted);
+}
+
+.champInfo strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.urgenceCarte {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff8f8;
+  border: 1px solid #fee2e2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.urgenceTitre {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #c4213f;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 1000px) {
+  .compteurs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grilleDetail {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .champsGrille {
+    grid-template-columns: 1fr;
+  }
+}
+

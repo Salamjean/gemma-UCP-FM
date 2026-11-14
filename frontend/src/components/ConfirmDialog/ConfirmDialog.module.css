@@ -1,0 +1,103 @@
+.fond {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(23, 43, 76, 0.4);
+}
+
+.boite {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 26px 22px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(23, 43, 76, 0.25);
+  text-align: center;
+  font-family: 'Poppins', var(--font-body);
+}
+
+.icone {
+  display: inline-grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: #eaf3fe;
+  color: #3596f7;
+  font-size: 1.5rem;
+}
+
+.iconeDanger {
+  background: #fde0e6;
+  color: #e72e4f;
+}
+
+.titre {
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #172b4c;
+}
+
+.message {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.boutons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.annuler,
+.confirmer {
+  min-width: 110px;
+  height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.annuler {
+  background: #f3f5fb;
+  color: #172b4c;
+}
+
+.annuler:hover {
+  background: #e8ecf6;
+}
+
+.confirmer {
+  background: #3596f7;
+  color: #ffffff;
+}
+
+.confirmer:hover {
+  background: #1f7fe0;
+}
+
+.confirmerDanger {
+  background: #e72e4f;
+}
+
+.confirmerDanger:hover {
+  background: #c91d42;
+}
+
+.annuler:disabled,
+.confirmer:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

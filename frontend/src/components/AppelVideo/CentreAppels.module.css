@@ -1,0 +1,237 @@
+/* Bandeau des appels entrants (bas à droite) */
+.pile {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.appel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+}
+
+.icone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #16a34a;
+  animation: sonnerie 1.4s ease-in-out infinite;
+}
+
+@keyframes sonnerie {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
+  }
+}
+
+.texte {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.texte strong {
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.texte small {
+  font-size: 0.76rem;
+  color: #a7b4c8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rejoindre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rejoindre:disabled {
+  opacity: 0.6;
+}
+
+.ignorer {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: #2b3548;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* =========================================================
+   FENÊTRE « INVITER UN CONFRÈRE » (au-dessus de l'appel)
+   ========================================================= */
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.fenetre {
+  width: min(520px, 100%);
+  padding: 22px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1b2333;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+}
+
+.fenetreHaut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.fenetreHaut > div {
+  flex: 1;
+}
+
+.fenetreHaut h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.fenetreHaut p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #6b7a90;
+}
+
+.fenetreIcone {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #e8f1fc;
+  color: #1f6fc6;
+}
+
+.fermer {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f4f8;
+  color: #1b2333;
+  cursor: pointer;
+}
+
+.chargement,
+.explication {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: #4a5a70;
+  line-height: 1.5;
+}
+
+.lien {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.lien input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #f6f8fb;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+}
+
+.copier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: #1f6fc6;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Appel d'urgence (rouge) */
+.appelUrgence {
+  background: #7f1d1d;
+}
+
+.iconeUrgence {
+  background: #dc2626;
+  animation-name: sonnerieUrgence;
+}
+
+@keyframes sonnerieUrgence {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);
+  }
+}

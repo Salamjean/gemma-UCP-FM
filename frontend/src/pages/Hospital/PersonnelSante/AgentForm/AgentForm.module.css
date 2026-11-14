@@ -1,0 +1,717 @@
+.grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 20px;
+  align-items: start;
+}
+
+.espace {
+  margin-top: 26px;
+}
+
+/* --- Identité : photo + champs --- */
+.identite {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.photo {
+  position: relative;
+  display: block;
+  width: 112px;
+  height: 112px;
+  cursor: pointer;
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eef0f6;
+}
+
+.photo input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.photoBouton {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: var(--dash-blue);
+  color: #ffffff;
+  font-size: 0.75rem;
+  pointer-events: none;
+  transition: transform 0.2s var(--ease-out);
+}
+
+.photo:hover .photoBouton {
+  transform: scale(1.1);
+}
+
+.photoRetirer {
+  grid-column: 1;
+  grid-row: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  color: #c4213f;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.champs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.identite .champs {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.large {
+  grid-column: 1 / -1;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.champ label,
+.groupeTitre {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.requis {
+  color: #e72e4f;
+}
+
+.facultatif {
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+.champ input,
+.prefixe,
+.mdp {
+  width: 100%;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f3f5fb;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.champ input {
+  padding: 0 14px;
+  color: var(--dash-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.champ input:focus,
+.prefixe:focus-within,
+.mdp:focus-within {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(53, 150, 247, 0.12);
+}
+
+.champ input:disabled {
+  color: var(--dash-muted);
+  cursor: not-allowed;
+}
+
+.invalide input,
+.invalide .prefixe,
+.invalide .mdp {
+  border-color: #e72e4f;
+  background: #fff7f8;
+}
+
+/* Matricule : préfixe (MG, SG, INF…) collé au champ */
+.prefixe,
+.mdp {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.prefixe span {
+  padding: 0 4px 0 14px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--dash-blue);
+}
+
+.prefixe input,
+.mdp input {
+  flex: 1;
+  height: 100%;
+  padding-left: 2px;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.prefixe input {
+  font-family: Consolas, 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+.mdp input {
+  padding-left: 14px;
+}
+
+.mdp button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--dash-muted);
+  cursor: pointer;
+}
+
+/* --- Affectation (étape 1) : Type | Spécialité | Service sur une seule ligne, mêmes hauteurs --- */
+.ligneAffectation {
+  display: grid;
+  grid-template-columns: minmax(0, 460px);
+  gap: 16px;
+  align-items: start;
+}
+
+.ligneMedecin {
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Libellé d'un groupe sans champ (même style qu'un <label>) */
+.etiquette {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.pastilles {
+  display: inline-flex;
+  gap: 4px;
+  height: 44px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f3f5fb;
+}
+
+.pastille {
+  position: relative;
+  height: 100%;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Texte au-dessus du fond bleu animé (classe dédiée : un sélecteur "span" toucherait aussi le fond) */
+.pastilleTexte {
+  position: relative;
+  z-index: 1;
+}
+
+.pastilleActive {
+  color: #ffffff;
+}
+
+.pastilleFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--dash-blue);
+}
+
+/* Généraliste : case "Spécialité" grisée, même hauteur qu'un champ */
+.champFixe {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  color: #a6adbd;
+  font-size: 0.85rem;
+}
+
+.groupeActes {
+  margin-top: 4px;
+}
+
+/* --- Puces (actes, services) --- */
+.groupe {
+  margin-top: 16px;
+}
+
+.groupeTitre {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.groupeTitre small {
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+.texteErreur {
+  color: #c4213f;
+}
+
+.puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+}
+
+.puce:hover {
+  transform: translateY(-1px);
+}
+
+.puce small {
+  font-size: 0.7rem;
+  color: var(--dash-muted);
+}
+
+.puce svg {
+  font-size: 0.65rem;
+}
+
+.puceActive {
+  background: #eaf3fe;
+  color: #1f6fc6;
+  border-color: #b9d8fb;
+}
+
+.puceActive small {
+  color: #4b8fd8;
+}
+
+/* --- Jours de disponibilité --- */
+.joursRapides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.joursRapides button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.joursRapides button:hover {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.jours {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding: 2px;
+  border-radius: 12px;
+}
+
+.joursInvalides {
+  box-shadow: 0 0 0 1px #e72e4f;
+}
+
+.jour {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  transition: background 0.2s;
+}
+
+.jourActif {
+  background: #eaf3fe;
+}
+
+.jourNom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  color: var(--dash-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.jourCoche {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #ffffff;
+  border: 1px solid #d5dbe6;
+  color: #ffffff;
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+
+.jourActif .jourCoche {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+}
+
+.jour input {
+  width: 100%;
+  height: 34px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--dash-text);
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.jour input:disabled {
+  opacity: 0.4;
+}
+
+.pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid #eef0f6;
+}
+
+.piedBoutons {
+  display: flex;
+  gap: 10px;
+}
+
+.piedEtape {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.rappel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.rappel svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--dash-blue);
+}
+
+/* --- Barre des 3 étapes --- */
+.etapes {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.etape {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.etape:last-child {
+  flex: 0 0 auto;
+}
+
+.etape button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.etapeNumero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f3f8;
+  color: var(--dash-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: background 0.2s, color 0.2s;
+}
+
+.etapeFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--dash-blue);
+}
+
+.etapeChiffre {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.etapeActive .etapeNumero {
+  color: #ffffff;
+}
+
+.etapeFaite .etapeNumero {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.etapeTexte {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  white-space: nowrap;
+}
+
+.etapeTexte small {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a6adbd;
+}
+
+.etapeActive .etapeTexte,
+.etapeFaite .etapeTexte {
+  color: var(--dash-text);
+}
+
+.etapeTrait {
+  flex: 1;
+  height: 3px;
+  margin: 0 14px;
+  border-radius: 999px;
+  background: #eef0f6;
+  overflow: hidden;
+  min-width: 20px;
+}
+
+.etapeTrait span {
+  display: block;
+  height: 100%;
+  background: #0b7a54;
+}
+
+/* --- Aperçu (carte de l'agent) --- */
+.carte {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.carteTitre {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-muted);
+}
+
+.cartePhoto {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eef0f6;
+}
+
+.carteNom {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  word-break: break-word;
+}
+
+.carteVide {
+  color: #b3b9c6;
+}
+
+.carteInfos {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  text-align: left;
+}
+
+.carteInfos div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.carteInfos dt {
+  color: var(--dash-muted);
+  flex-shrink: 0;
+}
+
+.carteInfos dd {
+  font-weight: 600;
+  color: var(--dash-text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.mono {
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.carteJours {
+  display: flex;
+  gap: 4px;
+}
+
+.carteJours span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #f1f3f8;
+  color: #b3b9c6;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.carteJours .carteJourActif {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+@media (max-width: 1200px) {
+  .ligneMedecin {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .ligneMedecin > :last-child {
+    grid-column: 1 / -1;
+  }
+  .grille {
+    grid-template-columns: 1fr;
+  }
+  .carte {
+    position: static;
+  }
+  .jours {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .identite {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .identite .champs {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+  .photoRetirer {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .champs,
+  .ligneMedecin {
+    grid-template-columns: 1fr;
+  }
+  .jours {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .etapeTexte {
+    display: none;
+  }
+}

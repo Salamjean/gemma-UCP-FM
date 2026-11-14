@@ -1,0 +1,291 @@
+/* =========================================================
+   MÉDECIN > DOCUMENT IMPRIMABLE (A4) — couleurs unies, pas de dégradé ni de bordure colorée
+   ========================================================= */
+
+.onglets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.onglet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--dash-text);
+  text-decoration: none;
+}
+
+.ongletActif {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.ongletVide {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.astuce {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+/* --- Feuille A4 --- */
+.feuille {
+  width: min(210mm, 100%);
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 16mm 15mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #1b2333;
+  box-shadow: 0 10px 30px rgba(23, 43, 76, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 0.9rem;
+}
+
+.enTete {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #1b2333;
+}
+
+.etablissement {
+  display: flex;
+  gap: 12px;
+}
+
+.etablissement > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.etablissement strong {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+.etablissement > div > span {
+  font-size: 0.78rem;
+  color: #4a5568;
+}
+
+.logo,
+.logoTexte {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.logoTexte {
+  display: grid;
+  place-items: center;
+  background: #1f6fc6;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.references {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  font-size: 0.78rem;
+}
+
+.references small {
+  font-style: italic;
+  color: #4a5568;
+}
+
+.numero {
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f3f8;
+  font-family: Consolas, 'Courier New', monospace;
+}
+
+.titreDoc {
+  text-align: center;
+  font-family: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.patient {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.patient dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7486;
+}
+
+.patient dd {
+  font-weight: 600;
+}
+
+.intro {
+  font-size: 0.9rem;
+}
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableau th {
+  padding: 8px 10px;
+  background: #1b2333;
+  color: #ffffff;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.tableau td {
+  padding: 9px 10px;
+  vertical-align: top;
+  border-bottom: 1px solid #e4e8f0;
+}
+
+.tableau td small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.76rem;
+  color: #6b7486;
+}
+
+.examens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 22px;
+  font-size: 0.95rem;
+}
+
+.certificat {
+  font-size: 1rem;
+  line-height: 1.9;
+  text-align: justify;
+}
+
+.signature {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.signature > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 220px;
+  text-align: center;
+}
+
+.signature span {
+  font-size: 0.78rem;
+  color: #6b7486;
+}
+
+.signature small {
+  font-size: 0.76rem;
+  color: #4a5568;
+}
+
+.signature em {
+  margin-top: 48px;
+  padding-top: 6px;
+  min-width: 200px;
+  border-top: 1px solid #1b2333;
+  font-size: 0.74rem;
+  color: #6b7486;
+}
+
+.mention {
+  padding-top: 10px;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: #6b7486;
+  text-align: justify;
+}
+
+/* --- Impression / PDF : seule la feuille est imprimée --- */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  :global(body) * {
+    visibility: hidden;
+  }
+  .feuille,
+  .feuille * {
+    visibility: visible;
+  }
+  .feuille {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .nonImprime {
+    display: none !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .feuille {
+    min-height: 0;
+    padding: 20px 16px;
+  }
+  .enTete {
+    flex-direction: column;
+  }
+  .references {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .patient {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Feuille A4 (modèle Laravel) : défile horizontalement sur petit écran */
+.zoneFeuille {
+  overflow-x: auto;
+  padding: 4px 0 24px;
+}

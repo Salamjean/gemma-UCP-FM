@@ -1,0 +1,349 @@
+/* =========================================================
+   ESPACES CONNECTÉS — styles communs des pages (en-tête, compteurs, blocs, filtres, tableaux, badges)
+   Utilisé par : Super > Notifications push, Super > Logs & Audit…
+   Couleurs unies, cartes sans bordure colorée
+   ========================================================= */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* --- En-tête --- */
+.entete {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.surtitre {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-blue);
+}
+
+.titre {
+  font-family: inherit;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.boutons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.principal,
+.secondaire,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s var(--ease-out);
+}
+
+.principal {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.principal:hover {
+  background: #1f7fe0;
+  transform: translateY(-1px);
+}
+
+.secondaire {
+  background: #ffffff;
+  color: var(--dash-text);
+  box-shadow: 0 2px 10px rgba(23, 43, 76, 0.06);
+}
+
+.secondaire:hover {
+  background: #f3f5fb;
+}
+
+.danger {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.danger:hover {
+  background: #fbcfd8;
+}
+
+.principal:disabled,
+.secondaire:disabled,
+.danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Compteurs --- */
+.compteurs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.compteur {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+}
+
+.compteurIcone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.compteurTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.compteurTexte strong {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--dash-text);
+}
+
+.compteurTexte span {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+/* --- Bandeau d'information (ex. Firebase non configuré) --- */
+.bandeau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff3df;
+  color: #8a5300;
+  font-size: 0.84rem;
+}
+
+/* --- Bloc blanc --- */
+.bloc {
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+}
+
+.blocTitre {
+  margin-bottom: 14px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+/* --- Filtres --- */
+.filtres {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.champ {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.champ:focus {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+}
+
+.recherche {
+  flex: 1;
+  min-width: 220px;
+}
+
+/* --- Tableau --- */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.table th {
+  padding: 11px 12px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-muted);
+  background: #f6f8fc;
+  white-space: nowrap;
+}
+
+.table th:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.table th:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* Tableau entièrement centré (en-têtes + cellules + boutons d'action) */
+.table.centre th,
+.table.centre td {
+  text-align: center;
+}
+
+.table.centre .actions {
+  justify-content: center;
+}
+
+/* Colonne alignée à droite (ex. "Actions") */
+.table th.aDroite,
+.table td.aDroite {
+  text-align: right;
+}
+
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid #eef0f6;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: #f9fafe;
+}
+
+.vide {
+  padding: 32px 12px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.sousTexte {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+/* --- Badges (fond uni léger) --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badgeOk {
+  background: #e8f7f1;
+  color: #0b7a54;
+}
+
+.badgeNeutre {
+  background: #f1f3f8;
+  color: var(--dash-muted);
+}
+
+/* --- Boutons icônes (actions d'une ligne) --- */
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icone {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #eef0f6;
+  color: #5d6577;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
+}
+
+.icone:hover {
+  transform: translateY(-1px);
+}
+
+.icone:disabled,
+.icone:disabled:hover {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  background: #eef0f6;
+  color: #5d6577;
+}
+
+.iconeVoir:hover {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.iconeRelancer:hover {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.iconeSupprimer:hover {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+@media (max-width: 1200px) {
+  .compteurs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .compteurs {
+    grid-template-columns: 1fr 1fr;
+  }
+}

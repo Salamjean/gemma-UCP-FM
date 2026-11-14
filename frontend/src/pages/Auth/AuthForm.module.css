@@ -1,0 +1,167 @@
+/* =========================================================
+   STYLES COMMUNS AUX FORMULAIRES AUTH (Connexion, Mot de passe oublié…)
+   ========================================================= */
+
+.subtitle {
+  text-align: center;
+  color: var(--color-navy);
+  font-size: 0.88rem;
+  margin-bottom: 36px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- Champ avec icône à gauche (et bouton à droite pour le mot de passe) --- */
+.field {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-auth-border);
+  border-radius: 6px;
+  background: var(--color-auth-input);
+  overflow: hidden;
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+
+.field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(47, 123, 245, 0.15);
+}
+
+.icon,
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  flex-shrink: 0;
+  background: #ffffff;
+  color: var(--color-navy);
+}
+
+.icon {
+  border-right: 1px solid var(--color-auth-border);
+}
+
+.iconButton {
+  border: none;
+  border-left: 1px solid var(--color-auth-border);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.iconButton:hover {
+  color: var(--color-primary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--color-navy);
+}
+
+/* --- Ligne d'options : "Se souvenir de moi" à gauche, "Mot de passe oublié ?" à droite --- */
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap; /* sur petit écran, le lien passe à la ligne */
+  margin: 14px 0 12px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-navy);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.oublie {
+  color: var(--color-primary-dark);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.oublie:hover {
+  text-decoration: underline;
+}
+
+.remember input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* --- Bouton rouge uni --- */
+.submit {
+  align-self: center;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  background: var(--color-auth-button);
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.25s, transform 0.25s var(--ease-out);
+}
+
+.submit:hover {
+  background: var(--color-auth-button-dark);
+  transform: translateY(-2px);
+}
+
+.submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+/* --- Lien sous le bouton --- */
+.footer {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-navy);
+}
+
+.footer a {
+  color: var(--color-primary-dark);
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+
+
+
+/* Petit écran : texte un peu plus petit pour garder les deux options sur la même ligne */
+@media (max-width: 420px) {
+  .options {
+    gap: 8px;
+  }
+  .remember,
+  .oublie {
+    font-size: 0.76rem;
+  }
+  .remember {
+    gap: 6px;
+  }
+  .remember input {
+    width: 15px;
+    height: 15px;
+  }
+}

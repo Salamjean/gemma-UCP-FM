@@ -1,0 +1,187 @@
+/* =========================================================
+   INFIRMIER > PERMISSIONS & DEMANDES D'ABSENCE
+   ========================================================= */
+
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  margin-bottom: 22px;
+}
+
+.enteteGauche {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.iconePermission {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #ede9fe;
+  color: #7c3aed;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  border: 1px solid #ddd6fe;
+  flex-shrink: 0;
+}
+
+.barreOutils {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.recherche {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+}
+
+.recherche input {
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 42px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.recherche input:focus {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(31, 111, 198, 0.12);
+}
+
+.rechercheIcone {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* Modal Demande */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalEnter 0.25s ease-out;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalClose {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.modalClose:hover {
+  color: #0f172a;
+}
+
+.champForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.champForm label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.champForm input,
+.champForm textarea {
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  font-family: inherit;
+}
+
+.champForm input:focus,
+.champForm textarea:focus {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(31, 111, 198, 0.12);
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+

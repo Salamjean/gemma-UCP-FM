@@ -1,0 +1,467 @@
+/* =========================================================
+   INFIRMIER > SUIVI & SURVEILLANCE (couleurs unies, pas de dégradé ni de bordure colorée)
+   ========================================================= */
+
+.patient {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.identite {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.identite > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.identite strong {
+  font-size: 1.15rem;
+  color: var(--dash-text);
+}
+
+.identite small {
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.dossier {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c4213f;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.initiales {
+  display: grid;
+  place-items: center;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.feminin {
+  background: #fde8f1;
+  color: #c2185b;
+}
+
+.etats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.badgeBleu {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.lit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.lit svg {
+  color: var(--dash-blue);
+}
+
+.infos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.infos div {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  min-width: 0;
+}
+
+.infos dt {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted);
+}
+
+.infos dd {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--dash-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dossierMedical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dossierMedical > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.dossierMedical > span svg {
+  color: var(--dash-blue);
+}
+
+.dossierMedical > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pastille {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #eaf3fe;
+  font-size: 0.8rem;
+  color: var(--dash-text);
+}
+
+.pastille em {
+  font-style: normal;
+  color: var(--dash-muted);
+}
+
+.bandeauFin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff3df;
+  color: #8a5300;
+  font-size: 0.86rem;
+}
+
+/* --- Onglets des journées --- */
+.onglets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onglet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 86px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  font: inherit;
+  color: var(--dash-text);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.onglet strong {
+  font-size: 0.92rem;
+}
+
+.onglet small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.ongletActif {
+  background: #1f6fc6;
+}
+
+.ongletActif strong,
+.ongletActif small {
+  color: #ffffff;
+}
+
+.journee {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.equipe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+.equipe svg {
+  color: var(--dash-blue);
+}
+
+.titreBloc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.titreBloc > svg {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 11px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.titreBloc > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.titreBloc h2 {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.titreBloc p {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.compte {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.produit {
+  max-width: 280px;
+  white-space: normal;
+}
+
+.heures {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.heure {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.heure small {
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.heureAFaire {
+  background: #fff3df;
+  color: #b56b00;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.heureAFaire:hover:not(:disabled) {
+  background: #ffe6bd;
+}
+
+.heureAFaire:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.heureFaite {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.numeroH {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #1b2333;
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.note {
+  font-size: 0.82rem;
+  color: var(--dash-muted);
+}
+
+/* --- Formulaire de surveillance --- */
+.formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.formulaire h3 {
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.parametres {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.parametre {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.parametre small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.parametre em {
+  font-style: normal;
+  color: #c4213f;
+}
+
+.parametre > span {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.parametre input,
+.parametre select {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  outline: none;
+}
+
+.parametre i {
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--dash-muted);
+}
+
+.deuxColonnes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.champ span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.champ textarea {
+  padding: 9px 12px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  resize: vertical;
+  outline: none;
+}
+
+.champ textarea:focus {
+  border-color: #3596f7;
+  box-shadow: 0 0 0 3px rgba(53, 150, 247, 0.15);
+}
+
+.pied {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 1000px) {
+  .infos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .identite {
+    flex-wrap: wrap;
+  }
+  .etats {
+    align-items: flex-start;
+  }
+  .deuxColonnes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.parametre input::placeholder {
+  color: #b3b9c6;
+  font-weight: 500;
+}

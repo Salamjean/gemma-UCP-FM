@@ -1,0 +1,390 @@
+/* =========================================================
+   MÉDECIN > RÉFÉRÉS (couleurs unies, pas de dégradé ni de bordure colorée)
+   ========================================================= */
+
+.barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onglets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.onglets button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f3f8;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  cursor: pointer;
+}
+
+.onglets button span {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.onglets .ongletActif {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.onglets .ongletActif span {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 100%);
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f1f3f8;
+  color: var(--dash-muted);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  outline: none;
+}
+
+.description {
+  margin: 12px 0 14px;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+.patient {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.patient > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.patient small,
+.empile small {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.empile {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.texteLong {
+  max-width: 280px;
+  white-space: normal;
+}
+
+.docs {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: #1f6fc6;
+}
+
+.badgeAttente {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.bouton {
+  height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 0.8rem !important;
+  white-space: nowrap;
+}
+
+.vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 12px;
+  color: var(--dash-muted);
+}
+
+.vide svg {
+  font-size: 2rem;
+  color: #c9d0dc;
+}
+
+.vide strong {
+  color: var(--dash-text);
+}
+
+/* --- Fiche d'une référence --- */
+.bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+
+.bandeau .patient strong {
+  font-size: 1.05rem;
+}
+
+.resume {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.resume div {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.resume dt,
+.liste dt {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted);
+}
+
+.resume dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.resume dd svg {
+  color: var(--dash-blue);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.titreBloc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.titreBloc svg {
+  color: var(--dash-blue);
+}
+
+.compte {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.76rem;
+}
+
+.motifReference {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  font-size: 0.92rem;
+  color: var(--dash-text);
+  white-space: pre-line;
+}
+
+.liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.liste div {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.liste dd {
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  white-space: pre-line;
+}
+
+.constantes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.constantes span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.constantes small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+}
+
+.prescriptions,
+.documents {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prescriptions li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.prescriptions small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.documents li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.documents li > svg {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  color: #1f6fc6;
+}
+
+.documents li > span {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.documents strong {
+  font-size: 0.86rem;
+  color: var(--dash-text);
+}
+
+.documents small {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--dash-muted);
+}
+
+@media (max-width: 1000px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fiche : consulter le patient après lecture de la référence */
+.barreConsulter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.barreConsulter > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.barreConsulter > span svg {
+  color: #0b7a54;
+  font-size: 1.1rem;
+}
+
+.statuts {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.statuts small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}

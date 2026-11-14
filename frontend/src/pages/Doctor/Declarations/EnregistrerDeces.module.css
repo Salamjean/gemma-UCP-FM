@@ -1,0 +1,163 @@
+/* Recherche du patient décédé */
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+}
+
+.recherche:focus-within {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(53, 150, 247, 0.12);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.aide {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.resultats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultats button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #eef0f6;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--dash-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.resultats button:hover:not(:disabled) {
+  background: #f3f8ff;
+}
+
+.resultats button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.choisi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef5fe;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #dbeafb;
+  color: #1f6fc6;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.texte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.texte strong,
+.texte small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.texte small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.badgeDecede {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+/* Zones de texte (causes, observations) */
+.zone {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+  outline: none;
+}
+
+.zone:focus {
+  border-color: var(--dash-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(53, 150, 247, 0.12);
+}
+
+/* Récapitulatif */
+.recap {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.recap dt {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.recap dd {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .resultats,
+  .recap {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,112 @@
+/* Consultation prénatale : grilles et blocs propres (le reste vient de FormulaireConsultation.module.css) */
+.chiffres {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.quatre {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.etiquette {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.court {
+  max-width: 320px;
+  margin-top: 12px;
+}
+
+.espace {
+  margin: 12px 0;
+}
+
+.reprise {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #eef5fe;
+  color: #1f5fa8;
+  font-size: 0.82rem;
+}
+
+.alerte {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fde0e6;
+  color: #c4213f;
+  font-size: 0.82rem;
+}
+
+/* Dépistages : demandé / reçu / résultat sur une ligne */
+.tableau {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.depistage {
+  display: grid;
+  grid-template-columns: 160px repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.depistage strong {
+  font-size: 0.86rem;
+}
+
+.depistage span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.depistage small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  .chiffres {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .depistage {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .chiffres,
+  .quatre {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

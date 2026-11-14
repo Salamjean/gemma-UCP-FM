@@ -1,0 +1,538 @@
+/* =========================================================
+   APPEL VIDÉO (couleurs unies, pas de dégradé)
+   .fond = plein écran · .reduit = fenêtre flottante en bas à droite
+   ========================================================= */
+.fond,
+.reduit {
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.fond {
+  inset: 0;
+}
+
+.reduit {
+  right: 20px;
+  bottom: 20px;
+  width: min(380px, calc(100vw - 32px));
+  height: 330px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+}
+
+.haut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+}
+
+.reduit .haut {
+  padding: 10px 12px;
+}
+
+.titre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.titre strong {
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titre span {
+  font-size: 0.82rem;
+  color: #a7b4c8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reduit .titre strong {
+  font-size: 0.85rem;
+}
+
+.reduit .titre span {
+  font-size: 0.72rem;
+}
+
+.actionsHaut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Boutons texte du haut (inviter, formulaire) */
+.actionHaut {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #2b3548;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actionHaut:hover {
+  background: #3a465d;
+}
+
+.actionPrincipale,
+.actionPrincipale:hover {
+  background: #1f6fc6;
+}
+
+.petitBouton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: #2b3548;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.scene {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 22px;
+  border-radius: 16px;
+  background: #1b2333;
+  overflow: hidden;
+}
+
+.reduit .scene {
+  margin: 0 10px;
+  border-radius: 12px;
+}
+
+.grille {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 6px;
+}
+
+.grilleMulti {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tuile {
+  position: relative;
+  min-height: 0;
+  background: #1b2333;
+}
+
+.nomTuile {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.7);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.distante {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.locale {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: min(240px, 30%);
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #0f172a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.reduit .locale {
+  right: 8px;
+  bottom: 8px;
+  width: 30%;
+  border-radius: 8px;
+}
+
+.miroir {
+  transform: scaleX(-1);
+}
+
+.localeVide {
+  display: grid;
+  place-items: center;
+  font-size: 0.74rem;
+  color: #a7b4c8;
+}
+
+.sansVideo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.sansVideo small {
+  font-size: 0.86rem;
+  color: #a7b4c8;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #1f6fc6;
+  font-size: 2.2rem;
+}
+
+.reduit .avatar {
+  width: 54px;
+  height: 54px;
+  font-size: 1.3rem;
+}
+
+.controles {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px;
+}
+
+.reduit .controles {
+  gap: 10px;
+  padding: 10px;
+}
+
+.bouton {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: #2b3548;
+  color: #ffffff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reduit .bouton {
+  width: 40px;
+  height: 40px;
+  font-size: 0.95rem;
+}
+
+.bouton:hover:not(:disabled) {
+  background: #3a465d;
+}
+
+.bouton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coupe {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.raccrocher,
+.raccrocher:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+@media (max-width: 720px) {
+  .grilleMulti {
+    grid-template-columns: 1fr;
+  }
+
+  .actionHaut span {
+    display: none;
+  }
+}
+
+/* Vidéo + panneau latéral facultatif */
+.corps {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  margin-right: 22px;
+}
+
+.corps > .scene {
+  margin-right: 0;
+}
+
+.reduit .corps {
+  margin-right: 10px;
+}
+
+.panneau {
+  width: 320px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: #1b2333;
+}
+
+@media (max-width: 900px) {
+  .panneau {
+    display: none;
+  }
+}
+
+.reduit {
+  cursor: grab;
+}
+
+/* Message caméra / micro refusé */
+.alerteMedia {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(560px, calc(100% - 24px));
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff3df;
+  color: #8a4b00;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  z-index: 2;
+}
+
+.alerteMedia span {
+  flex: 1;
+}
+
+.alerteMedia button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reduit .alerteMedia {
+  font-size: 0.7rem;
+  top: 6px;
+}
+
+/* =========================================================
+   DOCUMENTS PARTAGÉS (médecin principal ↔ confrères invités)
+   ========================================================= */
+.bouton {
+  position: relative;
+}
+
+.boutonActif,
+.boutonActif:hover:not(:disabled) {
+  background: #1f6fc6;
+}
+
+/* Nombre de documents reçus non vus */
+.pastille {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.avisDoc {
+  background: #e7f1ff;
+  color: #14467e;
+}
+
+a.petitBouton {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+a.petitBouton:hover {
+  background: #3a465d;
+}
+
+.panneauDocs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 340px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: #1b2333;
+}
+
+.docsHaut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.docsHaut strong {
+  font-size: 0.95rem;
+}
+
+.docsAjouter {
+  justify-content: center;
+  width: 100%;
+}
+
+.docsAjouter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.docsAide {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #a7b4c8;
+}
+
+.docsEnvoi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #d5deeb;
+}
+
+.docsBarre {
+  height: 6px;
+  border-radius: 3px;
+  background: #2b3548;
+  overflow: hidden;
+}
+
+.docsBarre span {
+  display: block;
+  height: 100%;
+  background: #1f6fc6;
+  transition: width 0.2s;
+}
+
+.docsVide {
+  padding: 24px 8px;
+  font-size: 0.8rem;
+  color: #a7b4c8;
+  text-align: center;
+}
+
+.docsListe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docsLigne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #232d40;
+}
+
+.docsIcone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #2b3548;
+  color: #8fc1ff;
+}
+
+.docsTexte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.docsTexte strong {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docsTexte small {
+  font-size: 0.72rem;
+  color: #a7b4c8;
+}
+
+/* Petit écran : le panneau passe par-dessus la vidéo */
+@media (max-width: 900px) {
+  .corps {
+    position: relative;
+  }
+
+  .panneauDocs {
+    position: absolute;
+    inset: 0 0 0 22px;
+    width: auto;
+    z-index: 3;
+  }
+}

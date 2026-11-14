@@ -1,0 +1,268 @@
+.sidebar {
+  position: fixed;
+  top: 6px;
+  bottom: 6px;
+  left: 4px;
+  z-index: 40;
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(23, 43, 76, 0.06);
+  overflow-y: auto;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.hidden {
+  transform: translateX(calc(-100% - 12px));
+}
+
+.backdrop {
+  display: none;
+}
+
+/* --- Logo --- */
+.logo {
+  display: block;
+  padding: 18px 0 10px;
+  text-align: center;
+}
+
+.logo img {
+  height: 76px;
+  width: auto;
+  margin: 0 auto;
+}
+
+/* --- Carte orange de l'utilisateur --- */
+.profile {
+  position: relative;
+  margin: 12px 13px 20px;
+}
+
+.profileButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--dash-orange);
+  color: var(--dash-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profileText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.profileText strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profileText small {
+  font-size: 0.78rem;
+}
+
+.caret {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 6px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(23, 43, 76, 0.15);
+}
+
+.dropdown button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.dropdown button:hover {
+  background: #f3f5fb;
+}
+
+/* --- Menu --- */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px;
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px 10px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.86rem;
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.item:hover {
+  color: var(--dash-blue);
+}
+
+/* Lien direct actif (ex. Tableau de bord) ou module contenant la page courante */
+.item:global(.active),
+.itemActive {
+  color: var(--dash-blue);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Libellé long : coupé avec "…" pour garder la flèche visible */
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex-shrink: 0;
+}
+
+.chevron {
+  font-size: 0.7rem;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* --- Sous-menu --- */
+.submenu {
+  list-style: none;
+  overflow: hidden;
+  padding-left: 32px;
+}
+
+.subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 6px;
+  color: var(--dash-muted);
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.subitem:hover,
+.subitem:global(.active) {
+  color: var(--dash-blue);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.footer {
+  margin-top: auto;
+  padding: 24px 0 18px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--dash-muted);
+}
+
+/* --- Mobile : sidebar par-dessus le contenu --- */
+@media (max-width: 900px) {
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(23, 43, 76, 0.35);
+  }
+}
+
+/* Pastille de compteur (ex. télémédecines en attente) */
+.badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e02d4c;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Si le module a un chevron, la pastille se place juste avant */
+.badge + svg {
+  margin-left: 8px;
+}
+
+/* Titre de section (ex. nom de l'hôpital ouvert par l'admin UCP-FM) */
+.section {
+  margin: 12px 10px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

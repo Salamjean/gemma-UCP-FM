@@ -1,0 +1,298 @@
+/* Suivi mère-enfant (PTME) */
+.onglets {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.onglet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dash-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.onglet span {
+  display: flex;
+  flex-direction: column;
+}
+
+.onglet strong {
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.onglet small {
+  font-size: 0.74rem;
+}
+
+.ongletActif {
+  background: #eef5fe;
+  color: var(--dash-blue);
+}
+
+.ongletActif strong {
+  color: var(--dash-blue);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 2.2fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.recherche {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saisie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+}
+
+.saisie:focus-within {
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(53, 150, 247, 0.12);
+}
+
+.saisie input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.86rem;
+  outline: none;
+}
+
+.aide {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.resultats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultats button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #f6f8fc;
+  color: var(--dash-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.resultats button:hover,
+.resultatActif {
+  background: #eef5fe !important;
+}
+
+.avatar,
+.avatarGrand {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fde7f0;
+  color: #c2185b;
+  font-weight: 700;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.78rem;
+}
+
+.avatarGrand {
+  width: 52px;
+  height: 52px;
+  font-size: 1rem;
+}
+
+.texte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.texte strong,
+.texte small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.texte small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 50px 12px;
+  color: var(--dash-muted);
+  text-align: center;
+}
+
+.vide svg {
+  font-size: 2rem;
+  color: #c2185b;
+}
+
+.vide strong {
+  color: var(--dash-text);
+}
+
+.vide p {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.fiche {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.rappel {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff3df;
+  color: #8a4b00;
+  font-size: 0.82rem;
+}
+
+.titreHistorique {
+  margin: 16px 0 10px;
+  font-size: 0.92rem;
+  color: var(--dash-text);
+}
+
+.cellule {
+  max-width: 200px;
+  white-space: normal;
+}
+
+.positif {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.negatif {
+  background: #e3f5ee;
+  color: #0f7a52;
+}
+
+.neutre {
+  background: #eef2f8;
+  color: #4a5a70;
+}
+
+.muet {
+  color: var(--dash-muted);
+}
+
+/* Formulaire */
+.section {
+  margin-top: 16px;
+}
+
+.section h3 {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.champs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.large {
+  grid-column: 1 / -1;
+}
+
+/* Détail d'une visite */
+.detail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.detail div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.detail dt {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.detail dd {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+@media (max-width: 1100px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .champs,
+  .detail {
+    grid-template-columns: 1fr;
+  }
+
+  .fiche {
+    flex-wrap: wrap;
+  }
+}

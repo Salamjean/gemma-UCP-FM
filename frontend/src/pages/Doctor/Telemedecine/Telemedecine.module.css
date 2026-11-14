@@ -1,0 +1,268 @@
+/* =========================================================
+   MÉDECIN > TÉLÉMÉDECINE (couleurs unies, pas de dégradé ni de bordure colorée)
+   ========================================================= */
+
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.filtres button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f3f8;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.filtres button span {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.filtres .filtreActif {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.filtres .filtreActif span {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+/* --- Carte --- */
+.carte {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f6f8fc;
+  min-width: 0;
+}
+
+.carteDuJour .rendezVous {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.carteHaut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rendezVous {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f6fc6;
+}
+
+.rendezVous svg {
+  font-size: 0.75rem;
+}
+
+.rendezVous svg + svg,
+.rendezVous svg:nth-of-type(2) {
+  margin-left: 6px;
+}
+
+.retard {
+  color: #c4213f;
+}
+
+.badgeAttente {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.badgeRetard {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.badgeAppel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.patient {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.patient > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.patient strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--dash-text);
+}
+
+.patient small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.urgence {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fde0e6;
+  color: #c4213f;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.motif {
+  font-size: 0.86rem;
+  color: var(--dash-text);
+}
+
+.constantes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.constantes span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.constantes small {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+}
+
+.demandeur {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.demandeur div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.demandeur dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dash-muted);
+}
+
+.demandeur dt svg {
+  color: var(--dash-blue);
+}
+
+.demandeur dd {
+  font-weight: 500;
+  color: var(--dash-text);
+  text-align: right;
+}
+
+.note {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--dash-muted);
+}
+
+.bouton {
+  margin-top: auto;
+  justify-content: center;
+}
+
+.vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 12px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.vide svg {
+  font-size: 2rem;
+  color: #c9d0dc;
+}
+
+.vide strong {
+  color: var(--dash-text);
+}
+
+/* Appel vidéo + démarrer la consultation */
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.actions > .bouton {
+  flex: 1;
+  margin-top: 0;
+}
+
+.boutonAppelActif {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+/* Tableau : boutons Appeler + Consulter sur une ligne */
+.actionsLigne {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

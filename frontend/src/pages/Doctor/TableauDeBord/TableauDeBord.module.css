@@ -1,0 +1,397 @@
+/* =========================================================
+   MÉDECIN > TABLEAU DE BORD (couleurs unies, pas de dégradé ni de bordure colorée)
+   ========================================================= */
+
+/* --- Situation --- */
+.situation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.service {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.service > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.service strong {
+  font-size: 1rem;
+  color: var(--dash-text);
+}
+
+.service small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.pastille {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c9d0dc;
+}
+
+.pastilleActive {
+  background: #16a34a;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.15);
+}
+
+.chiffres {
+  display: flex;
+  gap: 10px;
+}
+
+.chiffres div {
+  min-width: 150px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.chiffres dt {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.chiffres dd {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--dash-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Grille --- */
+.grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+/* --- Prochain patient (bloc bleu uni) --- */
+.prochain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 16px;
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.etiquette {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prochainPatient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.prochainPatient img,
+.prochainPatient > span:first-child {
+  width: 58px !important;
+  height: 58px !important;
+  font-size: 1.1rem !important;
+}
+
+.prochainPatient > div {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Motif, prestation… sur la même ligne que le nom */
+.prochainPatient > .prochainInfos {
+  flex: 1;
+  min-width: 0;
+}
+
+.prochainPatient strong {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.prochainPatient small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.prochainInfos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.prochainInfos div {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.prochainInfos dt {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.prochainInfos dd {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.commencer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1f6fc6;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+
+.commencer:hover {
+  transform: translateY(-1px);
+}
+
+.prochainVide {
+  align-items: center;
+  text-align: center;
+  background: #ffffff;
+  color: var(--dash-text);
+  box-shadow: 0 1px 2px rgba(23, 43, 76, 0.04);
+}
+
+.prochainVide small {
+  font-size: 0.82rem;
+  color: var(--dash-muted);
+}
+
+.videIcone {
+  font-size: 2.2rem;
+  color: #c9d0dc;
+}
+
+.urgence {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fde0e6;
+  color: #c4213f;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- File d'attente --- */
+.fileEntete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fileEntete > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileEntete h2 {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.fileEntete p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.fileIcone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f6fc6;
+  text-decoration: none;
+}
+
+.lien span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eaf3fe;
+}
+
+.file {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.fileTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileTexte strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.fileTexte small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileHeure {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.consulter {
+  height: 34px !important;
+  padding: 0 14px !important;
+  font-size: 0.8rem !important;
+}
+
+.fileVide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 12px;
+  color: var(--dash-muted);
+  font-size: 0.86rem;
+}
+
+.fileVide svg {
+  font-size: 1.8rem;
+  color: #c9d0dc;
+}
+
+/* --- Colonne de droite : file d'attente puis télémédecine --- */
+.colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* Les deux listes du bas prennent la même hauteur */
+.colonne > section:last-child {
+  flex: 1;
+}
+
+@media (max-width: 1400px) {
+  .prochainPatient {
+    flex-wrap: wrap;
+  }
+  .prochainPatient > .prochainInfos {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 1100px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .chiffres {
+    width: 100%;
+    flex-direction: column;
+  }
+  .file li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .fileHeure,
+  .consulter {
+    grid-column: 2;
+  }
+}
+
+/* Cartes bleues : jamais de retour à la ligne, texte coupé par des points de suspension (texte complet au survol) */
+.prochainInfos div {
+  min-width: 0;
+}
+
+.prochainPatient strong,
+.prochainPatient small,
+.prochainInfos dt,
+.prochainInfos dd,
+.etiquette,
+.commencer,
+.prochainVide strong,
+.prochainVide small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.prochainPatient > div {
+  max-width: 45%;
+}

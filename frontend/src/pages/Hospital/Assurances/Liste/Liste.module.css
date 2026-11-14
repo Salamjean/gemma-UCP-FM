@@ -1,0 +1,76 @@
+/* Styles propres à la liste des assurances (le reste vient de styles/espace.module.css) */
+.compteurs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dash-muted);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+.reference {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+  white-space: nowrap;
+}
+
+/* Taux de prise en charge : petite barre unie + valeur */
+.taux {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 170px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.tauxBarre {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #eef0f6;
+  overflow: hidden;
+}
+
+.tauxBarre span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dash-blue);
+}
+
+.taux strong {
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badgeKo {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.iconeStatut:hover {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+@media (max-width: 1100px) {
+  .compteurs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

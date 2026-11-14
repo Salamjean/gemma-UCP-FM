@@ -1,0 +1,126 @@
+.hero {
+  position: relative;
+  height: 100dvh;
+  min-height: 640px;
+  display: flex;
+  overflow: hidden;
+  isolation: isolate; /* les images se fondent entre elles, au-dessus du fond blanc */
+  background: #ffffff; /* même blanc que le fond des images */
+
+  /* Tailles des images (plus petit = semble plus éloigné) */
+  --family-size: 0.9; /* hauteur de la famille, par rapport à la zone sous le menu */
+  --nurse-size: 0.8; /* hauteur de l'infirmière */
+}
+
+/* --- Infirmière : en bas à droite --- */
+.nurse {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 0;
+  z-index: 1;
+  height: calc((100% - var(--nav-height)) * var(--nurse-size));
+  width: auto;
+  max-width: none;
+  transform-origin: right bottom;
+  mix-blend-mode: multiply; /* le fond blanc de la photo devient invisible */
+}
+
+/* --- Colonne de texte : la famille est centrée derrière --- */
+.column {
+  position: relative; /* pas de z-index ici : sinon le fondu "multiply" de la famille ne marche plus */
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-left: calc(var(--gutter) + 8vw);
+}
+
+.familyLayer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: flex;
+  justify-content: center; /* centrée horizontalement sous les textes */
+  align-items: flex-end; /* posée en bas de l'écran */
+  pointer-events: none;
+}
+
+.family {
+  height: calc(100% * var(--family-size));
+  width: auto;
+  max-width: none;
+  transform-origin: center bottom;
+  mix-blend-mode: multiply;
+}
+
+/* --- Texte --- */
+.content {
+  position: relative;
+  z-index: 2; /* texte au-dessus des deux images */
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  color: var(--color-primary);
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  margin-bottom: 40px;
+}
+
+.line {
+  display: block;
+  width: 70px;
+  height: 2px;
+  background: var(--color-primary);
+  transform-origin: left;
+}
+
+.title {
+  font-size: clamp(2.4rem, 4.6vw, 4.6rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin-bottom: 48px;
+}
+
+.mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+}
+
+.titleLine {
+  display: block;
+}
+
+.text {
+  max-width: 52ch;
+  font-size: 1.1rem;
+  line-height: 1.75;
+}
+
+/* --- Tablette : infirmière éclaircie pour garder le texte lisible --- */
+@media (max-width: 1100px) {
+  .nurse {
+    opacity: 0.35 !important;
+  }
+  .column {
+    margin-left: var(--gutter);
+    margin-right: var(--gutter);
+  }
+}
+
+/* --- Mobile : seule la famille reste derrière le texte --- */
+@media (max-width: 600px) {
+  .nurse {
+    display: none;
+  }
+  .eyebrow {
+    gap: 16px;
+    font-size: 0.85rem;
+  }
+  .line {
+    width: 40px;
+  }
+}

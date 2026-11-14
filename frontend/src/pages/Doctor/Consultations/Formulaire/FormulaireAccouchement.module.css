@@ -1,0 +1,129 @@
+/* Accouchement : grilles et blocs propres (le reste vient des styles du formulaire de consultation) */
+.cinq {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.marge {
+  margin-top: 12px;
+}
+
+/* Indice d'Apgar */
+.apgar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.apgarEntete,
+.apgarLigne,
+.apgarTotal {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.apgarEntete {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.apgarLigne > span:first-child,
+.apgarTotal > span {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.apgarTotal {
+  padding-top: 8px;
+  border-top: 1px solid #e3e8f1;
+}
+
+.apgarTotal input {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 700;
+}
+
+/* Déclaration de naissance */
+.enfants {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.enfant {
+  position: relative;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 44px 14px 14px;
+  border-radius: 12px;
+  background: #f6f8fc;
+}
+
+.numero {
+  align-self: center;
+  font-size: 0.9rem;
+}
+
+.retirer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #fde0e6;
+  color: #c4213f;
+  cursor: pointer;
+}
+
+.info,
+.declaree {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+
+.info {
+  background: #eef5fe;
+  color: #1f5fa8;
+}
+
+.declaree {
+  background: #e3f5ee;
+  color: #0f7a52;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .cinq {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .enfant {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

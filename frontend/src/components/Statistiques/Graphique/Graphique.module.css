@@ -1,0 +1,142 @@
+.bloc {
+  min-width: 0;
+}
+
+.zone {
+  position: relative;
+  height: 400px;
+}
+
+/* --- En-tête : titre + interrupteur Graphique / Tableau --- */
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.titre {
+  min-width: 0;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.interrupteur {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f3f8;
+}
+
+.option {
+  position: relative;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.optionActive {
+  color: #ffffff;
+}
+
+.optionFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: var(--dash-blue);
+}
+
+.optionTexte {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Graphique et tableau occupent la même zone (pas de saut de mise en page) */
+.vue {
+  position: absolute;
+  inset: 0;
+}
+
+.tableauWrap {
+  overflow: auto;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.masque {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Lignes compactes : en-tête + 10 mois + total tiennent dans la zone (400 px) sans défiler */
+.tableau th,
+.tableau td {
+  height: 32px;
+  padding: 0 12px;
+  text-align: center;
+  border-bottom: 1px solid #eef0f6;
+}
+
+.tableau thead th {
+  position: sticky;
+  top: 0;
+  background: #f6f8fc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dash-muted);
+}
+
+.tableau tbody th {
+  font-weight: 500;
+  color: var(--dash-text);
+}
+
+.tableau td {
+  font-variant-numeric: tabular-nums;
+}
+
+.tableau tbody tr:hover {
+  background: #f9fafe;
+}
+
+.tableau tfoot th,
+.tableau tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #eaf3fe;
+  font-weight: 700;
+  color: #1f6fc6;
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .zone {
+    height: 300px;
+  }
+}

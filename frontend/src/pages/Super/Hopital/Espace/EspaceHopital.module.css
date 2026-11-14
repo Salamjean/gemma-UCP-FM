@@ -1,0 +1,289 @@
+/* Admin UCP-FM > hôpital ouvert : en-tête, onglets, vue d'ensemble */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
+}
+
+.photo {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #f3f5fb;
+}
+
+.identite {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.surtitre {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dash-blue);
+}
+
+.nom {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--dash-text);
+}
+
+.infos {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.ok {
+  background: #e3f5ee;
+  color: #0f7a52;
+}
+
+.ko {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.boutons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.principal,
+.secondaire,
+.retour {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.principal {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.secondaire,
+.retour {
+  background: #f1f4f8;
+  color: var(--dash-text);
+}
+
+.contenu {
+  min-width: 0;
+}
+
+/* Vue d'ensemble */
+.vue {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cartes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.colonnes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+.titreBloc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.titreBloc h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--dash-text);
+}
+
+.titreBloc > span {
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+}
+
+.compteurs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compteurs a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  color: var(--dash-text);
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+
+.compteurs a:hover {
+  background: #eef5fe;
+}
+
+.compteurs span {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+}
+
+.compteurs strong {
+  font-size: 1rem;
+}
+
+.compteurs svg:last-child {
+  color: var(--dash-muted);
+  font-size: 0.75rem;
+}
+
+.jauge {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef2f8;
+  overflow: hidden;
+}
+
+.jauge span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dash-blue);
+}
+
+.lienAction {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.services {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.services a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  color: var(--dash-text);
+  text-decoration: none;
+}
+
+.services a:hover {
+  background: #eef5fe;
+}
+
+.services small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.chargement,
+.vide,
+.erreur {
+  margin: 0;
+  padding: 18px;
+  color: var(--dash-muted);
+}
+
+.erreur {
+  border-radius: 12px;
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+@media (max-width: 1200px) {
+  .colonnes {
+    grid-template-columns: 1fr;
+  }
+
+  .services {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .entete {
+    flex-wrap: wrap;
+  }
+
+  .cartes,
+  .services {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

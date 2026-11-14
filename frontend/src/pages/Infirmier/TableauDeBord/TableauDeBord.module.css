@@ -1,0 +1,456 @@
+/* =========================================================
+   INFIRMIER > TABLEAU DE BORD
+   Couleurs unies, pas de bordure colorée ni de dégradé (règles Gemma)
+   ========================================================= */
+
+/* --- En-tête : salutation + 2 actions d'accueil --- */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 20px;
+  align-items: center;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(23, 43, 76, 0.05);
+}
+
+.date {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-blue);
+}
+
+.date::first-letter {
+  text-transform: uppercase;
+}
+
+.salutation h1 {
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.sousTitre {
+  margin-top: 4px;
+  font-size: 0.84rem;
+  color: var(--dash-muted);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action {
+  --teinte: #eaf3fe;
+  --accent: #1f6fc6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--teinte);
+  color: var(--dash-text);
+  text-decoration: none;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+
+.action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(23, 43, 76, 0.1);
+}
+
+.actionBleue {
+  --teinte: #eaf3fe;
+  --accent: #1f6fc6;
+}
+
+.actionVerte {
+  --teinte: #e3f5ee;
+  --accent: #0b7a54;
+}
+
+.actionIcone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 1.1rem;
+}
+
+.actionTexte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.actionTexte strong {
+  font-size: 0.92rem;
+}
+
+.actionTexte small {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.actionFleche {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--accent);
+  transition: transform 0.2s var(--ease-out);
+}
+
+.action:hover .actionFleche {
+  transform: translateX(4px);
+}
+
+/* --- Colonnes --- */
+.colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch; /* la file d'attente prend toute la hauteur de la colonne de droite */
+}
+
+/* File d'attente : occupe la hauteur disponible, la liste défile si elle est longue */
+.principal {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.principal .file {
+  flex: 1;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.principal .vide {
+  flex: 1;
+  justify-content: center;
+}
+
+.colonneDroite {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.colonneDroite > section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Message "aucun…" centré dans la hauteur du bloc */
+.colonneDroite .videListe {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* --- Titre de bloc --- */
+.enteteBloc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.enteteIcone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f3f8;
+  color: var(--dash-blue);
+  font-size: 0.9rem;
+}
+
+.enteteTexte {
+  flex: 1;
+  min-width: 0;
+}
+
+.enteteTexte h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.enteteTexte p {
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.compte {
+  min-width: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.lienBloc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.lienBloc:hover {
+  text-decoration: underline;
+}
+
+/* --- File d'attente (lignes) --- */
+.file {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ligneFile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  transition: background 0.2s;
+}
+
+.ligneFile:hover {
+  background: #eef2f9;
+}
+
+.heure {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--dash-text);
+}
+
+.avatar,
+.avatarMini {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-weight: 700;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.8rem;
+}
+
+.avatarMini {
+  width: 32px;
+  height: 32px;
+  font-size: 0.72rem;
+}
+
+.avatarF {
+  background: #fde8f1;
+  color: #c2185b;
+}
+
+.avatarUrgence {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.patient {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.patient strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  color: var(--dash-text);
+}
+
+.patient small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+.boutonPrincipal,
+.boutonSecondaire {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s var(--ease-out);
+}
+
+.boutonPrincipal {
+  background: var(--dash-blue);
+  color: #ffffff;
+}
+
+.boutonPrincipal:hover {
+  background: #1f7fe0;
+  transform: translateY(-1px);
+}
+
+.boutonSecondaire {
+  background: #ffffff;
+  color: var(--dash-text);
+}
+
+.boutonSecondaire:hover {
+  background: #eef0f6;
+}
+
+/* --- Mini-listes (colonne droite) --- */
+.mini {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mini li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+/* --- États vides --- */
+.vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 34px 12px;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+.vide svg {
+  font-size: 1.8rem;
+  color: #c9d0dc;
+}
+
+.vide strong {
+  color: var(--dash-text);
+}
+
+.vide p {
+  max-width: 360px;
+  font-size: 0.8rem;
+}
+
+.videListe {
+  padding: 18px 8px;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--dash-muted);
+}
+
+/* --- Badges --- */
+.badgeInfo {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.badgeAttente {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.badgeViolet {
+  background: #efe9fd;
+  color: #6a3fd6;
+}
+
+.pointAppel {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f08c00;
+  animation: clignote 1s ease-in-out infinite;
+}
+
+@keyframes clignote {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* --- Responsive --- */
+@media (max-width: 1250px) {
+  .hero,
+  .colonnes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+  .ligneFile {
+    flex-wrap: wrap;
+  }
+}
+
+.lienPatient {
+  color: inherit;
+  text-decoration: none;
+}
+
+.lienPatient:hover strong {
+  color: #1f6fc6;
+}

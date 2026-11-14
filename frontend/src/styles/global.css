@@ -1,0 +1,75 @@
+@import './variables.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-title);
+  color: var(--color-navy);
+  line-height: 1.1;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Page plein écran : toutes les pages l'utilisent */
+.page {
+  min-height: 100dvh;
+  padding-top: var(--nav-height);
+}
+
+/* =========================================================
+   SweetAlert2 (pop-ups de succès / échec — services/alertes.ts)
+   Couleurs unies, même police que l'application
+   ========================================================= */
+.swal2-popup {
+  font-family: 'Poppins', var(--font-body);
+  border-radius: 12px;
+}
+
+.swal2-html-container {
+  font-size: 0.95rem;
+  color: #3a3f4b;
+}
+
+.swal2-styled.swal2-confirm {
+  border-radius: 6px;
+  padding: 0.55em 1.6em;
+  font-weight: 500;
+}

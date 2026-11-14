@@ -1,0 +1,122 @@
+/* Liste des chambres (le reste vient de styles/espace.module.css) */
+.compteurs {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dash-muted);
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text);
+  font-size: 0.85rem;
+}
+
+/* Filtre par type (pastille qui glisse) */
+.onglets {
+  display: inline-flex;
+  gap: 4px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f3f5fb;
+}
+
+.onglet {
+  position: relative;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ongletActif {
+  color: var(--dash-text);
+}
+
+.ongletFond {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(23, 43, 76, 0.08);
+}
+
+.ongletTexte {
+  position: relative;
+  z-index: 1;
+}
+
+.numero {
+  font-size: 0.95rem;
+}
+
+.prix {
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lits : une icône par lit (occupé en orange, libre en vert) */
+.lits {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+
+.lits small {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.litLibre {
+  color: #2bb673;
+}
+
+.litOccupe {
+  color: #f08c00;
+}
+
+.badgeIndividuelle {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.badgeCollective {
+  background: #efe9fd;
+  color: #6a3fd6;
+}
+
+.badgeKo {
+  background: #fde0e6;
+  color: #c4213f;
+}
+
+.iconeModifier:hover {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.iconeStatut:hover {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+@media (max-width: 1100px) {
+  .compteurs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
