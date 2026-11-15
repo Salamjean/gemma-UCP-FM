@@ -10,6 +10,8 @@ import c from '../../../../styles/espace.module.css';
 import type { Chambre } from '../../../../types';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Chambres.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer'; chambre: Chambre };
 type Filtre = 'toutes' | 'individual' | 'collective';
@@ -64,6 +66,7 @@ export default function Liste() {
       (x) => (filtre === 'toutes' || x.type === filtre) && (!q || [x.numero, x.description].some((v) => v?.toLowerCase().includes(q))),
     );
   }, [chambres, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const totalLits = chambres?.reduce((t, x) => t + x.lits, 0) ?? 0;
   const totalOccupes = chambres?.reduce((t, x) => t + x.occupes, 0) ?? 0;
@@ -105,6 +108,24 @@ export default function Liste() {
         <Link to={`${baseHopital()}/hospitalisation/chambres/ajouter`} className={c.principal}>
           <FaPlus aria-hidden="true" /> Ajouter une chambre
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="chambres"
+            titre="Chambres"
+            module="HOSPITALISATION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Chambre', valeur: (x) => x.numero },
+              { titre: 'Description', valeur: (x) => x.description },
+              { titre: 'Type', valeur: (x) => (x.type === 'collective' ? 'Collective' : 'Individuelle') },
+              { titre: 'Lits', valeur: (x) => x.lits },
+              { titre: 'Lits occupés', valeur: (x) => x.occupes },
+              { titre: 'Lits libres', valeur: (x) => x.lits - x.occupes },
+              { titre: 'Prix / jour (FCFA)', valeur: (x) => x.prix },
+              { titre: 'Statut', valeur: (x) => (x.actif ? 'Activée' : 'Désactivée') },
+            ]}
+          />
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${styles.compteurs}`}>
@@ -150,7 +171,7 @@ export default function Liste() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((x, i) => (
+              {pg.lignes.map((x, i) => (
                 <motion.tr key={x.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                   <td>
                     <strong className={styles.numero}>{x.numero}</strong>
@@ -213,6 +234,7 @@ export default function Liste() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog

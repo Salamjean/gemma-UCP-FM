@@ -10,6 +10,8 @@ import c from '../../../../styles/espace.module.css';
 import type { ServiceHopital } from '../../../../types';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Liste.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer'; service: ServiceHopital };
 
@@ -67,6 +69,7 @@ export default function Liste() {
     if (!services || !q) return services ?? [];
     return services.filter((s) => [s.libelle, s.description].some((v) => v?.toLowerCase().includes(q)));
   }, [services, recherche]);
+  const pg = usePagination(filtres);
 
   const compteurs = services
     ? [
@@ -110,6 +113,22 @@ export default function Liste() {
         <Link to={`${baseHopital()}/services/ajouter`} className={c.principal}>
           <FaPlus aria-hidden="true" /> Ajouter un service
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="services"
+            titre="Services"
+            module="SERVICE"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Service', valeur: (s) => s.libelle },
+              { titre: 'Description', valeur: (s) => s.description },
+              { titre: 'Actes', valeur: (s) => s.actes },
+              { titre: 'Prix des actes', valeur: (s) => fourchette(s) || null },
+              { titre: 'Agents', valeur: (s) => s.agents },
+              { titre: 'Statut', valeur: (s) => (s.actif ? 'Activé' : 'Désactivé') },
+            ]}
+          />
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${styles.compteurs}`}>
@@ -146,7 +165,7 @@ export default function Liste() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((s, i) => (
+              {pg.lignes.map((s, i) => (
                 <motion.tr key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                   <td>
                     <Link to={`${baseHopital()}/services/${s.id}`} className={styles.nom}>{s.libelle}</Link>
@@ -206,6 +225,7 @@ export default function Liste() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog

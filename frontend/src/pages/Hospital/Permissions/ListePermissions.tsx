@@ -11,6 +11,8 @@ import DetailPermission from './DetailPermission';
 import { absentAujourdhui, heure, jour, nombreJours, ORDRE_STATUTS, STATUTS, typeAgent } from './permissions.config';
 import { baseHopital, estAdminHopital } from '../../../services/contexteHopital';
 import styles from './Permissions.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type Decision = { demande: DemandePermission; statut: 'agree' | 'reject' };
 
@@ -64,6 +66,7 @@ export default function ListePermissions({ statut }: { statut: StatutPermission 
     const l = data?.demandes ?? [];
     return q ? l.filter((d) => [d.code, d.agent, d.matricule, d.motif, typeAgent(d)].some((v) => v?.toLowerCase().includes(q))) : l;
   }, [data, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <div className={c.page}>
@@ -71,6 +74,27 @@ export default function ListePermissions({ statut }: { statut: StatutPermission 
         <div>
           <p className={c.surtitre}>Permissions</p>
           <h1 className={c.titre}>Permissions {conf.pluriel.toLowerCase()}</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier={`permissions_${conf.pluriel.toLowerCase().replace(/\s+/g, '_')}`}
+            titre={`Permissions ${conf.pluriel.toLowerCase()}`}
+            module="PERMISSION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Code', valeur: (d) => d.code },
+              { titre: 'Agent', valeur: (d) => d.agent },
+              { titre: 'Type', valeur: (d) => typeAgent(d) },
+              { titre: 'Matricule', valeur: (d) => d.matricule },
+              { titre: 'Du', valeur: (d) => jour(d.debut) },
+              { titre: 'Au', valeur: (d) => jour(d.fin) },
+              { titre: 'Heure début', valeur: (d) => heure(d.heureDebut) },
+              { titre: 'Heure fin', valeur: (d) => heure(d.heureFin) },
+              { titre: 'Jours', valeur: (d) => nombreJours(d.debut, d.fin) },
+              { titre: 'Motif', valeur: (d) => d.motif },
+              { titre: 'Statut', valeur: (d) => STATUTS[d.statut].libelle },
+            ]}
+          />
         </div>
       </header>
 
@@ -113,6 +137,7 @@ export default function ListePermissions({ statut }: { statut: StatutPermission 
             </p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -127,7 +152,7 @@ export default function ListePermissions({ statut }: { statut: StatutPermission 
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((d, i) => {
+                {pg.lignes.map((d, i) => {
                   const jours = nombreJours(d.debut, d.fin);
                   const absent = d.statut === 'agree' && absentAujourdhui(d.debut, d.fin);
                   return (
@@ -199,6 +224,8 @@ export default function ListePermissions({ statut }: { statut: StatutPermission 
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
 

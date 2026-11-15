@@ -16,6 +16,7 @@ import { apiAgent, type EspaceAgent } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { InfirmierPermissionItem } from '../../../types';
 import s from './Permissions.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -105,6 +106,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
         (it.finDate && it.finDate.includes(q)),
     );
   }, [items, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <div className={c.page}>
@@ -179,7 +181,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
           </div>
         </div>
 
-        <div className={c.tableWrapper}>
+        <div className={c.tableWrap}>
           <table className={c.table}>
             <thead>
               <tr>
@@ -207,7 +209,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
                   </td>
                 </tr>
               ) : (
-                filtres.map((it) => (
+                pg.lignes.map((it) => (
                   <tr key={it.id}>
                     <td>
                       <strong style={{ color: 'var(--dash-blue)', fontSize: '0.88rem' }}>
@@ -257,6 +259,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </motion.section>
 
       {/* =========================================================
@@ -291,7 +294,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
 
             <form onSubmit={handleCreer}>
               <div className={s.modalBody}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   <div className={s.champForm}>
                     <label htmlFor="debutDate">Date de début *</label>
                     <input
@@ -314,7 +317,7 @@ export default function Permissions({ espace = 'infirmier' }: { espace?: EspaceA
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   <div className={s.champForm}>
                     <label htmlFor="debutHeure">Heure de début (Optionnel)</label>
                     <input

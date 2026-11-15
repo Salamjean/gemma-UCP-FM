@@ -6,7 +6,7 @@ import type { AuthUser, Role } from '../types';
  * Libellés repris de Laravel (app/Helpers/helpers.php → roleFr).
  */
 export const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Admin UCP-FM',
+  admin: 'Admin DMHP',
   hospital: 'Hôpital',
   doctor: 'Docteur',
   infirmier: 'Infirmier(e)',

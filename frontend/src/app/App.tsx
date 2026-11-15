@@ -19,6 +19,7 @@ import AvisExpert from '../pages/Home/AvisExpert';
 import Contact from '../pages/Home/Contact';
 import { infirmierSpace } from '../pages/Infirmier/infirmier.menu';
 import { regulateurSpace } from '../pages/Regulateur/regulateur.menu';
+import Profil from '../pages/Profil/Profil';
 import NotFound from '../pages/NotFound';
 import { superSpace } from '../pages/Super/super.menu';
 
@@ -73,6 +74,8 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 >
+                  {/* « Mon profil » : même page pour tous les rôles (lien dans la carte de la sidebar) */}
+                  <Route path="profil" element={<Profil />} />
                   {allPages(space).map((page) =>
                     page.path === '' ? (
                       <Route key="index" index element={page.element} />

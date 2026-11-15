@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { FaCaretDown, FaChevronRight, FaSignOutAlt } from 'react-icons/fa';
+import { FaCaretDown, FaChevronRight, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { avatarUrl, DEFAULT_AVATAR, displayName, roleSubtitle } from '../../../config/roles';
+import { avatarUrl, DEFAULT_AVATAR, displayName, ROLE_HOME, roleSubtitle } from '../../../config/roles';
 import { ROUTES, SITE } from '../../../config/site';
 import { useAuth } from '../../../context/AuthContext';
 import type { AuthUser } from '../../../types';
@@ -209,6 +209,15 @@ function ProfileCard({ user }: { user: AuthUser }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
           >
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                navigate(`${ROLE_HOME[user.role]}/profil`);
+              }}
+            >
+              <FaUserCircle aria-hidden="true" /> Mon profil
+            </button>
             <button
               type="button"
               onClick={() => {

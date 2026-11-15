@@ -9,6 +9,8 @@ import type { EspaceDeclarations } from '../../../types';
 import type { DeclarationNaissanceResume } from '../../../types';
 import { baseHopital } from '../../../services/contexteHopital';
 import s from './Declarations.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type FiltreNaissance = 'toutes' | 'M' | 'F';
 
@@ -92,6 +94,7 @@ export function ListeNaissances({ espace = 'hopital' }: { espace?: EspaceDeclara
       );
     });
   }, [naissances, recherche, filtre]);
+  const pg = usePagination(filtrees);
 
   const compteurs = naissances
     ? [
@@ -108,6 +111,27 @@ export function ListeNaissances({ espace = 'hopital' }: { espace?: EspaceDeclara
         <div>
           <p className={c.surtitre}>Déclarations · État civil</p>
           <h1 className={c.titre}>{espace === 'medecin' ? 'Mes déclarations de naissance' : 'Liste des déclarations de naissance'}</h1>
+        </div>
+        <div className={c.boutons}>
+          {espace === 'hopital' && (
+            <ExportExcel
+              fichier="declarations_naissances"
+              titre="Déclarations de naissance"
+              module="DECLARATION"
+              lignes={filtrees}
+              colonnes={[
+                { titre: 'N° certificat (CMN)', valeur: (n) => n.referenceCmn },
+                { titre: 'Référence DN', valeur: (n) => n.referenceDn },
+                { titre: 'DM enfant', valeur: (n) => n.enfant.code },
+                { titre: 'Mère', valeur: (n) => n.mere.nom },
+                { titre: 'DM mère', valeur: (n) => n.mere.code },
+                { titre: 'Genre enfant', valeur: (n) => libelleGenre(n.genreEnfant) },
+                { titre: "Nombre d'enfants", valeur: (n) => n.nombreEnfants },
+                { titre: 'Date de naissance', valeur: (n) => formatDate(n.dateNaissance) },
+                { titre: 'Heure', valeur: (n) => n.heureNaissance },
+              ]}
+            />
+          )}
         </div>
       </header>
 
@@ -163,6 +187,7 @@ export function ListeNaissances({ espace = 'hopital' }: { espace?: EspaceDeclara
             <p>Les déclarations de naissance établies par vos praticiens apparaîtront dans ce registre.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -178,7 +203,7 @@ export function ListeNaissances({ espace = 'hopital' }: { espace?: EspaceDeclara
                 </tr>
               </thead>
               <tbody>
-                {filtrees.map((n, i) => {
+                {pg.lignes.map((n, i) => {
                   const g = (n.genreEnfant ?? '').toUpperCase();
                   const estGarcon = g === 'M' || g.startsWith('MASC');
                   const urlPhoto = n.mere.imgUrl ? (n.mere.imgUrl.startsWith('http') ? n.mere.imgUrl : uploadUrl('patient', n.mere.imgUrl)) : null;
@@ -255,6 +280,8 @@ export function ListeNaissances({ espace = 'hopital' }: { espace?: EspaceDeclara
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

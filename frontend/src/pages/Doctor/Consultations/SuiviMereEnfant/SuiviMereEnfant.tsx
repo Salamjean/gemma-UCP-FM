@@ -9,6 +9,7 @@ import a from '../../../Infirmier/Accueil/Accueil.module.css';
 import m from '../../../Infirmier/Accueil/ModifierPatient.module.css';
 import { aEnvoyer, type Champ, ETAPES_POSTNATAL, ETAPES_PRENATAL, type Etape, manquant, type Valeurs } from './champs';
 import s from './SuiviMereEnfant.module.css';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 const ONGLETS: { id: TypeSuiviMereEnfant; titre: string; detail: string; icone: typeof FaFemale }[] = [
   { id: 'prenatale', titre: 'Suivi prénatal', detail: 'La mère (PTME)', icone: FaFemale },
@@ -200,6 +201,9 @@ export default function SuiviMereEnfant() {
 
   const nomPatient = dossier ? `${dossier.patient.nom} ${dossier.patient.prenom}`.trim() : '';
 
+  // Tableaux : 10 lignes par page
+  const pg = usePagination(dossier?.suivis);
+
   return (
     <div className={c.page}>
       <header className={c.entete}>
@@ -358,6 +362,7 @@ export default function SuiviMereEnfant() {
                     {dossier.suivis.length === 0 ? (
                       <p className={c.vide}>Aucun suivi enregistré : cliquez sur « Nouveau suivi ».</p>
                     ) : (
+                      <>
                       <div className={c.tableWrap}>
                         <table className={`${c.table} ${c.centre}`}>
                           <thead>
@@ -386,7 +391,7 @@ export default function SuiviMereEnfant() {
                             )}
                           </thead>
                           <tbody>
-                            {dossier.suivis.map((x) => {
+                            {pg.lignes.map((x) => {
                               const r = x as Record<string, unknown>;
                               const pcr = (r.pcr as Record<string, unknown>[]) ?? [];
                               return (
@@ -428,6 +433,8 @@ export default function SuiviMereEnfant() {
                           </tbody>
                         </table>
                       </div>
+                      <PaginationTableau pagination={pg} />
+                      </>
                     )}
                   </motion.div>
                 )}

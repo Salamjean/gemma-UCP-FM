@@ -25,7 +25,7 @@ export class RolesGuard implements CanActivate {
     // sauf celles marquées @InterditAdmin (ex. répondre à une permission)
     if (user?.role === ADMIN_ROLE && roles.includes('hospital') && hopitalDemande(req as never)) {
       const interdit = this.reflector.getAllAndOverride<boolean>(INTERDIT_ADMIN_KEY, [context.getHandler(), context.getClass()]);
-      if (interdit) throw new ForbiddenException('L’administration UCP-FM peut consulter cette information mais pas y répondre.');
+      if (interdit) throw new ForbiddenException('L’administration DMHP peut consulter cette information mais pas y répondre.');
       return true;
     }
     throw new ForbiddenException("Vous n'avez pas accès à cet espace.");

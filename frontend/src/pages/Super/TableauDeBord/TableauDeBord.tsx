@@ -8,6 +8,7 @@ import {
   Graphique,
   moisFr,
 } from '../../../components/Statistiques';
+import ExportExcel, { feuilleExport } from '../../../components/ExportExcel';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import type { SuperDashboard } from '../../../types';
@@ -32,7 +33,7 @@ export default function TableauDeBord() {
   if (!data) return <p className={styles.chargement}>Chargement…</p>;
 
   const cartes = [
-    { icone: '/images/dashboard/hopitaux.png', valeur: data.cartes.hopitaux, libelle: 'Hôpitaux UCP-FM', fond: '#e8f7f1', couleur: '#0f9d6c' },
+    { icone: '/images/dashboard/hopitaux.png', valeur: data.cartes.hopitaux, libelle: 'Hôpitaux DMHP', fond: '#e8f7f1', couleur: '#0f9d6c' },
     { icone: '/images/dashboard/patients.png', valeur: data.cartes.patients, libelle: 'Patients Inscrits', fond: '#cfe6fb', couleur: '#2b86e0' },
     { icone: '/images/dashboard/consultations.png', valeur: data.cartes.consultations, libelle: 'Consultations', fond: '#e9e4fb', couleur: '#7b4ee8' },
     { icone: '/images/dashboard/naissances.png', valeur: data.cartes.naissances, libelle: 'Naissances', fond: '#fff6e4', couleur: '#f5a113' },
@@ -40,9 +41,49 @@ export default function TableauDeBord() {
   ];
 
   const libelles = data.mois.map(moisFr);
+  // Export : les 12 mois de l'année en cours (janvier → décembre) ; à défaut, les mois du graphique
+  const serie = data.annee ?? data;
+  const parMois = serie.mois.map((m, i) => ({ mois: moisFr(m), naissances: serie.naissances[i] ?? 0, deces: serie.deces[i] ?? 0, consultations: serie.consultations[i] ?? 0 }));
+  // Export : une ligne par mois et par hôpital DMHP (mois de janvier à décembre, puis hôpitaux par ordre alphabétique)
+  const ph = data.parHopital;
+  const parHopital = ph
+    ? ph.mois.flatMap((m, j) =>
+        ph.hopitaux.map((h, k) => ({ mois: moisFr(m), hopital: h.label, naissances: ph.naissances[k]?.[j] ?? 0, deces: ph.deces[k]?.[j] ?? 0 })),
+      )
+    : [];
 
   return (
     <div className={styles.page}>
+      <div className={styles.barre}>
+        <ExportExcel
+          fichier="tableau_de_bord_dmhp"
+          titre="Tableau de bord DMHP"
+          module="TABLEAU_DE_BORD"
+          feuilles={[
+            feuilleExport('Indicateurs', [{ titre: 'Indicateur', valeur: (x) => x.libelle }, { titre: 'Valeur', valeur: (x) => x.valeur }], cartes),
+            feuilleExport(
+              data.annee ? `Année ${data.annee.mois[0].slice(0, 4)}` : 'Par mois',
+              [
+                { titre: 'Mois', valeur: (x) => x.mois },
+                { titre: 'Naissances', valeur: (x) => x.naissances },
+                { titre: 'Décès', valeur: (x) => x.deces },
+                { titre: 'Consultations', valeur: (x) => x.consultations },
+              ],
+              parMois,
+            ),
+            feuilleExport(
+              'Par hôpital',
+              [
+                { titre: 'Mois', valeur: (x) => x.mois },
+                { titre: 'Hôpital', valeur: (x) => x.hopital },
+                { titre: 'Naissances', valeur: (x) => x.naissances },
+                { titre: 'Décès', valeur: (x) => x.deces },
+              ],
+              parHopital,
+            ),
+          ]}
+        />
+      </div>
       <div className={styles.cartes}>
         {cartes.map((c, i) => (
           <CarteStat key={c.libelle} {...c} index={i} />

@@ -11,6 +11,7 @@ import type { ServiceDetail } from '../../../../types';
 import EditeurActes, { ligneInvalide, versActe, type LigneActe } from '../EditeurActes';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Detail.module.css';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' } | { type: 'supprimer' } | { type: 'acte'; ligne: LigneActe };
 
@@ -110,6 +111,9 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
     }
   };
 
+  // Tableaux : 10 lignes par page (hooks avant tout retour anticipé)
+  const pg = usePagination(service?.actes);
+
   if (!service) {
     return (
       <div className={c.page}>
@@ -206,7 +210,7 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {service.actes.map((a, i) => (
+                {pg.lignes.map((a, i) => (
                   <motion.tr key={a.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                     <td><strong>{a.libelle}</strong></td>
                     <td className={styles.prixLecture}>{fcfa(a.prix)}</td>
@@ -225,6 +229,7 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
         </section>
       ) : (
       <form className={c.bloc} onSubmit={enregistrer} noValidate>

@@ -13,7 +13,7 @@ export default function Compteurs({ stats, avecDiffusions = true }: { stats: Sta
     ...(avecDiffusions ? [{ icone: FaBullhorn, valeur: stats.diffusions ?? 0, libelle: 'Diffusions', fond: '#efe9fd', texte: '#6a3fd6' }] : []),
   ];
   return (
-    <div className={c.compteurs} style={avecDiffusions ? undefined : { gridTemplateColumns: 'repeat(4, 1fr)' }}>
+    <div className={`${c.compteurs} ${avecDiffusions ? '' : c.compteursQuatre}`}>
       {cartes.map((k, i) => (
         <motion.div key={k.libelle} className={c.compteur} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
           <span className={c.compteurIcone} style={{ background: k.fond, color: k.texte }}>

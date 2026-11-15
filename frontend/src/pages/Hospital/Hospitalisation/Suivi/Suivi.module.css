@@ -369,3 +369,10 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Téléphone : un compteur par ligne */
+@media (max-width: 420px) {
+  .compteurs {
+    grid-template-columns: 1fr;
+  }
+}

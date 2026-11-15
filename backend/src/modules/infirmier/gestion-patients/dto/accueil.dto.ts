@@ -109,12 +109,12 @@ export class InscriptionPatientDto {
   @MaxLength(191)
   profession?: string;
 
-  /** N° CMU obligatoire */
-  @Transform(trim)
+  /** N° CMU facultatif (champ vide → non enregistré) */
+  @IsOptional()
+  @Transform(texte)
   @IsString()
-  @IsNotEmpty({ message: 'Le N° CMU est obligatoire.' })
   @MaxLength(191)
-  numCmu: string;
+  numCmu?: string;
 
   @IsOptional()
   @Transform(texte)

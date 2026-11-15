@@ -8,6 +8,8 @@ import c from '../../../styles/espace.module.css';
 import type { PatientHopital } from '../../../types';
 import { baseHopital } from '../../../services/contexteHopital';
 import styles from './Patients.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type Filtre = 'tous' | 'masculin' | 'feminin' | 'assures';
 
@@ -90,6 +92,7 @@ export default function Liste() {
       );
     });
   }, [patients, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const compteurs = patients
     ? [
@@ -113,6 +116,25 @@ export default function Liste() {
         <div>
           <p className={c.surtitre}>Patients</p>
           <h1 className={c.titre}>Liste des patients</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="patients"
+            titre="Liste des patients"
+            module="PATIENT"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Code patient', valeur: (p) => p.codePatient },
+              { titre: 'Nom & prénoms', valeur: (p) => p.nomComplet },
+              { titre: 'Téléphone', valeur: (p) => p.telephone },
+              { titre: 'Genre', valeur: (p) => (p.genre ? p.genre.charAt(0).toUpperCase() + p.genre.slice(1) : null) },
+              { titre: 'Âge', valeur: (p) => calculerAge(p.dateNaissance) },
+              { titre: 'Pays de naissance', valeur: (p) => p.pays },
+              { titre: 'Type de pièce', valeur: (p) => p.typePiece },
+              { titre: 'N° pièce', valeur: (p) => p.numeroIdentite },
+              { titre: 'Résidence', valeur: (p) => p.residence },
+            ]}
+          />
         </div>
       </header>
 
@@ -176,6 +198,7 @@ export default function Liste() {
             <p>Les patients ayant effectué un passage ou une consultation au sein de votre établissement s’afficheront ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -192,7 +215,7 @@ export default function Liste() {
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((p, i) => (
+                {pg.lignes.map((p, i) => (
                   <motion.tr
                     key={p.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -260,6 +283,8 @@ export default function Liste() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

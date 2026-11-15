@@ -118,7 +118,7 @@ export default function EspaceHopital() {
       <motion.section className={s.entete} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <img className={s.photo} src={h?.imgUrl ? uploadUrl('hospital', h.imgUrl) : PHOTO_DEFAUT} alt="" onError={(e) => (e.currentTarget.src = PHOTO_DEFAUT)} />
         <div className={s.identite}>
-          <span className={s.surtitre}>Hôpital UCP-FM {h?.reference ? `· ${h.reference}` : ''}</span>
+          <span className={s.surtitre}>Hôpital DMHP {h?.reference ? `· ${h.reference}` : ''}</span>
           <h1 className={s.nom}>{h?.label ?? 'Chargement…'}</h1>
           {h && (
             <p className={s.infos}>

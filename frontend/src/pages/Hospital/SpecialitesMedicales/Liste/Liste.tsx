@@ -10,6 +10,8 @@ import c from '../../../../styles/espace.module.css';
 import type { Specialite } from '../../../../types';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Liste.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer'; specialite: Specialite };
 
@@ -61,6 +63,7 @@ export default function Liste() {
     if (!specialites || !q) return specialites ?? [];
     return specialites.filter((s) => [s.label, s.description].some((v) => v?.toLowerCase().includes(q)));
   }, [specialites, recherche]);
+  const pg = usePagination(filtres);
 
   const compteurs = specialites
     ? [
@@ -96,6 +99,21 @@ export default function Liste() {
         <Link to={`${baseHopital()}/specialites/ajouter`} className={c.principal}>
           <FaPlus aria-hidden="true" /> Ajouter une spécialité
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="specialites_medicales"
+            titre="Spécialités médicales"
+            module="SPECIALITE"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Spécialité', valeur: (s) => s.label },
+              { titre: 'Description', valeur: (s) => s.description },
+              { titre: 'Médecins', valeur: (s) => s.medecins ?? 0 },
+              { titre: 'Créée le', valeur: (s) => dateCourte(s.creeLe) },
+              { titre: 'Statut', valeur: (s) => (s.actif ? 'Activée' : 'Désactivée') },
+            ]}
+          />
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${styles.compteurs}`}>
@@ -132,7 +150,7 @@ export default function Liste() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((s, i) => (
+              {pg.lignes.map((s, i) => (
                 <motion.tr key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                   <td>
                     <strong>{s.label}</strong>
@@ -189,6 +207,7 @@ export default function Liste() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog

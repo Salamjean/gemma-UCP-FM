@@ -9,6 +9,7 @@ import c from '../../../styles/espace.module.css';
 import type { AjouterSurveillancePayload, InfirmierHospitalisationSuivi } from '../../../types';
 import { age, initiales } from '../GestionPatients/DossierMedical/outils';
 import s from './Suivi.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const dateFr = (x: string | null) => {
   if (!x) return '—';
@@ -116,6 +117,11 @@ export default function Suivi() {
       </button>
     </header>
   );
+
+  // Tableaux du jour affiché : 10 lignes par page (avant le retour anticipé du chargement)
+  const jourAffiche = data ? (data.journees.find((j) => j.id === jourActif) ?? data.journees[data.journees.length - 1] ?? null) : null;
+  const pgProtocoles = usePagination(jourAffiche?.protocoles);
+  const pgSurveillances = usePagination(jourAffiche?.surveillances);
 
   if (!data) {
     return (
@@ -248,6 +254,7 @@ export default function Suivi() {
                 {jour.protocoles.length === 0 ? (
                   <p className={s.note}>Aucun protocole prescrit pour cette journée.</p>
                 ) : (
+                  <>
                   <div className={c.tableWrap}>
                     <table className={`${c.table} ${c.centre}`}>
                       <thead>
@@ -260,7 +267,7 @@ export default function Suivi() {
                         </tr>
                       </thead>
                       <tbody>
-                        {jour.protocoles.map((p) => (
+                        {pgProtocoles.lignes.map((p) => (
                           <tr key={p.id}>
                             <td className={s.produit}>
                               <strong>{p.produit}</strong>
@@ -303,6 +310,8 @@ export default function Suivi() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationTableau pagination={pgProtocoles} />
+                  </>
                 )}
               </section>
 
@@ -319,6 +328,7 @@ export default function Suivi() {
                 {jour.surveillances.length === 0 ? (
                   <p className={s.note}>Aucune surveillance pour cette journée.</p>
                 ) : (
+                  <>
                   <div className={c.tableWrap}>
                     <table className={`${c.table} ${c.centre}`}>
                       <thead>
@@ -336,7 +346,7 @@ export default function Suivi() {
                         </tr>
                       </thead>
                       <tbody>
-                        {jour.surveillances.map((v, i) => (
+                        {pgSurveillances.lignes.map((v, i) => (
                           <tr key={v.id} title={[v.evolution, v.conduite].filter(Boolean).join(' — ')}>
                             <td>
                               <span className={s.numeroH}>H{i + 1}</span>
@@ -355,6 +365,8 @@ export default function Suivi() {
                       </tbody>
                     </table>
                   </div>
+                  <PaginationTableau pagination={pgSurveillances} />
+                  </>
                 )}
 
                 {saisieOuverte ? (

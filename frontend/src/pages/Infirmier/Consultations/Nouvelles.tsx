@@ -15,6 +15,7 @@ import { api, uploadUrl } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { InfirmierConsultationItem } from '../../../types';
 import s from './Consultations.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const deux = (n: number) => String(n).padStart(2, '0');
 
@@ -78,6 +79,7 @@ export default function Nouvelles() {
         c.medecin.toLowerCase().includes(q),
     );
   }, [consultations, recherche]);
+  const pg = usePagination(filtrees);
 
   const compteurs = [
     { icone: FaClock, valeur: stats.enAttente, libelle: 'En attente de constantes', fond: '#fff3df', texte: '#b56b00' },
@@ -143,6 +145,7 @@ export default function Nouvelles() {
             <p>Les admissions et arrivées de patients pour aujourd’hui s’afficheront ici en direct.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -157,7 +160,7 @@ export default function Nouvelles() {
                 </tr>
               </thead>
               <tbody>
-                {filtrees.map((item, i) => {
+                {pg.lignes.map((item, i) => {
                   const urlPhoto = item.patient.imgUrl
                     ? item.patient.imgUrl.startsWith('http')
                       ? item.patient.imgUrl
@@ -236,6 +239,8 @@ export default function Nouvelles() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

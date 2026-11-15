@@ -34,6 +34,7 @@ export default function DashboardLayout({ space }: { space: RoleSpace }) {
 
   // Fil d'Ariane : "Accueil" ou "Module - Page"
   const crumbs = useMemo(() => {
+    if (rel === 'profil') return ['Mon profil'];
     for (const entry of contexte ?? space.menu) {
       if (entry.path !== undefined && entry.path === rel) return [...(contexte && nomHopital ? [nomHopital] : []), entry.path === '' ? 'Accueil' : entry.label];
       const leaf = entry.children?.find((c) => matches(c.path, rel)) ?? entry.hiddenPages?.find((p) => matches(p.path, rel));

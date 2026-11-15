@@ -16,6 +16,11 @@ export function derniersMois(nb = NB_MOIS): string[] {
   });
 }
 
+/** Les 12 mois de l'année (janvier → décembre), ex. ['2026-01', …, '2026-12'] — année en cours par défaut (UTC) */
+export function moisDeLAnnee(annee = new Date().getUTCFullYear()): string[] {
+  return Array.from({ length: 12 }, (_, i) => `${annee}-${String(i + 1).padStart(2, '0')}`);
+}
+
 /**
  * Nombre de lignes par mois dans une table.
  * @param table   nom de table CONSTANT (jamais une saisie utilisateur)

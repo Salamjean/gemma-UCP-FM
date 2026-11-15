@@ -9,6 +9,8 @@ import c from '../../../../styles/espace.module.css';
 import type { Assurance } from '../../../../types';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Liste.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer'; assurance: Assurance };
 
@@ -60,6 +62,7 @@ export default function Liste() {
     if (!assurances || !q) return assurances ?? [];
     return assurances.filter((a) => [a.libelle, a.description, a.reference].some((v) => v?.toLowerCase().includes(q)));
   }, [assurances, recherche]);
+  const pg = usePagination(filtres);
 
   const compteurs = assurances
     ? [
@@ -101,6 +104,22 @@ export default function Liste() {
         <Link to={`${baseHopital()}/assurances/ajouter`} className={c.principal}>
           <FaPlus aria-hidden="true" /> Ajouter une assurance
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="assurances"
+            titre="Assurances"
+            module="ASSURANCE"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Assurance', valeur: (a) => a.libelle },
+              { titre: 'Description', valeur: (a) => a.description },
+              { titre: 'Référence', valeur: (a) => a.reference },
+              { titre: 'Réduction (%)', valeur: (a) => a.reduction },
+              { titre: 'Patients', valeur: (a) => a.patients ?? 0 },
+              { titre: 'Statut', valeur: (a) => (a.actif ? 'Activée' : 'Désactivée') },
+            ]}
+          />
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${styles.compteurs}`}>
@@ -138,7 +157,7 @@ export default function Liste() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((a, i) => (
+              {pg.lignes.map((a, i) => (
                 <motion.tr key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                   <td>
                     <strong>{a.libelle}</strong>
@@ -199,6 +218,7 @@ export default function Liste() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog

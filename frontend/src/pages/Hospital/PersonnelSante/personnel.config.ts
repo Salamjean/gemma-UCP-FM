@@ -71,9 +71,5 @@ export const AGENTS: Record<TypeAgent, ConfigAgent> = {
 
 export const ORDRE_AGENTS: TypeAgent[] = ['medecin', 'sage-femme', 'infirmier', 'regulateur'];
 
-/** Préfixe ajouté au matricule (comme Laravel) */
-export const prefixeMatricule = (type: TypeAgent, typeName?: string) =>
-  type === 'medecin' ? (typeName === 'specialiste' ? 'MS' : 'MG') : type === 'sage-femme' ? 'SG' : type === 'regulateur' ? 'REG' : 'INF';
-
 /** Jours du planning (index Laravel : 0 = lundi … 6 = dimanche) */
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];

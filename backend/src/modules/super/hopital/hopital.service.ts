@@ -146,7 +146,7 @@ export class HopitalService {
         WHERE h.id = ? AND h.deleted_at IS NULL AND h.is_ucp_fm = 1 LIMIT 1`,
       [id],
     );
-    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux UCP-FM sont gérés ici)');
+    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux DMHP sont gérés ici)');
     return h;
   }
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { agentDuCompte } from '../../../common/agent-sante';
+import { permissionEnCours } from '../../../common/permission-en-cours';
 
 export interface MajDisponibilitesDto {
   days: number[];
@@ -92,6 +93,8 @@ export class InfirmierPlanningService {
 
     return {
       hospitalNom,
+      /** Permission accordée en cours : l'agent est hors service jusqu'à sa fin */
+      permission: await permissionEnCours(this.db, userId),
       jours: grilleJours,
       rendezVous: rdvs.map((r: any) => ({
         id: Number(r.id),

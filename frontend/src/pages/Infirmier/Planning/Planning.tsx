@@ -6,6 +6,7 @@ import { apiAgent, type EspaceAgent } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { InfirmierPlanningResponse, PlanningJourItem } from '../../../types';
 import s from './Planning.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const minutes = (h: string) => {
   const [hh, mm] = h.split(':').map(Number);
@@ -53,10 +54,20 @@ export default function Planning({ espace = 'infirmier' }: { espace?: EspaceAgen
   const indexJour = (maintenant.getDay() + 6) % 7; // 0 = lundi, comme Laravel
   const minuteCourante = maintenant.getHours() * 60 + maintenant.getMinutes();
   const aujourdhui = data?.jours.find((j) => j.index === indexJour) ?? null;
+  // Permission accordée en cours : hors service pendant toute la permission
+  const permission = data?.permission ?? null;
+  const finPermission = permission
+    ? `${new Date(`${permission.fin}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}${permission.heureFin ? ` à ${permission.heureFin}` : ''}`
+    : null;
   const enService =
-    !!aujourdhui?.travaille && (aujourdhui.journeeEntiere || (minuteCourante >= minutes(aujourdhui.debut) && minuteCourante <= minutes(aujourdhui.fin)));
+    !permission &&
+    !!aujourdhui?.travaille &&
+    (aujourdhui.journeeEntiere || (minuteCourante >= minutes(aujourdhui.debut) && minuteCourante <= minutes(aujourdhui.fin)));
   const joursTravailles = data?.jours.filter((j) => j.travaille) ?? [];
   const prochainJour = data && !enService ? [...data.jours.slice(indexJour + 1), ...data.jours.slice(0, indexJour + 1)].find((j) => j.travaille) : null;
+
+  // Tableaux : 10 lignes par page
+  const pg = usePagination(data?.rendezVous);
 
   return (
     <div className={c.page}>
@@ -80,10 +91,10 @@ export default function Planning({ espace = 'infirmier' }: { espace?: EspaceAgen
             Aujourd'hui · {maintenant.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </small>
           <strong>
-            {!data ? 'Chargement…' : enService ? 'Vous êtes en service' : aujourdhui?.travaille ? 'Hors de votre créneau' : 'Jour de repos'}
+            {!data ? 'Chargement…' : permission ? 'En permission : hors service' : enService ? 'Vous êtes en service' : aujourdhui?.travaille ? 'Hors de votre créneau' : 'Jour de repos'}
           </strong>
           <span>
-            {aujourdhui?.travaille ? `Créneau du jour : ${creneau(aujourdhui)}` : prochainJour ? `Prochain service : ${prochainJour.nom}, ${creneau(prochainJour)}` : data ? 'Aucun jour de service défini' : ''}
+            {permission ? `Permission accordée jusqu'au ${finPermission}` : aujourdhui?.travaille ? `Créneau du jour : ${creneau(aujourdhui)}` : prochainJour ? `Prochain service : ${prochainJour.nom}, ${creneau(prochainJour)}` : data ? 'Aucun jour de service défini' : ''}
           </span>
         </div>
         <dl className={s.aujourdhuiInfos}>
@@ -206,7 +217,7 @@ export default function Planning({ espace = 'infirmier' }: { espace?: EspaceAgen
                   </td>
                 </tr>
               ) : (
-                data.rendezVous.map((rdv) => (
+                pg.lignes.map((rdv) => (
                   <tr key={rdv.id}>
                     <td>
                       <strong>{formatDate(rdv.date)}</strong>
@@ -234,6 +245,7 @@ export default function Planning({ espace = 'infirmier' }: { espace?: EspaceAgen
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
       )}
     </div>

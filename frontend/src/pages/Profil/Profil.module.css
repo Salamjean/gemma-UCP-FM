@@ -1,0 +1,234 @@
+/* MON PROFIL — couleurs unies, sans dégradé ni bordure colorée (règles Gemma) */
+
+.grille {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* --- Carte d'identité --- */
+.carte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.photo {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  cursor: pointer;
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f1f4f9;
+}
+
+.photo input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.photoBouton {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--dash-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(23, 43, 76, 0.2);
+  pointer-events: none;
+}
+
+.retirer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #c4213f;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.nom {
+  margin-top: 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.role {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.infos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #eef1f6;
+  text-align: left;
+}
+
+.infos dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.infos dd {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  overflow-wrap: anywhere;
+}
+
+.depuis {
+  font-size: 0.74rem;
+  color: var(--dash-muted);
+}
+
+/* --- Formulaires --- */
+.titreBloc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 1rem;
+  color: var(--dash-text);
+}
+
+.titreBloc svg {
+  color: var(--dash-blue);
+}
+
+.champs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.large {
+  grid-column: 1 / -1;
+}
+
+.requis {
+  color: #c4213f;
+  font-style: normal;
+}
+
+.champ input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dde3ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--dash-text);
+  font: inherit;
+  font-weight: 400;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.champ input:focus {
+  border-color: var(--dash-blue);
+}
+
+.mdp {
+  position: relative;
+  display: flex;
+}
+
+.mdp input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 42px;
+}
+
+.mdp button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  background: none;
+  color: var(--dash-muted);
+  cursor: pointer;
+}
+
+.aide {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+}
+
+.pied {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* Mes informations : tous les champs sur une même ligne (--colonnes = nombre de champs du rôle) */
+.uneLigne {
+  grid-template-columns: repeat(var(--colonnes, 2), minmax(0, 1fr));
+}
+
+/* Écran moyen : les champs passent à la ligne s'ils manquent de place (200 px minimum chacun) */
+@media (max-width: 1200px) {
+  .uneLigne {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .grille {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .champs {
+    grid-template-columns: 1fr;
+  }
+}

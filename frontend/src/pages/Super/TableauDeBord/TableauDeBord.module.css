@@ -44,3 +44,10 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Barre d'actions au-dessus des cartes (export Excel) */
+.barre {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -32px;
+}

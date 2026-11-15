@@ -5,7 +5,7 @@ import { laravelHash, laravelNow } from '../../common/laravel';
 import { ADMIN_ROLE, EMAIL_ADMIN } from '../../modules/users/role-profiles';
 
 /** Compte d'administration UCP-FM créé au démarrage s'il n'existe pas */
-export const ADMIN_PAR_DEFAUT = { email: EMAIL_ADMIN, motDePasse: '1234', nom: 'Admin', prenom: 'UCP-FM' };
+export const ADMIN_PAR_DEFAUT = { email: EMAIL_ADMIN, motDePasse: '1234', nom: 'Admin', prenom: 'DMHP' };
 
 /**
  * SEEDER — exécuté à chaque lancement du backend (après les migrations TypeORM).

@@ -22,6 +22,7 @@ import type { JwtPayload } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { RolesGuard } from '../../auth/roles.guard';
+import { ADMIN_ROLE } from '../../users/role-profiles';
 import { AgentDto } from './dto/agent.dto';
 import { PersonnelSanteService, TYPES_AGENT, type TypeAgent } from './personnel-sante.service';
 
@@ -87,7 +88,8 @@ export class PersonnelSanteController {
     @Body() dto: AgentDto,
     @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.service.modifier(req.user.sub, type, id, dto, image);
+    // Seul l'admin DMHP (hôpital ouvert) peut changer l'email de connexion d'un agent ; pas le compte de l'hôpital
+    return this.service.modifier(req.user.sub, type, id, dto, image, req.user.role === ADMIN_ROLE);
   }
 
   @Patch(':type/:id/statut')

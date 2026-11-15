@@ -40,6 +40,7 @@ import FormulaireAccouchement, { ETAPES_ACCOUCHEMENT, naissanceVide, preparerNai
 import FormulairePostnatal, { ETAPES_POSTNATALES } from './FormulairePostnatal';
 import FormulairePrenatal, { ETAPES_PRENATALES, type ValeursPrenatales } from './FormulairePrenatal';
 import { DocumentsReference, envoyerPieces, PiecesAJoindre, type PieceEnAttente } from './PiecesJointes';
+import { type ChampMasque, masquerConstante } from '../../../../services/saisieConstantes';
 
 type Valeurs = ConsultationCurativeValeurs;
 type CleTexte = Exclude<keyof Valeurs, 'medicaments' | 'examens' | 'arret'>;
@@ -155,6 +156,15 @@ function Choix({ valeur, options, onChange, nom }: { valeur: string | null; opti
   );
 }
 
+/** Constantes avec masque de saisie */
+const MASQUES_CONSTANTES: Partial<Record<string, ChampMasque>> = {
+  tension: 'tension',
+  temperature: 'temperature',
+  poids: 'poids',
+  glycemieAJeun: 'glycemie',
+  glycemieNonAJeun: 'glycemie',
+};
+
 /**
  * MÉDECIN > CONSULTATIONS > FORMULAIRE DE CONSULTATION (curative)
  * Repris de Laravel : users/doctor/consultation/formulaire (currative.blade.php + post-consultation + issue),
@@ -263,7 +273,11 @@ export default function FormulaireConsultation() {
   const maj = (k: CleTexte) => (val: string | null) => setV((x) => ({ ...x, [k]: val === '' ? null : val }));
   const champ = (k: CleTexte) => ({
     value: (k === 'imc' ? imcCalcule : (v[k] as string | null)) ?? '',
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => maj(k)(e.target.value),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      // Constantes : séparateur « / » (tension 12/8) ou « . » (37.2, 72.5, 1.05) ajouté automatiquement
+      const masque = MASQUES_CONSTANTES[k];
+      maj(k)(masque ? masquerConstante(masque, e.target.value, (v[k] as string | null) ?? '') : e.target.value);
+    },
   });
   const feminin = (fiche?.patient.genre ?? '').toLowerCase().startsWith('f');
 

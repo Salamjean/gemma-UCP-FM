@@ -12,6 +12,7 @@ import { AvatarPatient } from '../Consultations/ListeConsultations';
 import tab from '../Consultations/Consultations.module.css';
 import { libelleDate } from './CarteTelemedecine';
 import s from './Telemedecine.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const FILTRES: { id: string; libelle: string; cle: keyof DoctorTelemedecines['compteurs'] }[] = [
   { id: 'en-attente', libelle: 'En attente', cle: 'enAttente' },
@@ -66,6 +67,9 @@ export default function Telemedecine() {
     };
   }, [filtre, tick]);
 
+  // Tableaux : 10 lignes par page
+  const pg = usePagination(data?.liste);
+
   return (
     <div className={c.page}>
       <header className={c.entete}>
@@ -99,6 +103,7 @@ export default function Telemedecine() {
             <p>Les télémédecines programmées pour vous par un infirmier apparaîtront ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -112,7 +117,7 @@ export default function Telemedecine() {
                 </tr>
               </thead>
               <tbody>
-                {data.liste.map((x, i) => (
+                {pg.lignes.map((x, i) => (
                   <motion.tr key={x.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
                     <td>
                       <span className={tab.patient}>
@@ -170,6 +175,8 @@ export default function Telemedecine() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

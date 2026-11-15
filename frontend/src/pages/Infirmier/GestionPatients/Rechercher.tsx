@@ -22,6 +22,7 @@ import type {
   InfirmierPatientItem,
 } from '../../../types';
 import s from './GestionPatients.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 function initiales(nom: string): string {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -106,6 +107,9 @@ export default function Rechercher() {
       setChargementDetail(false);
     }
   };
+
+  // Tableaux : 10 lignes par page
+  const pg = usePagination(patientDetail?.consultations);
 
   return (
     <div className={c.page}>
@@ -357,7 +361,7 @@ export default function Rechercher() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Nom &amp; Prénoms</span>
                         <p style={{ margin: '2px 0 0', fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{patientDetail.patient.nomComplet}</p>
@@ -391,7 +395,7 @@ export default function Rechercher() {
                       <FaStethoscope style={{ color: 'var(--dash-blue)' }} />
                       Historique des Consultations ({patientDetail.consultations.length})
                     </h4>
-                    <div className={c.tableWrapper}>
+                    <div className={c.tableWrap}>
                       <table className={c.table}>
                         <thead>
                           <tr>
@@ -411,7 +415,7 @@ export default function Rechercher() {
                               </td>
                             </tr>
                           ) : (
-                            patientDetail.consultations.map((cons) => (
+                            pg.lignes.map((cons) => (
                               <tr key={cons.id}>
                                 <td><strong style={{ color: 'var(--dash-blue)' }}>{cons.code || `#${cons.id}`}</strong></td>
                                 <td>{cons.date || '—'}</td>
@@ -435,6 +439,7 @@ export default function Rechercher() {
                         </tbody>
                       </table>
                     </div>
+                    <PaginationTableau pagination={pg} />
                   </div>
                 </>
               )}

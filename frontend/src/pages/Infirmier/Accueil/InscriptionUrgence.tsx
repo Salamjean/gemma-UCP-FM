@@ -16,7 +16,7 @@ const PIECE_PAR_DEFAUT = 'Aucune';
 
 /**
  * INFIRMIER / MÉDECIN > INSCRIPTION D'URGENCE (avec affectation)
- * Une seule page : uniquement les informations obligatoires du patient (nom, prénom, sexe, date ou âge, téléphone, N° CMU)
+ * Une seule page : les informations obligatoires du patient (nom, prénom, sexe, date ou âge, téléphone) + N° CMU facultatif
  * + l'affectation (obligatoire). Même enregistrement que l'inscription complète (POST patients) :
  * situation matrimoniale « Célibataire » et pièce « Aucune » par défaut, le reste se complète plus tard dans la fiche.
  */
@@ -68,7 +68,6 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
     genre: { message: 'Choisissez le sexe du patient.', ko: !genre },
     dateNaissance: { message: 'La date de naissance ou l’âge est obligatoire.', ko: !dateNaissance },
     telephone: { message: 'Le téléphone doit contenir 10 chiffres.', ko: !/^\d{10}$/.test(telephone) },
-    numCmu: { message: 'Le N° CMU est obligatoire.', ko: !numCmu.trim() },
     prestation: { message: 'Choisissez le service puis la prestation.', ko: !affectation.prestationId },
     medecin: { message: 'Veuillez choisir le médecin.', ko: !affectation.doctorId },
     infirmier: { message: 'Veuillez choisir l’infirmier·ère.', ko: espace === 'medecin' && !affectation.infirmierId },
@@ -93,7 +92,7 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
         situationMatrimoniale: SITUATION_PAR_DEFAUT,
         telephone,
         typePiece: PIECE_PAR_DEFAUT,
-        numCmu: numCmu.trim(),
+        numCmu: numCmu.trim() || undefined,
         affectation: {
           prestationId: affectation.prestationId!,
           motif: affectation.motif.trim(),
@@ -174,9 +173,9 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
                 </label>
                 <input id="u-tel" inputMode="numeric" placeholder="0700000000" value={telephone} onChange={(e) => setTelephone(tel(e.target.value))} />
               </div>
-              <div className={`${s.champ} ${ko('numCmu') ? s.invalide : ''}`}>
+              <div className={s.champ}>
                 <label htmlFor="u-cmu">
-                  N° CMU <span className={s.requis}>*</span>
+                  N° CMU <span className={s.facultatif}>(facultatif)</span>
                 </label>
                 <input id="u-cmu" maxLength={191} value={numCmu} onChange={(e) => setNumCmu(e.target.value)} />
               </div>

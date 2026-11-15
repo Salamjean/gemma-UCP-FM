@@ -5,6 +5,7 @@ import { AuditService, type ContexteAudit } from '../../common/audit/audit.servi
 import { laravelNow } from '../../common/laravel';
 import { smsAffectationPatient } from '../../common/sms';
 import { creneauDuJour } from '../infirmier/gestion-patients/accueil.service';
+import { SQL_EN_PERMISSION } from '../../common/permission-en-cours';
 
 /** Raison pour laquelle le médecin de la consultation ne peut pas recevoir le patient maintenant */
 export type RaisonIndisponible = 'sans_medecin' | 'desactive' | 'permission' | 'hors_planning';
@@ -23,12 +24,8 @@ export const ATTENTE_MAX_MINUTES = 30;
 export const nom = (n: unknown, p: unknown) => `${(n as string) ?? ''} ${(p as string) ?? ''}`.trim();
 export const sansDr = (n: string) => n.replace(/^dr\.?\s*/i, '');
 
-/** Permission accordée (permissions.status = 'agree') couvrant maintenant. `p.user_id` doit être relié au médecin (alias du). */
-const EN_PERMISSION = `EXISTS (
-  SELECT 1 FROM permissions p
-   WHERE p.user_id = d.user_id AND p.status = 'agree' AND CURDATE() BETWEEN p.beging_date AND p.end_date
-     AND (p.beging_date <> p.end_date OR p.beging_time IS NULL OR p.end_time IS NULL OR CURTIME() BETWEEN p.beging_time AND p.end_time)
-)`;
+/** Permission accordée couvrant maintenant (règle commune : common/permission-en-cours) */
+const EN_PERMISSION = SQL_EN_PERMISSION('d.user_id');
 
 /** Colonnes de disponibilité d'un médecin (alias d) : planning + permission */
 export const DISPO_MEDECIN = `d.status AS d_status, d.\`delete\` AS d_delete, d.deleted_at AS d_deleted_at,

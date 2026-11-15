@@ -17,6 +17,7 @@ import type {
   InfirmierHospitalisationEnCoursItem,
 } from '../../../types';
 import s from './Hospitalisations.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 function initiales(nom: string): string {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -75,6 +76,7 @@ export default function EnCours() {
         it.motif.toLowerCase().includes(q),
     );
   }, [items, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <div className={c.page}>
@@ -142,7 +144,7 @@ export default function EnCours() {
           </div>
         </div>
 
-        <div className={c.tableWrapper}>
+        <div className={c.tableWrap}>
           <table className={c.table}>
             <thead>
               <tr>
@@ -172,7 +174,7 @@ export default function EnCours() {
                   </td>
                 </tr>
               ) : (
-                filtres.map((item) => {
+                pg.lignes.map((item) => {
                   const patient = item.patient;
                   const feminin = (patient.genre ?? '').toLowerCase().startsWith('f');
                   const photo = patient.imgUrl
@@ -282,6 +284,7 @@ export default function EnCours() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </motion.section>
 
     </div>

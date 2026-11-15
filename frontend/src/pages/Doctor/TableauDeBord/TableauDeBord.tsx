@@ -69,7 +69,7 @@ export default function TableauDeBord() {
         <div className={s.service}>
           <span className={`${s.pastille} ${data?.medecin.enService ? s.pastilleActive : ''}`} aria-hidden="true" />
           <div>
-            <strong>{!data ? 'Chargement…' : data.medecin.enService ? 'En service' : 'Hors de votre créneau'}</strong>
+            <strong>{!data ? 'Chargement…' : data.medecin.permission ? 'En permission : hors service' : data.medecin.enService ? 'En service' : 'Hors de votre créneau'}</strong>
             <small>
               <FaHospital aria-hidden="true" /> {data?.medecin.hopital ?? '—'}
               {data?.medecin.service ? ` · ${data.medecin.service}` : ''}

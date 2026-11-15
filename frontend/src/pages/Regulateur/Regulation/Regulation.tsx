@@ -7,6 +7,7 @@ import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { ConsultationARegler, MedecinPropose, TableauRegulation } from '../../../types';
 import s from './Regulation.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const heure = (iso: string) => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 /** Rafraîchissement automatique de la liste */
@@ -48,6 +49,7 @@ export default function Regulation() {
       .filter((x) => filtre === 'toutes' || x.aReguler)
       .filter((x) => !q || [x.patient.nom, x.patient.code, x.code, x.medecin?.nom, x.infirmier, x.prestation, x.service].some((v) => v?.toLowerCase().includes(q)));
   }, [data, filtre, recherche]);
+  const pg = usePagination(liste);
 
   const compteurs = [
     { libelle: 'Consultations ouvertes', valeur: data?.stats.ouvertes, icone: FaClipboardList, fond: '#eaf3fe', texte: '#1f6fc6' },
@@ -136,7 +138,7 @@ export default function Regulation() {
                   </td>
                 </tr>
               )}
-              {liste.map((x) => (
+              {pg.lignes.map((x) => (
                 <tr key={x.id}>
                   <td>
                     {heure(x.arrivee)}
@@ -181,6 +183,7 @@ export default function Regulation() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <AnimatePresence>

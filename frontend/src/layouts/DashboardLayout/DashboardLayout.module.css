@@ -31,10 +31,21 @@
 /* --- Fil d'Ariane --- */
 .breadcrumb {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px 6px;
   margin: 26px 0 16px;
   font-size: 0.95rem;
+}
+
+/* Chaque élément du fil reste d'un seul tenant (passe à la ligne entier sur téléphone) */
+.breadcrumb > span {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .homeIcon {

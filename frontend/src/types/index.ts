@@ -60,6 +60,10 @@ export interface SuperDashboard {
   naissances: number[];
   deces: number[];
   consultations: number[];
+  /** Les 12 mois de l'année en cours (janvier → décembre) — pour l'export Excel */
+  annee?: { mois: string[]; naissances: number[]; deces: number[]; consultations: number[] };
+  /** Export : naissances / décès de chaque hôpital DMHP pour chaque mois de l'année ([hôpital][mois]) */
+  parHopital?: { mois: string[]; hopitaux: { id: number; label: string }[]; naissances: number[][]; deces: number[][] };
 }
 
 /** SUPER > RÉGLAGES > ICÔNES */
@@ -128,6 +132,8 @@ export interface Localite {
 
 /** GET /api/hospital/tableau-de-bord (données de l'hôpital connecté) */
 export interface HospitalDashboard {
+  /** Nom de l'hôpital connecté */
+  hopital?: string;
   cartes: {
     consultations: number;
     naissances: number;
@@ -137,6 +143,8 @@ export interface HospitalDashboard {
   naissances: number[];
   deces: number[];
   consultations: number[];
+  /** Les 12 mois de l'année en cours (janvier → décembre) — pour l'export Excel */
+  annee?: { mois: string[]; naissances: number[]; deces: number[]; consultations: number[] };
 }
 
 
@@ -1268,6 +1276,8 @@ export interface PlanningRdvItem {
 
 export interface InfirmierPlanningResponse {
   hospitalNom: string;
+  /** Permission accordée en cours (agent hors service jusqu'à la fin), sinon null */
+  permission?: { debut: string; fin: string; heureDebut: string | null; heureFin: string | null } | null;
   jours: PlanningJourItem[];
   rendezVous: PlanningRdvItem[];
 }
@@ -1383,7 +1393,7 @@ export interface InscriptionPatientSaisie {
   typePiece: string;
   numeroIdentite?: string;
   profession?: string;
-  numCmu: string;
+  numCmu?: string;
   adresse?: string;
   nbEnfants?: number;
   urgenceNom?: string;
@@ -1510,7 +1520,7 @@ export interface DoctorTelemedecines {
 }
 
 export interface DoctorDashboard {
-  medecin: { nom: string; hopital: string; service: string | null; sageFemme: boolean; enService: boolean; creneau: string | null };
+  medecin: { nom: string; hopital: string; service: string | null; sageFemme: boolean; enService: boolean; creneau: string | null; permission?: { debut: string; fin: string; heureDebut: string | null; heureFin: string | null } | null };
   compteurs: { duJour: number; enAttente: number; termineesJour: number; terminees: number };
   file: DoctorConsultationItem[];
   /** Télémédecines programmées en attente (4 premières) */
@@ -2106,4 +2116,24 @@ export interface CalendrierMedecins {
   semaine: { debut: string; fin: string; jours: { date: string; nom: string }[] };
   services: string[];
   medecins: MedecinCalendrier[];
+}
+
+/** MON PROFIL (tous les rôles) — champs modifiables selon le rôle (`modifiables`) */
+export interface ProfilUtilisateur {
+  role: 'admin' | 'hospital' | 'doctor' | 'infirmier' | 'regulateur';
+  email: string;
+  nom: string;
+  prenom: string | null;
+  contact: string | null;
+  adresse: string | null;
+  photo: string | null;
+  /** Dossier des photos dans Laravel (uploads/<dossier>) */
+  dossierPhoto: string;
+  matricule: string | null;
+  hopital: string | null;
+  service: string | null;
+  district: string | null;
+  direction: string | null;
+  membreDepuis: string | null;
+  modifiables: ('nom' | 'prenom' | 'contact' | 'adresse' | 'district' | 'direction')[];
 }

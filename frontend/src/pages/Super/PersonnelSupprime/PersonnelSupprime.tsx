@@ -7,6 +7,8 @@ import { api, uploadUrl } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { AgentSupprime, OptionsTransfert } from '../../../types';
 import s from './PersonnelSupprime.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const PHOTO_DEFAUT = '/images/dashboard/avatar-doctor.png';
 
@@ -49,6 +51,7 @@ export default function PersonnelSupprime() {
         (!q || [a.nom, a.matricule, a.email, a.contact, a.hopital.label].some((v) => v?.toLowerCase().includes(q))),
     );
   }, [agents, recherche, type, hopital]);
+  const pg = usePagination(filtres);
 
   const executer = async () => {
     if (!confirmation) return;
@@ -72,8 +75,27 @@ export default function PersonnelSupprime() {
     <div className={c.page}>
       <header className={c.entete}>
         <div>
-          <p className={c.surtitre}>Hôpitaux UCP-FM</p>
+          <p className={c.surtitre}>Hôpitaux DMHP</p>
           <h1 className={c.titre}>Personnel supprimé</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="personnel_supprime"
+            titre="Personnel supprimé"
+            module="PERSONNEL"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Agent', valeur: (a) => a.nom },
+              { titre: 'Matricule', valeur: (a) => a.matricule },
+              { titre: 'Fonction', valeur: (a) => a.typeLibelle },
+              { titre: 'Spécialité', valeur: (a) => a.specialite },
+              { titre: 'Hôpital', valeur: (a) => a.hopital.label },
+              { titre: 'Service', valeur: (a) => a.service },
+              { titre: 'Email', valeur: (a) => a.email },
+              { titre: 'Contact', valeur: (a) => a.contact },
+              { titre: 'Supprimé le', valeur: (a) => dateHeure(a.supprimeLe) },
+            ]}
+          />
         </div>
       </header>
 
@@ -126,7 +148,7 @@ export default function PersonnelSupprime() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((a, i) => (
+              {pg.lignes.map((a, i) => (
                 <motion.tr key={`${a.type}-${a.id}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 15) * 0.03 }}>
                   <td>
                     <div className={s.agent}>
@@ -172,7 +194,7 @@ export default function PersonnelSupprime() {
               {agents && filtres.length === 0 && (
                 <tr>
                   <td colSpan={6} className={c.vide}>
-                    {agents.length ? 'Aucun agent ne correspond à la recherche.' : "Aucun agent supprimé par les hôpitaux UCP-FM."}
+                    {agents.length ? 'Aucun agent ne correspond à la recherche.' : "Aucun agent supprimé par les hôpitaux DMHP."}
                   </td>
                 </tr>
               )}
@@ -186,6 +208,7 @@ export default function PersonnelSupprime() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog
@@ -304,7 +327,7 @@ function Transfert({ agent, onFermer, onFait }: { agent: AgentSupprime; onFermer
         <label className={s.champ}>
           <span>Hôpital d’arrivée *</span>
           <select value={hopitalId} onChange={(e) => setHopitalId(Number(e.target.value))} className={c.champ}>
-            <option value={0}>Choisir un hôpital UCP-FM…</option>
+            <option value={0}>Choisir un hôpital DMHP…</option>
             {options?.hopitaux
               .filter((h) => h.id !== agent.hopital.id)
               .map((h) => (

@@ -24,6 +24,7 @@ import c from '../../../styles/espace.module.css';
 import type { InfirmierTeleconsultationItem } from '../../../types';
 import { lancerAppelVideo } from '../../../components/AppelVideo';
 import s from './Teleconsultations.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 function initiales(nom: string): string {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -99,6 +100,7 @@ export default function Teleconsultations() {
         (it.code && it.code.toLowerCase().includes(q)),
     );
   }, [items, recherche]);
+  const pg = usePagination(filtresRecherche);
 
   return (
     <div className={c.page}>
@@ -237,7 +239,7 @@ export default function Teleconsultations() {
           </div>
         </div>
 
-        <div className={c.tableWrapper}>
+        <div className={c.tableWrap}>
           <table className={c.table}>
             <thead>
               <tr>
@@ -266,7 +268,7 @@ export default function Teleconsultations() {
                   </td>
                 </tr>
               ) : (
-                filtresRecherche.map((item) => {
+                pg.lignes.map((item) => {
                   const patient = item.patient;
                   const feminin = (patient.genre ?? '').toLowerCase().startsWith('f');
                   const photo = patient.imgUrl
@@ -422,6 +424,7 @@ export default function Teleconsultations() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </motion.section>
     </div>
   );

@@ -11,7 +11,7 @@ export default function Ajouter() {
   return (
     <HopitalForm
       mode="ajout"
-      titre="Ajout d'un hôpital UCP-FM"
+      titre="Ajout d'un hôpital DMHP"
       onEnvoyer={async (data) => (await api.super.hopitaux.creer(data)).message}
     />
   );

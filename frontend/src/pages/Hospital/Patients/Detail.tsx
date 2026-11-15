@@ -22,6 +22,7 @@ import type { PatientHopitalDetail } from '../../../types';
 import { calculerAge, estFeminin, initialesPatient } from './Liste';
 import { baseHopital } from '../../../services/contexteHopital';
 import styles from './Patients.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const formatDate = (iso: string | null) => {
   if (!iso) return '—';
@@ -50,6 +51,9 @@ export default function Detail() {
         alerte.echec(`Impossible de charger le dossier patient : ${messageErreur(e)}`);
       });
   }, [id]);
+
+  // Tableaux : 10 lignes par page (hooks avant tout retour anticipé)
+  const pg = usePagination(patient?.consultations);
 
   if (introuvable) {
     return (
@@ -245,6 +249,7 @@ export default function Detail() {
             {patient.consultations.length === 0 ? (
               <p className={c.vide}>Aucune consultation enregistrée dans cet établissement.</p>
             ) : (
+              <>
               <div className={c.tableWrap}>
                 <table className={`${c.table} ${c.centre}`}>
                   <thead>
@@ -257,7 +262,7 @@ export default function Detail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {patient.consultations.map((cons) => (
+                    {pg.lignes.map((cons) => (
                       <tr key={cons.id}>
                         <td>{formatDate(cons.date)}</td>
                         <td>{cons.motif || 'Consultation'}</td>
@@ -283,6 +288,8 @@ export default function Detail() {
                   </tbody>
                 </table>
               </div>
+              <PaginationTableau pagination={pg} />
+              </>
             )}
           </section>
         </div>

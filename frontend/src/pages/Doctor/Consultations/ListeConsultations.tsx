@@ -9,6 +9,7 @@ import c from '../../../styles/espace.module.css';
 import type { DoctorConsultationItem } from '../../../types';
 import { age, initiales } from '../../Infirmier/GestionPatients/DossierMedical/outils';
 import s from './Consultations.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const p2 = (n: number) => String(n).padStart(2, '0');
 /** Heure telle qu'enregistrée (UTC, comme Laravel) */
@@ -78,6 +79,7 @@ export default function ListeConsultations({ surtitre, titre, description, charg
     if (!liste || !q) return liste ?? [];
     return liste.filter((x) => [x.patient.nom, x.patient.code, x.code, x.motif, x.prestation].some((v) => v.toLowerCase().includes(q)));
   }, [liste, recherche]);
+  const pg = usePagination(filtrees);
 
   return (
     <div className={c.page}>
@@ -107,6 +109,7 @@ export default function ListeConsultations({ surtitre, titre, description, charg
             <p>{videTexte}</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -134,7 +137,7 @@ export default function ListeConsultations({ surtitre, titre, description, charg
                     </td>
                   </tr>
                 )}
-                {filtrees.map((x, i) => (
+                {pg.lignes.map((x, i) => (
                   <motion.tr key={x.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
                     <td>
                       <span className={s.patient}>
@@ -201,6 +204,8 @@ export default function ListeConsultations({ surtitre, titre, description, charg
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

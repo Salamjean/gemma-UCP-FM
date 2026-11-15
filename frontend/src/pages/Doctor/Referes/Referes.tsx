@@ -9,6 +9,7 @@ import type { DoctorReferes } from '../../../types';
 import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
 import { AvatarPatient, heure, jour } from '../Consultations/ListeConsultations';
 import s from './Referes.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type Onglet = 'internes' | 'externes';
 const sansDr = (n: string | null) => (n ? `Dr ${n.replace(/^dr\.?\s*/i, '')}` : '—');
@@ -40,6 +41,10 @@ export default function Referes() {
     [data, q],
   );
   const aTraiter = data?.internes.filter((x) => !x.terminee).length ?? 0;
+
+  // Tableaux : 10 lignes par page
+  const pgInternes = usePagination(internes);
+  const pgExternes = usePagination(externes);
 
   return (
     <div className={c.page}>
@@ -81,6 +86,7 @@ export default function Referes() {
             <strong>{q ? 'Aucun résultat' : onglet === 'internes' ? 'Aucun patient ne vous a été référé' : 'Aucune référence externe'}</strong>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -97,7 +103,7 @@ export default function Referes() {
               </thead>
               <tbody>
                 {onglet === 'internes'
-                  ? internes.map((x, i) => (
+                  ? pgInternes.lignes.map((x, i) => (
                       <motion.tr key={x.origineId} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
                         <td>
                           <span className={s.patient}>
@@ -149,7 +155,7 @@ export default function Referes() {
                         </td>
                       </motion.tr>
                     ))
-                  : externes.map((x, i) => (
+                  : pgExternes.lignes.map((x, i) => (
                       <motion.tr key={x.origineId} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
                         <td>
                           <span className={s.patient}>
@@ -208,6 +214,8 @@ export default function Referes() {
               </tbody>
             </table>
           </div>
+          {onglet === 'internes' ? <PaginationTableau pagination={pgInternes} /> : <PaginationTableau pagination={pgExternes} />}
+          </>
         )}
       </section>
     </div>

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ADMIN_ROLE, ALLOWED_ROLES, HOPITAL_NON_UCP_MESSAGE, ROLE_NOT_ALLOWED_MESSAGE, ROLE_PROFILES } from './role-profiles';
+import { ADMIN_ROLE, ALLOWED_ROLES, HOPITAL_NON_UCP_MESSAGE, PERSONNEL_NON_UCP_MESSAGE, ROLE_NOT_ALLOWED_MESSAGE, ROLE_PROFILES } from './role-profiles';
 import { User } from './user.entity';
 
 export type AccountCheck = { ok: true } | { ok: false; message: string };
@@ -114,9 +114,11 @@ export class UsersService {
     const denied = profile.deniedMessage ?? 'Compte désactivé ou supprimé !';
 
     // Nom de table issu de ROLE_PROFILES (constante) — jamais d'une saisie utilisateur
-    const columns = ['status', profile.hasDeleteColumn ? '`delete`' : 'NULL AS `delete`'].join(', ');
+    // Personnel (médecin, infirmier·ère, régulateur) : on lit aussi l'hôpital où il travaille
+    const avecHopital = user.role !== 'hospital';
+    const columns = ['status', profile.hasDeleteColumn ? '`delete`' : 'NULL AS `delete`', avecHopital ? 'hospital_id' : 'NULL AS hospital_id'].join(', ');
     const softDelete = profile.softDeletes ? ' AND deleted_at IS NULL' : '';
-    const rows: { status: unknown; delete: unknown }[] = await this.users.manager.query(
+    const rows: { status: unknown; delete: unknown; hospital_id: unknown }[] = await this.users.manager.query(
       `SELECT ${columns} FROM \`${profile.table}\` WHERE user_id = ?${softDelete} LIMIT 1`,
       [user.id],
     );
@@ -125,14 +127,14 @@ export class UsersService {
     if (!row) return { ok: false, message: denied };
     if (Number(row.status) === 1 || Number(row.delete) === 1) return { ok: false, message: denied };
 
-    // Hôpital : seuls les hôpitaux UCP-FM (hospitals.is_ucp_fm = 1) ont accès à cette application
-    if (user.role === 'hospital') {
-      const [h] = await this.users.manager.query(
-        'SELECT id FROM hospitals WHERE user_id = ? AND is_ucp_fm = 1 AND deleted_at IS NULL LIMIT 1',
-        [user.id],
-      );
-      if (!h) return { ok: false, message: HOPITAL_NON_UCP_MESSAGE };
-    }
+    // Seuls les hôpitaux UCP-FM (hospitals.is_ucp_fm = 1) ont accès à cette application :
+    // le compte de l'hôpital lui-même ET son personnel (médecins, sages-femmes, infirmiers, régulateurs).
+    // Vérifié à la connexion et à chaque rechargement (/me) : un hôpital retiré du UCP-FM coupe l'accès de tous.
+    const [h] =
+      user.role === 'hospital'
+        ? await this.users.manager.query('SELECT id FROM hospitals WHERE user_id = ? AND is_ucp_fm = 1 AND deleted_at IS NULL LIMIT 1', [user.id])
+        : await this.users.manager.query('SELECT id FROM hospitals WHERE id = ? AND is_ucp_fm = 1 AND deleted_at IS NULL LIMIT 1', [row.hospital_id]);
+    if (!h) return { ok: false, message: user.role === 'hospital' ? HOPITAL_NON_UCP_MESSAGE : PERSONNEL_NON_UCP_MESSAGE };
     return { ok: true };
   }
 }

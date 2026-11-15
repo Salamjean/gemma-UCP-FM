@@ -10,6 +10,7 @@ import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
 import { AvatarPatient } from '../Consultations/ListeConsultations';
 import { FenetreLit, FenetreSortie } from './Fenetres';
 import s from './Hospitalisation.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 export type StatutHospitalisation = 'en-attente' | 'en-cours' | 'historique';
 
@@ -71,6 +72,7 @@ export default function ListeHospitalisations({ statut }: { statut: StatutHospit
     if (!liste || !q) return liste ?? [];
     return liste.filter((x) => [x.patient.nom, x.patient.code, x.code, x.diagnostic ?? '', x.lit ?? ''].some((v) => v.toLowerCase().includes(q)));
   }, [liste, recherche]);
+  const pg = usePagination(filtrees);
 
   const cible = (x: DoctorHospitalisationItem | null) => (x ? { id: x.id, code: x.code, patient: x.patient.nom, lit: x.lit } : null);
 
@@ -102,6 +104,7 @@ export default function ListeHospitalisations({ statut }: { statut: StatutHospit
             <p>{t.videTexte}</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -129,7 +132,7 @@ export default function ListeHospitalisations({ statut }: { statut: StatutHospit
                     </td>
                   </tr>
                 )}
-                {filtrees.map((x, i) => (
+                {pg.lignes.map((x, i) => (
                   <motion.tr key={x.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
                     <td>
                       <span className={s.patient}>
@@ -200,6 +203,8 @@ export default function ListeHospitalisations({ statut }: { statut: StatutHospit
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
 

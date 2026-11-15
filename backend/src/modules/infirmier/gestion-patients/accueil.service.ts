@@ -6,6 +6,7 @@ import { laravelHash, laravelNow } from '../../../common/laravel';
 import { AffectationDto, InscriptionPatientDto, MiseAJourPatientDto } from './dto/accueil.dto';
 import { agentDuCompte } from '../../../common/agent-sante';
 import { smsAffectationPatient, smsBienvenuePatient } from '../../../common/sms';
+import { SQL_EN_PERMISSION } from '../../../common/permission-en-cours';
 
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const minutes = (h: string) => {
@@ -211,7 +212,7 @@ export class InfirmierAccueilService {
       ),
       this.db.query(
         `SELECT d.id, TRIM(CONCAT(u.name, ' ', COALESCE(u.prenom, ''))) AS nom, s.libelle AS service, d.service_hospital_id,
-                av.days, av.hour_start, av.hour_end
+                av.days, av.hour_start, av.hour_end, ${SQL_EN_PERMISSION('d.user_id')} AS en_permission
            FROM doctors d
            JOIN users u ON u.id = d.user_id
            LEFT JOIN service_hospitals sh ON sh.id = d.service_hospital_id
@@ -230,6 +231,7 @@ export class InfirmierAccueilService {
                LEFT JOIN service_hospitals sh ON sh.id = i.service_hospital_id
                LEFT JOIN services s ON s.id = sh.service_id
               WHERE i.hospital_id = ? AND i.status = 0 AND i.\`delete\` = 0
+                AND NOT ${SQL_EN_PERMISSION('i.user_id')}
               ORDER BY u.name`,
             [hospitalId],
           )
@@ -248,7 +250,8 @@ export class InfirmierAccueilService {
       infirmiers: infirmiers.map((i: Record<string, unknown>) => ({ id: Number(i.id), nom: String(i.nom), service: (i.service as string) ?? null })),
       // Un médecin ne s'affecte pas un patient à lui-même
       medecins: medecins.filter((m: Record<string, unknown>) => Number(m.id) !== agent.doctorId).flatMap((m: Record<string, unknown>) => {
-        const c = creneauDuJour(m.days, m.hour_start, m.hour_end);
+        // Hors service : hors de son créneau OU en permission accordée
+        const c = Number(m.en_permission) === 1 ? null : creneauDuJour(m.days, m.hour_start, m.hour_end);
         return c ? [{ id: Number(m.id), nom: m.nom, service: m.service ?? null, serviceId: Number(m.service_hospital_id), creneau: c.debut === '00:00' ? 'toute la journée' : `${c.debut} – ${c.fin}` }] : [];
       }),
       jour: nomJour(),
@@ -416,8 +419,9 @@ export class InfirmierAccueilService {
     if (agent?.role === 'doctor') {
       if (Number(dto.doctorId) === Number(agent.doctorId)) throw new BadRequestException('Vous ne pouvez pas vous affecter le patient à vous-même : choisissez un autre médecin.');
       if (!dto.infirmierId) throw new BadRequestException('Veuillez choisir l’infirmier·ère qui accompagnera le patient.');
-      const [inf] = await this.db.query('SELECT id FROM infirmiers WHERE id = ? AND hospital_id = ? AND status = 0 AND `delete` = 0 LIMIT 1', [dto.infirmierId, hospitalId]);
+      const [inf] = await this.db.query(`SELECT id, ${SQL_EN_PERMISSION('user_id')} AS en_permission FROM infirmiers WHERE id = ? AND hospital_id = ? AND status = 0 AND \`delete\` = 0 LIMIT 1`, [dto.infirmierId, hospitalId]);
       if (!inf) throw new BadRequestException('Infirmier·ère introuvable ou inactif·ve dans votre hôpital.');
+      if (Number(inf.en_permission) === 1) throw new BadRequestException('Cet·te infirmier·ère est en permission : choisissez quelqu’un d’autre.');
     }
     const [prestation] = await this.db.query(
       `SELECT ph.id, ph.prix, ph.service_hospital_id FROM prestation_hospitals ph
@@ -428,7 +432,7 @@ export class InfirmierAccueilService {
     if (!prestation) throw new BadRequestException("Cette prestation n'existe pas dans votre hôpital.");
     // Médecin obligatoire, actif et dans son jour / créneau
     const [d] = await this.db.query(
-      `SELECT d.id, d.service_hospital_id, av.days, av.hour_start, av.hour_end
+      `SELECT d.id, d.service_hospital_id, av.days, av.hour_start, av.hour_end, ${SQL_EN_PERMISSION('d.user_id')} AS en_permission
          FROM doctors d
          LEFT JOIN availabilities av ON av.id = (SELECT MAX(id) FROM availabilities WHERE user_id = d.user_id)
         WHERE d.id = ? AND d.hospital_id = ? AND d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL`,
@@ -439,6 +443,7 @@ export class InfirmierAccueilService {
     if (Number(d.service_hospital_id) !== Number(prestation.service_hospital_id)) {
       throw new BadRequestException("Ce médecin n'appartient pas au service choisi.");
     }
+    if (Number(d.en_permission) === 1) throw new BadRequestException('Ce médecin est en permission : choisissez un autre médecin.');
     if (!creneauDuJour(d.days, d.hour_start, d.hour_end)) {
       throw new BadRequestException("Ce médecin n'est pas disponible maintenant (hors de ses jours ou de son créneau).");
     }

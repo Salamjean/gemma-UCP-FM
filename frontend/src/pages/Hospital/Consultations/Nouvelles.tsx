@@ -8,6 +8,8 @@ import c from '../../../styles/espace.module.css';
 import type { ConsultationHopital } from '../../../types';
 import { baseHopital } from '../../../services/contexteHopital';
 import styles from './Consultations.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 export function formatDateFr(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -61,6 +63,7 @@ export default function Nouvelles() {
       ),
     );
   }, [consultations, recherche]);
+  const pg = usePagination(filtres);
 
   const compteurs = consultations
     ? [
@@ -78,6 +81,21 @@ export default function Nouvelles() {
           <h1 className={c.titre}>Consultations en cours</h1>
         </div>
         <div className={c.boutons}>
+          <ExportExcel
+            fichier="consultations_en_cours"
+            titre="Consultations en cours"
+            module="CONSULTATION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Référence', valeur: (x) => x.patient.code },
+              { titre: 'Patient', valeur: (x) => x.patient.nom },
+              { titre: 'Date', valeur: (x) => formatDateFr(x.date) },
+              { titre: 'Heure', valeur: (x) => (x.createdAt ? formatHeureFr(x.createdAt) : null) },
+              { titre: 'Motif', valeur: (x) => x.motif },
+              { titre: 'Détail du motif', valeur: (x) => (x.motifDetail && x.motifDetail !== x.motif ? x.motifDetail : null) },
+              { titre: 'Agent traitant', valeur: (x) => x.medecin },
+            ]}
+          />
           <Link to={`${baseHopital()}/consultations/historique`} className={c.secondaire}>
             <FaHistory aria-hidden="true" /> Voir l’historique
           </Link>
@@ -125,6 +143,7 @@ export default function Nouvelles() {
             <p>Les nouvelles consultations enregistrées au sein de votre établissement apparaîtront ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -138,7 +157,7 @@ export default function Nouvelles() {
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((item, i) => (
+                {pg.lignes.map((item, i) => (
                   <motion.tr
                     key={item.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -197,6 +216,8 @@ export default function Nouvelles() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

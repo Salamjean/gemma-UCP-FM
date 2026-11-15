@@ -6,6 +6,7 @@ import { laravelHash, laravelNow } from '../../../common/laravel';
 import { creneauDuJour } from '../../infirmier/gestion-patients/accueil.service';
 import { ConsultationCurativeDto, NaissanceDto } from './dto/consultation.dto';
 import { MATERNITE, nettoyerMaternite, typeMaternite, type TypeMaternite } from './dto/maternite';
+import { permissionEnCours, SQL_EN_PERMISSION } from '../../../common/permission-en-cours';
 
 type Ligne = Record<string, unknown>;
 const texte = (v: unknown) => (v === null || v === undefined || v === '' ? null : String(v));
@@ -173,9 +174,12 @@ export class DoctorConsultationsService {
       this.nouvelles(userId),
     ]);
     const tele = await this.telemedecines(userId, 'en-attente');
-    const c = creneauDuJour(d.days, d.hour_start, d.hour_end);
+    // En permission accordée : hors service, même dans son créneau
+    const enPermission = await permissionEnCours(this.db, Number(userId));
+    const c = enPermission ? null : creneauDuJour(d.days, d.hour_start, d.hour_end);
     return {
       medecin: {
+        permission: enPermission,
         nom: nom(d.name, d.prenom) ?? 'Docteur',
         hopital: texte(d.hopital) ?? 'Hôpital',
         service: texte(d.service),
@@ -675,7 +679,8 @@ export class DoctorConsultationsService {
   async medecinsReference(userId: number) {
     const d = await this.medecin(userId);
     const rows: Ligne[] = await this.db.query(
-      `SELECT dc.id, u.name, u.prenom, s.libelle AS service, dc.type_agent_id, av.days, av.hour_start, av.hour_end
+      `SELECT dc.id, u.name, u.prenom, s.libelle AS service, dc.type_agent_id, av.days, av.hour_start, av.hour_end,
+              ${SQL_EN_PERMISSION('dc.user_id')} AS en_permission
          FROM doctors dc
          JOIN users u ON u.id = dc.user_id
          LEFT JOIN service_hospitals sh ON sh.id = dc.service_hospital_id
@@ -686,7 +691,7 @@ export class DoctorConsultationsService {
       [d.hospital_id, d.id],
     );
     return rows.map((r) => {
-      const c = creneauDuJour(r.days, r.hour_start, r.hour_end);
+      const c = Number(r.en_permission) === 1 ? null : creneauDuJour(r.days, r.hour_start, r.hour_end);
       return {
         id: Number(r.id),
         nom: nom(r.name, r.prenom) ?? '—',

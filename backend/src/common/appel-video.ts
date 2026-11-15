@@ -4,6 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import type { DataSource } from 'typeorm';
 import { agentDuCompte } from './agent-sante';
 import { laravelNow } from './laravel';
+import { SQL_EN_PERMISSION } from './permission-en-cours';
 
 /**
  * APPELS VIDÉO DE TÉLÉMÉDECINE (LiveKit, comme Laravel : App\Services\LiveKitTokenService)
@@ -44,18 +45,23 @@ function jetonLiveKit(salle: string, identite: string, nom: string) {
 const nom = (n: unknown, p: unknown) => `${(n as string) ?? ''} ${(p as string) ?? ''}`.trim();
 
 /**
- * URGENCE : médecins alertés (comme Laravel isDoctorMatchingConsultation) — même hôpital, actifs, et :
- * généraliste (type ou service « Consultation générale »), service « Urgence », même service que la prestation,
- * ou prestation attribuée au médecin (prestation_doctors).
+ * URGENCE : médecins alertés — dans TOUS les hôpitaux de la DMHP (is_ucp_fm = 1), actifs, et :
+ *   - médecins du même SERVICE que le patient (même type de service : services.id, quel que soit l'hôpital),
+ *     ou qui pratiquent l'acte de la consultation ;
+ *   - médecins GÉNÉRALISTES (doctors.type_name = 'generaliste').
  * Requête à compléter : c = consultations, d = doctors.
  */
 const ELIGIBLE_URGENCE = `
-  d.hospital_id = c.hospital_id AND d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL AND (
-       LOWER(COALESCE(d.type_name, '')) LIKE '%general%' OR LOWER(COALESCE(d.type_name, '')) LIKE '%général%'
-    OR EXISTS (SELECT 1 FROM service_hospitals shd JOIN services sd ON sd.id = shd.service_id
-                WHERE shd.id = d.service_hospital_id
-                  AND (LOWER(sd.libelle) LIKE '%général%' OR LOWER(sd.libelle) LIKE '%general%' OR LOWER(sd.libelle) LIKE '%urgence%'))
-    OR EXISTS (SELECT 1 FROM prestation_hospitals phu WHERE phu.id = c.prestation_hospital_id AND phu.service_hospital_id = d.service_hospital_id)
+  d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM hospitals hd WHERE hd.id = d.hospital_id AND hd.is_ucp_fm = 1 AND hd.deleted_at IS NULL)
+  -- En permission accordée : hors service, pas appelé
+  AND NOT ${SQL_EN_PERMISSION('d.user_id')}
+  AND (
+       LOWER(COALESCE(d.type_name, '')) IN ('generaliste', 'généraliste')
+    OR EXISTS (SELECT 1 FROM prestation_hospitals phu
+                 JOIN service_hospitals shp ON shp.id = phu.service_hospital_id
+                 JOIN service_hospitals shd ON shd.id = d.service_hospital_id
+                WHERE phu.id = c.prestation_hospital_id AND shd.service_id = shp.service_id)
     OR EXISTS (SELECT 1 FROM prestation_doctors pd WHERE pd.doctor_id = d.id AND pd.prestation_hospital_id = c.prestation_hospital_id)
   )`;
 
@@ -169,8 +175,10 @@ export async function appelsEntrants(db: DataSource, userId: number) {
   const urgences: Record<string, unknown>[] =
     agent.role === 'doctor'
       ? await db.query(
-          `SELECT c.id, c.call_status, c.call_started_at, pu.name AS patient_nom, pu.prenom AS patient_prenom, iu.name AS inf_nom, iu.prenom AS inf_prenom
+          `SELECT c.id, c.call_status, c.call_started_at, pu.name AS patient_nom, pu.prenom AS patient_prenom, iu.name AS inf_nom, iu.prenom AS inf_prenom,
+                  IF(c.hospital_id <> d.hospital_id, hc.label, NULL) AS autre_hopital
              FROM consultations c
+             LEFT JOIN hospitals hc ON hc.id = c.hospital_id
              JOIN doctors d ON d.id = ?
              JOIN patients p ON p.id = c.patient_id JOIN users pu ON pu.id = p.user_id
              LEFT JOIN infirmiers i ON i.id = c.infirmier_id LEFT JOIN users iu ON iu.id = i.user_id
@@ -186,7 +194,8 @@ export async function appelsEntrants(db: DataSource, userId: number) {
       statut: 'calling',
       depuis: r.call_started_at,
       patient: nom(r.patient_nom, r.patient_prenom),
-      appelant: `Inf. ${nom(r.inf_nom, r.inf_prenom) || '—'}`,
+      // Urgence d'un autre hôpital DMHP : son nom est ajouté
+      appelant: `Inf. ${nom(r.inf_nom, r.inf_prenom) || '—'}${r.autre_hopital ? ` · ${r.autre_hopital}` : ''}`,
       urgence: true,
     })),
     ...rows

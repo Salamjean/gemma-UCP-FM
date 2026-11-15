@@ -9,6 +9,8 @@ import type { EspaceDeclarations } from '../../../types';
 import type { DeclarationDecesResume } from '../../../types';
 import { baseHopital } from '../../../services/contexteHopital';
 import s from './Declarations.module.css';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type FiltreDeces = 'tous' | 'patient' | 'enfant' | 'maternel';
 
@@ -86,6 +88,7 @@ export function ListeDeces({ espace = 'hopital' }: { espace?: EspaceDeclarations
       );
     });
   }, [deces, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const compteurs = deces
     ? [
@@ -103,13 +106,32 @@ export function ListeDeces({ espace = 'hopital' }: { espace?: EspaceDeclarations
           <p className={c.surtitre}>Déclarations · État civil</p>
           <h1 className={c.titre}>{espace === 'medecin' ? 'Mes déclarations de décès' : 'Liste des déclarations de décès'}</h1>
         </div>
-        {espace === 'medecin' && (
-          <div className={c.boutons}>
+        <div className={c.boutons}>
+          {espace === 'hopital' && (
+            <ExportExcel
+              fichier="declarations_deces"
+              titre="Déclarations de décès"
+              module="DECLARATION"
+              lignes={filtres}
+              colonnes={[
+                { titre: 'N° certificat', valeur: (d) => d.reference },
+                { titre: 'Décès maternel', valeur: (d) => (d.decesMaternel ? 'Oui' : 'Non') },
+                { titre: 'Personne', valeur: (d) => (d.personne === 'enfant' ? 'Nouveau-né' : 'Patient') },
+                { titre: 'Code DM', valeur: (d) => d.patient.code },
+                { titre: 'Nom & prénoms', valeur: (d) => d.patient.nom },
+                { titre: 'Genre', valeur: (d) => libelleGenre(d.genre ?? d.patient.genre) },
+                { titre: 'Âge', valeur: (d) => (d.age ? `${d.age} ans` : null) },
+                { titre: 'Date du décès', valeur: (d) => formatDate(d.dateDeces) },
+                { titre: 'Heure', valeur: (d) => d.heureDeces },
+              ]}
+            />
+          )}
+          {espace === 'medecin' && (
             <Link to="/medecin/declarations/enregistrer-deces" className={c.principal}>
               <FaPlus aria-hidden="true" /> Enregistrer un décès
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${s.compteurs}`}>
@@ -165,6 +187,7 @@ export function ListeDeces({ espace = 'hopital' }: { espace?: EspaceDeclarations
             <p>Les déclarations de décès constatées au sein de votre établissement apparaîtront ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -181,7 +204,7 @@ export function ListeDeces({ espace = 'hopital' }: { espace?: EspaceDeclarations
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((d, i) => {
+                {pg.lignes.map((d, i) => {
                   const g = (d.genre ?? d.patient.genre ?? '').toUpperCase();
                   const estMasculin = g === 'M' || g.startsWith('MASC');
                   const urlPhoto = d.patient.imgUrl ? (d.patient.imgUrl.startsWith('http') ? d.patient.imgUrl : uploadUrl('patient', d.patient.imgUrl)) : null;
@@ -260,6 +283,8 @@ export function ListeDeces({ espace = 'hopital' }: { espace?: EspaceDeclarations
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

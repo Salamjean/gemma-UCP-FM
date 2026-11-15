@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import type { Request } from 'express';
@@ -51,19 +51,16 @@ export class InfirmierConsultationsController {
     return this.service.history(req.user.sub);
   }
 
+  /** GET …/teleconsultation-hospitals?date=AAAA-MM-JJ&heure=HH:MM → hôpitaux + médecins disponibles à ce moment */
   @Get('teleconsultation-hospitals')
-  getTeleconsultationHospitals(
-    @Req() req: Request & { user: JwtPayload },
-    @Param('consultation_id') consultationId?: number,
-  ) {
-    return this.service.getTeleconsultationHospitals(Number(consultationId || 0));
+  getTeleconsultationHospitals(@Query('date') date?: string, @Query('heure') heure?: string) {
+    return this.service.getTeleconsultationHospitals(0, date, heure);
   }
 
+  /** GET …/teleconsultation-doctors/:hospitalId?date=…&heure=… → médecins disponibles à ce moment */
   @Get('teleconsultation-doctors/:hospitalId')
-  getTeleconsultationDoctors(
-    @Param('hospitalId', ParseIntPipe) hospitalId: number,
-  ) {
-    return this.service.getTeleconsultationDoctors(hospitalId);
+  getTeleconsultationDoctors(@Param('hospitalId', ParseIntPipe) hospitalId: number, @Query('date') date?: string, @Query('heure') heure?: string) {
+    return this.service.getTeleconsultationDoctors(hospitalId, date, heure);
   }
 
   @Get('formulaire/:id')

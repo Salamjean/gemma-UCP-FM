@@ -408,7 +408,7 @@
 /* Télémédecine : établissement | date | heure | médecin sur une ligne */
 .ligneTele {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 0.7fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.7fr) minmax(0, 1.3fr) minmax(0, 1.3fr);
   gap: 12px;
   align-items: start;
 }
@@ -910,4 +910,15 @@
 
 .lecture fieldset button:not([aria-checked='true']) {
   opacity: 0.55;
+}
+
+/* Télémédecine : établissement grisé tant que la date et l'heure ne sont pas renseignées */
+.champInactif {
+  opacity: 0.55;
+}
+
+.aideTele {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #a15c00;
 }

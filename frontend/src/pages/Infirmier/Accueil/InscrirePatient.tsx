@@ -103,7 +103,6 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
     telephone: { etape: 2, message: 'Le téléphone doit contenir 10 chiffres.', ko: !/^\d{10}$/.test(telephone) },
     contact2: { etape: 2, message: 'Le 2e contact doit contenir 10 chiffres.', ko: !!contact2 && !/^\d{10}$/.test(contact2) },
     email: { etape: 2, message: 'Adresse email invalide.', ko: !!email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) },
-    numCmu: { etape: 2, message: 'Le N° CMU est obligatoire.', ko: !numCmu.trim() },
     urgenceTelephone: { etape: 2, message: 'Le téléphone de la personne à prévenir doit contenir 10 chiffres.', ko: !!urgenceTelephone && !/^\d{10}$/.test(urgenceTelephone) },
     prestation: { etape: 3, message: 'Choisissez le service puis la prestation.', ko: affecter && !affectation.prestationId },
     medecin: { etape: 3, message: 'Veuillez choisir le médecin.', ko: affecter && !affectation.doctorId },
@@ -152,7 +151,7 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
         typePiece,
         numeroIdentite: numeroIdentite.trim() || undefined,
         profession: profession.trim() || undefined,
-        numCmu: numCmu.trim(),
+        numCmu: numCmu.trim() || undefined,
         adresse: adresse.trim() || undefined,
         urgenceNom: urgenceNom.trim() || undefined,
         urgenceTelephone: urgenceTelephone || undefined,
@@ -359,9 +358,9 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
                       disabled={typePiece === 'Aucune'}
                     />
                   </div>
-                  <div className={`${s.champ} ${ko('numCmu') ? s.invalide : ''}`}>
+                  <div className={s.champ}>
                     <label htmlFor="cmu">
-                      N° CMU <span className={s.requis}>*</span>
+                      N° CMU <span className={s.facultatif}>(facultatif)</span>
                     </label>
                     <input id="cmu" maxLength={191} value={numCmu} onChange={(e) => setNumCmu(e.target.value)} />
                   </div>

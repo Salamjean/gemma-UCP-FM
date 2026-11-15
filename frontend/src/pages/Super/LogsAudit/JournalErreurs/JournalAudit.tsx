@@ -89,7 +89,7 @@ export default function JournalAudit() {
 
   return (
     <div className={c.page}>
-      <div className={c.compteurs} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className={`${c.compteurs} ${c.compteursQuatre}`}>
         {compteurs.map((k, i) => (
           <motion.div key={k.libelle} className={c.compteur} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
             <span className={c.compteurIcone} style={{ background: k.fond, color: k.texte }}>

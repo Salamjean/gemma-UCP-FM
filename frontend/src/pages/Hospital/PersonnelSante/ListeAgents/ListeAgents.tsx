@@ -10,6 +10,8 @@ import type { Agent, TypeAgent } from '../../../../types';
 import { AGENTS, JOURS } from '../personnel.config';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './ListeAgents.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer' | 'chef'; agent: Agent };
 
@@ -69,6 +71,7 @@ export default function ListeAgents({ type }: { type: TypeAgent }) {
     if (!agents || !q) return agents ?? [];
     return agents.filter((a) => [a.nom, a.email, a.matricule, a.contact, a.service, a.specialite].some((v) => v?.toLowerCase().includes(q)));
   }, [agents, recherche]);
+  const pg = usePagination(filtres);
 
   const avecSpecialite = type === 'medecin';
   const colonnes = 6 + (avecSpecialite ? 1 : 0) - (type === 'regulateur' ? 1 : 0);
@@ -108,6 +111,26 @@ export default function ListeAgents({ type }: { type: TypeAgent }) {
         <Link to={`${baseHopital()}/personnel-sante/ajouter?type=${type}`} className={c.principal}>
           <FaPlus aria-hidden="true" /> Ajouter un(e) {conf.libelle.toLowerCase()}
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier={conf.chemin}
+            titre={conf.pluriel}
+            module="PERSONNEL"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Nom', valeur: (a) => a.nom },
+              { titre: 'Matricule', valeur: (a) => a.matricule },
+              { titre: 'Email', valeur: (a) => a.email },
+              { titre: 'Contact', valeur: (a) => a.contact },
+              ...(type === 'medecin' ? [{ titre: 'Spécialité', valeur: (a: (typeof filtres)[number]) => a.specialite }] : []),
+              ...(type !== 'regulateur' ? [{ titre: type === 'infirmier' ? 'Services' : 'Service', valeur: (a: (typeof filtres)[number]) => a.service }] : []),
+              ...(type === 'medecin' || type === 'sage-femme' ? [{ titre: 'Actes', valeur: (a: (typeof filtres)[number]) => a.actes }] : []),
+              ...(type === 'medecin' ? [{ titre: 'Médecin chef', valeur: (a: (typeof filtres)[number]) => (a.chef ? 'Oui' : 'Non') }] : []),
+              { titre: 'Jours de disponibilité', valeur: (a) => a.jours.map((j) => JOURS[j]).join(', ') },
+              { titre: 'Statut', valeur: (a) => (a.actif ? 'Activé' : 'Désactivé') },
+            ]}
+          />
+        </div>
       </header>
 
       <div className={`${c.compteurs} ${styles.compteurs}`}>
@@ -146,7 +169,7 @@ export default function ListeAgents({ type }: { type: TypeAgent }) {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((a, i) => (
+              {pg.lignes.map((a, i) => (
                 <motion.tr key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                   <td>
                     <div className={styles.agent}>
@@ -231,6 +254,7 @@ export default function ListeAgents({ type }: { type: TypeAgent }) {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
 
       <ConfirmDialog

@@ -18,6 +18,7 @@ import type {
   InfirmierPatientItem,
 } from '../../../types';
 import s from './GestionPatients.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 function initiales(nom: string): string {
   const parts = nom.trim().split(/\s+/).filter(Boolean);
@@ -91,6 +92,7 @@ export default function ListePatients() {
         (p.residence && p.residence.toLowerCase().includes(q)),
     );
   }, [patients, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <div className={c.page}>
@@ -165,7 +167,7 @@ export default function ListePatients() {
           </div>
         </div>
 
-        <div className={c.tableWrapper}>
+        <div className={c.tableWrap}>
           <table className={c.table}>
             <thead>
               <tr>
@@ -196,7 +198,7 @@ export default function ListePatients() {
                   </td>
                 </tr>
               ) : (
-                filtres.map((p) => {
+                pg.lignes.map((p) => {
                   const feminin = (p.genre ?? '').toLowerCase().startsWith('f');
                   const photo = p.imgUrl
                     ? p.imgUrl.startsWith('http')
@@ -306,6 +308,7 @@ export default function ListePatients() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </motion.section>
 
       {/* =========================================================

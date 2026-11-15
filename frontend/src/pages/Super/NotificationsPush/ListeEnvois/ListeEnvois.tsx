@@ -11,6 +11,7 @@ import c from '../../../../styles/espace.module.css';
 import Compteurs from '../Compteurs';
 import { CATEGORIES, CIBLES, dateHeure } from '../notifications.config';
 import styles from './ListeEnvois.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
 
 /**
  * SUPER > NOTIFICATIONS PUSH > LISTE DES ENVOIS
@@ -80,6 +81,30 @@ export default function ListeEnvois() {
         <Link to="/super/notifications-push/nouvelle" className={c.principal}>
           <FaPaperPlane aria-hidden="true" /> Nouvelle diffusion
         </Link>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="notifications_push"
+            titre="Historique des notifications push"
+            module="NOTIFICATION"
+            charger={async () => {
+              // Liste paginée côté serveur : toutes les pages avec la recherche et la catégorie en cours
+              const premiere = await api.super.notifications.liste(recherche, categorie, 1);
+              const suite = await Promise.all(Array.from({ length: Math.max(0, premiere.pages - 1) }, (_, i) => api.super.notifications.liste(recherche, categorie, i + 2)));
+              return [premiere, ...suite].flatMap((r) => r.diffusions);
+            }}
+            colonnes={[
+              { titre: 'Titre', valeur: (d) => d.titre },
+              { titre: 'Message', valeur: (d) => d.message, largeur: 60 },
+              { titre: 'Cible', valeur: (d) => (CIBLES[d.cible] ?? CIBLES.all).label },
+              { titre: 'Destinataires', valeur: (d) => d.destinataires },
+              { titre: 'Catégorie', valeur: (d) => (CATEGORIES[d.categorie as CategorieDiffusion] ?? CATEGORIES.general).label },
+              { titre: "Date d'envoi", valeur: (d) => dateHeure(d.date) },
+              { titre: 'Envoyé par', valeur: (d) => d.envoyePar },
+              { titre: 'Push envoyés', valeur: (d) => d.push },
+              { titre: 'Lus', valeur: (d) => d.lus },
+            ]}
+          />
+        </div>
       </header>
 
       {stats && <Compteurs stats={stats} />}

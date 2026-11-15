@@ -175,7 +175,8 @@ export class PersonnelSanteService {
     if (dto.password !== dto.passwordConfirmation) throw new BadRequestException('Les mots de passe ne correspondent pas.');
     await this.verifierChampsMetier(hospitalId, type, dto);
 
-    const matricule = this.prefixe(type, dto) + dto.matricule.toUpperCase();
+    // Matricule saisi en entier par l'hôpital, enregistré tel quel (plus de préfixe MG / MS / SG / INF / REG ajouté)
+    const matricule = dto.matricule.trim();
     const [doublon] = await this.db.query(`SELECT id FROM \`${c.table}\` WHERE matricule = ? AND hospital_id = ? AND \`delete\` = 0 LIMIT 1`, [matricule, hospitalId]);
     if (doublon) throw new ConflictException(`Un agent avec le matricule ${matricule} existe déjà dans votre hôpital.`);
     const [emailPris] = await this.db.query('SELECT id FROM users WHERE email = ? LIMIT 1', [dto.email]);
@@ -247,10 +248,18 @@ export class PersonnelSanteService {
   }
 
   /** Modification (comme AgentRepository::update, InfirmierController@update) */
-  async modifier(userId: number, type: TypeAgent, id: number, dto: AgentDto, image?: Express.Multer.File) {
+  async modifier(userId: number, type: TypeAgent, id: number, dto: AgentDto, image?: Express.Multer.File, parAdmin = false) {
     const a = await this.agentDeLHopital(userId, type, id);
     const c = CONFIG[type];
     if (dto.password && dto.password !== dto.passwordConfirmation) throw new BadRequestException('Les mots de passe ne correspondent pas.');
+    // Email de connexion : modifiable seulement par l'admin DMHP (le compte de l'hôpital ne peut pas le changer)
+    const nouvelEmail = dto.email?.trim().toLowerCase();
+    const changeEmail = !!nouvelEmail && nouvelEmail !== String(a.email ?? '').toLowerCase();
+    if (changeEmail && !parAdmin) throw new BadRequestException('Seule l’administration DMHP peut modifier l’adresse email d’un agent.');
+    if (changeEmail) {
+      const [pris] = await this.db.query('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1', [nouvelEmail, a.user_id]);
+      if (pris) throw new ConflictException('Cette adresse email est déjà utilisée par un autre compte.');
+    }
     await this.verifierChampsMetier(Number(a.hospital_id), type, dto);
 
     const imgUrl = image ? await saveImage(image, c.dossier) : null;
@@ -258,8 +267,9 @@ export class PersonnelSanteService {
     const password = dto.password ? await laravelHash(dto.password) : null;
 
     await this.db.transaction(async (m) => {
-      await m.query(`UPDATE users SET name = ?${password ? ', password = ?' : ''}, updated_at = ? WHERE id = ?`, [
+      await m.query(`UPDATE users SET name = ?${changeEmail ? ', email = ?' : ''}${password ? ', password = ?' : ''}, updated_at = ? WHERE id = ?`, [
         dto.name,
+        ...(changeEmail ? [nouvelEmail] : []),
         ...(password ? [password] : []),
         now,
         a.user_id,
@@ -386,13 +396,6 @@ export class PersonnelSanteService {
     const uniques = [...new Set(ids)];
     const [{ n }] = await this.db.query('SELECT COUNT(*) AS n FROM service_hospitals WHERE id IN (?) AND hospital_id = ?', [uniques, hospitalId]);
     if (Number(n) !== uniques.length) throw new BadRequestException("Un service choisi n'appartient pas à votre hôpital.");
-  }
-
-  /** Préfixe du matricule, comme Laravel (le généraliste reçoit MG, comme les données existantes) */
-  private prefixe(type: TypeAgent, dto: AgentDto) {
-    if (type === 'medecin') return dto.typeName === 'specialiste' ? 'MS' : 'MG';
-    if (type === 'regulateur') return 'REG';
-    return type === 'sage-femme' ? 'SG' : 'INF';
   }
 
   private async enregistrerActes(m: EntityManager, doctorId: number, actes: number[], now: string) {

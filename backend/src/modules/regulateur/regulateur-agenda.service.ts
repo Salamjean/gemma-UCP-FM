@@ -2,41 +2,11 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { laravelNow } from '../../common/laravel';
+import { JOURS, planningSemaine } from '../../common/planning-medecin';
 import { DISPO_MEDECIN, JOINTURE_PLANNING, LIBELLES, nom, raisonIndisponible, regulateurDuCompte, sansDr } from './regulateur.service';
+import { permissionEnCours } from '../../common/permission-en-cours';
 
 type Ligne = Record<string, any>;
-
-const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-const lireJson = (v: unknown): unknown[] => {
-  if (typeof v !== 'string') return Array.isArray(v) ? v : [];
-  try {
-    const r = JSON.parse(v);
-    return Array.isArray(r) ? r : [r];
-  } catch {
-    return [];
-  }
-};
-const hhmm = (v: unknown) => (typeof v === 'string' && /^\d{1,2}:\d{2}/.test(v) ? v.slice(0, 5).padStart(5, '0') : null);
-
-/**
- * Planning hebdomadaire (availabilities) lu comme Laravel / creneauDuJour :
- * days = ["0","2"] (0 = lundi) ; heures sur 7 cases (une par jour) ou une par jour listé (anciennes données) ;
- * début "00:00" = dès minuit, fin absente = 23:59.
- */
-export function planningSemaine(days: unknown, hourStart: unknown, hourEnd: unknown) {
-  const jours = lireJson(days).map(Number);
-  const debuts = lireJson(hourStart).map((x) => (x === null ? '' : String(x)));
-  const fins = lireJson(hourEnd).map((x) => (x === null ? '' : String(x)));
-  return JOURS.map((nomJour, i) => {
-    const position = jours.indexOf(i);
-    const prendre = (l: string[]) => (l.length === 7 ? l[i] : (l[position] ?? l[0])) || '';
-    const debut = hhmm(prendre(debuts)) ?? '00:00';
-    let fin = hhmm(prendre(fins)) ?? '23:59';
-    if (fin === '00:00') fin = '23:59';
-    return { index: i, nom: nomJour, travaille: position !== -1, debut, fin, journeeEntiere: debut === '00:00' && fin === '23:59' };
-  });
-}
 
 /** "AAAA-MM-JJ" → lundi de sa semaine (dates en UTC pour éviter les décalages) */
 function lundiDe(date?: string) {
@@ -141,7 +111,12 @@ export class RegulateurAgendaService {
   async planning(userId: number) {
     const { hopital } = await regulateurDuCompte(this.db, userId);
     const [av] = await this.db.query('SELECT days, hour_start, hour_end FROM availabilities WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId]);
-    return { hospitalNom: hopital, jours: planningSemaine(av?.days, av?.hour_start, av?.hour_end), rendezVous: [] };
+    return {
+      hospitalNom: hopital,
+      permission: await permissionEnCours(this.db, userId),
+      jours: planningSemaine(av?.days, av?.hour_start, av?.hour_end),
+      rendezVous: [],
+    };
   }
 
   /** Mes demandes de permission */

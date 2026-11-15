@@ -104,6 +104,7 @@ import type {
   DossierHospitalisation,
   ConsultationCurativePayload,
   CalendrierMedecins,
+  ProfilUtilisateur,
   MedecinPropose,
   Reattribution,
   TableauRegulation,
@@ -261,6 +262,11 @@ export const api = {
   login: (data: LoginCredentials) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   me: () => request<AuthUser>('/auth/me'),
+  /** Mot de passe oublié : code à 6 chiffres envoyé par email, puis nouveau mot de passe */
+  motDePasseOublie: (email: string) =>
+    request<{ message: string }>('/auth/mot-de-passe-oublie', { method: 'POST', body: JSON.stringify({ email }) }),
+  reinitialiser: (data: { email: string; code: string; nouveau: string; confirmation: string }) =>
+    request<{ message: string }>('/auth/reinitialiser', { method: 'POST', body: JSON.stringify(data) }),
 
   // --- Icônes du site (public, sans connexion) — voir services/icones.ts ---
   icones: () => request<IconesInfo>('/icones'),
@@ -340,9 +346,14 @@ export const api = {
       today: () => request<InfirmierConsultationItem[]>('/infirmier/consultations/today'),
       all: () => request<InfirmierConsultationItem[]>('/infirmier/consultations/all'),
       history: () => request<InfirmierConsultationItem[]>('/infirmier/consultations/history'),
-      teleconsultationHospitals: () => request<TeleconsultationHospitalItem[]>('/infirmier/consultations/teleconsultation-hospitals'),
-      teleconsultationDoctors: (hospitalId: number) =>
-        request<{ id: number; nom: string; specialite: string }[]>(`/infirmier/consultations/teleconsultation-doctors/${hospitalId}`),
+      /** Avec date et heure : nombre de médecins disponibles à ce moment dans chaque hôpital */
+      teleconsultationHospitals: (date?: string, heure?: string) =>
+        request<TeleconsultationHospitalItem[]>(`/infirmier/consultations/teleconsultation-hospitals${qs({ date, heure })}`),
+      /** Avec date et heure : seulement les médecins disponibles à ce moment (planning + permissions) */
+      teleconsultationDoctors: (hospitalId: number, date?: string, heure?: string) =>
+        request<{ id: number; nom: string; specialite: string; creneau?: string | null }[]>(
+          `/infirmier/consultations/teleconsultation-doctors/${hospitalId}${qs({ date, heure })}`,
+        ),
       formulaire: (id: number) => request<InfirmierConstantesFormulaire>(`/infirmier/consultations/formulaire/${id}`),
       /** Appel d'urgence : constantes enregistrées + appel vidéo vers les médecins alertés */
       lancerUrgence: (id: number, corps: { tension_arterielle?: string; temperature?: string; taille?: string; poids?: string; imc?: string; pouls?: string; observation?: string }) =>
@@ -525,6 +536,19 @@ export const api = {
   },
 
   // --- Super admin ---
+  /** « Mon profil » de l'utilisateur connecté (tous les rôles) */
+  profil: {
+    lire: () => request<ProfilUtilisateur>('/profil'),
+    /** FormData : nom, prenom, contact, adresse, district, direction (selon le rôle) + image facultative */
+    modifier: (data: FormData) => request<{ message: string }>('/profil', { method: 'PUT', body: data }),
+    motDePasse: (data: { actuel: string; nouveau: string; confirmation: string }) =>
+      request<{ message: string }>('/profil/mot-de-passe', { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  /** Trace d'un export Excel fait dans le navigateur (journal d'audit EXPORT_EXCEL) */
+  exports: {
+    journal: (data: { module: string; description: string }) =>
+      request<{ success: boolean }>('/exports/journal', { method: 'POST', body: JSON.stringify(data) }),
+  },
   /** Espace du régulateur (réattribution des patients à un médecin disponible) */
   regulateur: {
     consultations: () => request<TableauRegulation>('/regulateur/consultations'),

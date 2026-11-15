@@ -16,7 +16,7 @@ export async function hopitalDuCompte(db: DataSource | EntityManager, userId: nu
     const id = hopitalDemande(req as never);
     if (!id) throw new ForbiddenException('Ouvrez d’abord un hôpital depuis l’espace d’administration.');
     const [h] = await db.query('SELECT id FROM hospitals WHERE id = ? AND is_ucp_fm = 1 AND deleted_at IS NULL LIMIT 1', [id]);
-    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux UCP-FM sont gérés ici)');
+    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux DMHP sont gérés ici)');
     return Number(h.id);
   }
   const [row] = await db.query('SELECT id FROM hospitals WHERE user_id = ? AND deleted_at IS NULL LIMIT 1', [userId]);

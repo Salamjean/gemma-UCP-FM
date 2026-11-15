@@ -7,6 +7,7 @@ import c from '../../../styles/espace.module.css';
 import type { CalendrierMedecins, JourCalendrier } from '../../../types';
 import r from '../Regulation/Regulation.module.css';
 import s from './Calendrier.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 /** "AAAA-MM-JJ" en heure locale */
 const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -73,6 +74,7 @@ export default function Calendrier() {
       .filter((m) => !disponiblesSeulement || m.disponibleMaintenant)
       .filter((m) => !q || [m.nom, m.service, m.specialite].some((v) => v?.toLowerCase().includes(q)));
   }, [data, service, recherche, disponiblesSeulement]);
+  const pg = usePagination(medecins);
 
   const disponibles = (data?.medecins ?? []).filter((m) => m.disponibleMaintenant).length;
   const enPermission = (data?.medecins ?? []).filter((m) => m.jours.some((j) => j.date === aujourdhui && j.permission?.statut === 'agree')).length;
@@ -162,7 +164,7 @@ export default function Calendrier() {
                   </td>
                 </tr>
               )}
-              {medecins.map((m) => (
+              {pg.lignes.map((m) => (
                 <tr key={m.id} className={m.actif ? undefined : s.inactif}>
                   <td className={s.medecin}>
                     <strong>{m.nom}</strong>
@@ -182,6 +184,7 @@ export default function Calendrier() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
 
         <div className={s.legende}>
           <span className={`${s.case} ${s.caseService}`}>Créneau de service</span>

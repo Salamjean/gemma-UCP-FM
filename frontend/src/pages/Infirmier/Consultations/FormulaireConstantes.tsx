@@ -30,6 +30,7 @@ import { api, uploadUrl } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { InfirmierConstantesFormulaire, TeleconsultationHospitalItem } from '../../../types';
 import s from './FormulaireConstantes.module.css';
+import { type ChampMasque, masquerConstante } from '../../../services/saisieConstantes';
 
 type Orientation = 'sortie' | 'teleconsultation' | 'urgence' | null;
 
@@ -83,6 +84,12 @@ const reperePouls = (v: string): Repere => {
   if (p <= 100) return { libelle: 'Normal', ton: 'ok' };
   return { libelle: 'Tachycardie', ton: 'attention' };
 };
+/** Date du jour au format « AAAA-MM-JJ » (heure locale) */
+const dateLocale = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Champs avec masque de saisie (séparateur « / » ou « . » ajouté automatiquement) */
+const MASQUES: Record<string, ChampMasque | undefined> = { tension: 'tension', temperature: 'temperature', poids: 'poids' };
+
 const repereTension = (v: string): Repere => {
   const m = /^(\d{1,3}(?:[.,]\d)?)\s*\/\s*(\d{1,3}(?:[.,]\d)?)$/.exec(v.trim());
   if (!m) return null;
@@ -196,7 +203,8 @@ export default function FormulaireConstantes() {
     reference: string;
     district: string;
   } | null>(null);
-  const [doctorsList, setDoctorsList] = useState<Array<{ id: number; nom: string; specialite: string }>>([]);
+  const [doctorsList, setDoctorsList] = useState<Array<{ id: number; nom: string; specialite: string; creneau?: string | null }>>([]);
+  const [chargementMedecins, setChargementMedecins] = useState(false);
 
   // Fenêtre de choix de l'hôpital
   const [showHospitalModal, setShowHospitalModal] = useState(false);
@@ -222,7 +230,7 @@ export default function FormulaireConstantes() {
         setTypeSoins(cons.typeSoinsInfirmier || '');
         setObservationSoins(cons.observationSoins || '');
         setDoctorId(cons.doctorId || null);
-        setDesiredDate(cons.desiredDate || new Date().toISOString().slice(0, 10));
+        setDesiredDate((cons.desiredDate ?? '').slice(0, 10) || dateLocale(new Date()));
         setDesiredTime(cons.desiredTime || '');
         setObservationInfirmiere(cons.observationInfirmiere || '');
         setSelectedHospital({
@@ -249,17 +257,50 @@ export default function FormulaireConstantes() {
     }
   }, [poids, taille]);
 
+  /** Date et heure de la télémédecine renseignées et valides (préalable au choix de l'hôpital et du médecin) */
+  const momentChoisi = /^\d{4}-\d{2}-\d{2}$/.test(desiredDate) && /^\d{2}:\d{2}/.test(desiredTime);
+  const momentPasse = momentChoisi && new Date(`${desiredDate}T${desiredTime.slice(0, 5)}`) < new Date();
+
+  // Date / heure / hôpital changés → médecins disponibles à ce moment dans l'hôpital choisi
+  const hopitalChoisiId = selectedHospital?.id ?? null;
+  useEffect(() => {
+    if (!data || data.consultation.terminee || orientation !== 'teleconsultation') return;
+    if (!momentChoisi || momentPasse || !hopitalChoisiId) {
+      setDoctorsList([]);
+      setDoctorId(null);
+      return;
+    }
+    let actif = true;
+    setChargementMedecins(true);
+    api.infirmier.consultations
+      .teleconsultationDoctors(hopitalChoisiId, desiredDate, desiredTime.slice(0, 5))
+      .then((liste) => {
+        if (!actif) return;
+        setDoctorsList(liste);
+        // Le médecin déjà choisi n'est plus disponible à ce moment → à rechoisir
+        setDoctorId((d) => (d && liste.some((x) => x.id === d) ? d : null));
+      })
+      .catch((e) => {
+        if (actif) alerte.echec(`Impossible de charger les médecins disponibles : ${messageErreur(e)}`);
+      })
+      .finally(() => actif && setChargementMedecins(false));
+    return () => {
+      actif = false;
+    };
+  }, [data, orientation, desiredDate, desiredTime, hopitalChoisiId, momentChoisi, momentPasse]);
+
   const ouvrirModalHopitaux = async () => {
+    if (!momentChoisi) return void alerte.attention('Renseignez d’abord la date et l’heure de la télémédecine.');
+    if (momentPasse) return void alerte.attention('La date et l’heure choisies sont déjà passées.');
     setShowHospitalModal(true);
-    if (hospitalsList.length === 0) {
-      setLoadingHospitals(true);
-      try {
-        setHospitalsList(await api.infirmier.consultations.teleconsultationHospitals());
-      } catch {
-        alerte.echec('Impossible de charger les hôpitaux partenaires.');
-      } finally {
-        setLoadingHospitals(false);
-      }
+    setLoadingHospitals(true);
+    try {
+      // Rechargés à chaque ouverture : le nombre de médecins disponibles dépend de la date et de l'heure
+      setHospitalsList(await api.infirmier.consultations.teleconsultationHospitals(desiredDate, desiredTime.slice(0, 5)));
+    } catch {
+      alerte.echec('Impossible de charger les hôpitaux partenaires.');
+    } finally {
+      setLoadingHospitals(false);
     }
   };
 
@@ -271,14 +312,8 @@ export default function FormulaireConstantes() {
       district: h.district,
     });
     setShowHospitalModal(false);
-    try {
-      const docList = await api.infirmier.consultations.teleconsultationDoctors(h.id);
-      setDoctorsList(docList);
-      setDoctorId(null); // le médecin doit être choisi dans le nouvel établissement
-      alerte.succes(`Établissement sélectionné : ${h.name} (${docList.length} médecin(s) disponible(s))`);
-    } catch {
-      alerte.echec('Erreur lors du chargement des médecins de cet hôpital.');
-    }
+    setDoctorId(null); // le médecin doit être choisi dans le nouvel établissement (liste rechargée pour la date choisie)
+    alerte.succes(`Établissement sélectionné : ${h.name} (${h.availableDoctorsCount} médecin(s) disponible(s) à cette date)`);
   };
 
   const hopitauxFiltres = useMemo(() => {
@@ -332,6 +367,14 @@ export default function FormulaireConstantes() {
     }
     if (orientation === 'sortie' && !typeSoins) {
       alerte.attention('Veuillez choisir le type de soins administrés.');
+      return;
+    }
+    if (orientation === 'teleconsultation' && !momentChoisi) {
+      alerte.attention('Renseignez la date et l’heure de la télémédecine.');
+      return;
+    }
+    if (orientation === 'teleconsultation' && momentPasse) {
+      alerte.attention('La date et l’heure de la télémédecine ne peuvent pas être dans le passé.');
       return;
     }
     if (orientation === 'teleconsultation' && !doctorId) {
@@ -467,7 +510,10 @@ export default function FormulaireConstantes() {
   // Comme la règle d'enregistrement : au moins une constante (TA, température, poids ou pouls)
   const constantesPrises = !!tensionArterielle || !!temperature || !!poids || !!pouls;
   // Envoi au médecin et téléconsultation exigent les constantes : bouton grisé tant qu'elles ne sont pas prises
-  const attendConstantes = (orientation === null || orientation === 'teleconsultation') && !constantesPrises;
+  // Appel d'urgence : les 5 constantes sont exigées par le serveur → bouton grisé tant qu'il en manque
+  const manquantesUrgence = [!poids && 'poids', !taille && 'taille', !temperature && 'température', !tensionArterielle && 'tension', !pouls && 'pouls'].filter(Boolean) as string[];
+  const attendUrgence = orientation === 'urgence' && manquantesUrgence.length > 0;
+  const attendConstantes = ((orientation === null || orientation === 'teleconsultation') && !constantesPrises) || attendUrgence;
 
   const orientationActive = ORIENTATIONS.find((o) => o.id === orientation)!;
   const libelleBouton =
@@ -531,7 +577,16 @@ export default function FormulaireConstantes() {
                         placeholder={k.placeholder}
                         value={k.valeur}
                         readOnly={!k.onChange}
-                        onChange={k.onChange ? (e) => k.onChange!(k.type === 'decimal' ? e.target.value.replace(',', '.').replace(/[^\d.]/g, '') : e.target.value) : undefined}
+                        onChange={
+                          k.onChange
+                            ? (e) => {
+                                const v = e.target.value;
+                                // Tension « 12/8 », température « 37.2 », poids « 72.5 » : le séparateur s'ajoute tout seul
+                                if (MASQUES[k.id]) return k.onChange!(masquerConstante(MASQUES[k.id]!, v, k.valeur));
+                                k.onChange!(k.type === 'decimal' ? v.replace(',', '.').replace(/[^\d.]/g, '') : v);
+                              }
+                            : undefined
+                        }
                       />
                       <small>{k.unite}</small>
                     </span>
@@ -620,50 +675,74 @@ export default function FormulaireConstantes() {
                 {orientation === 'teleconsultation' && (
                   <motion.div key="tele" className={s.detail} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
                     <div className={s.detailInterieur}>
-                      {/* Établissement, date, heure et médecin sur une même ligne */}
+                      {/* 1. Date et heure d'abord → 2. établissement → 3. médecins disponibles à ce moment */}
                       <div className={s.ligneTele}>
+                        <label className={s.champ}>
+                          <span className={s.etiquette}>
+                            Date <span className={s.requis}>*</span>
+                          </span>
+                          <input type="date" min={dateLocale(new Date())} value={desiredDate} onChange={(e) => setDesiredDate(e.target.value)} />
+                        </label>
+                        <label className={s.champ}>
+                          <span className={s.etiquette}>
+                            Heure <span className={s.requis}>*</span>
+                          </span>
+                          <input type="time" value={desiredTime} onChange={(e) => setDesiredTime(e.target.value)} />
+                        </label>
                         <div className={s.champ}>
                           <span className={s.etiquette}>Établissement</span>
                           <div
-                            className={s.etablissement}
+                            className={`${s.etablissement} ${!momentChoisi ? s.champInactif : ''}`}
                             title={`${selectedHospital?.nom || hopital.nom} · ${selectedHospital?.reference || hopital.reference} · District ${selectedHospital?.district || hopital.district}`}
                           >
                             <FaHospital className={s.etablissementIcone} aria-hidden="true" />
                             <span className={s.etablissementNom}>{selectedHospital?.nom || hopital.nom}</span>
-                            <button type="button" className={s.changer} onClick={ouvrirModalHopitaux} title="Changer d'établissement" aria-label="Changer d'établissement">
+                            <button
+                              type="button"
+                              className={s.changer}
+                              onClick={ouvrirModalHopitaux}
+                              disabled={!momentChoisi}
+                              title={momentChoisi ? "Changer d'établissement" : 'Renseignez d’abord la date et l’heure'}
+                              aria-label="Changer d'établissement"
+                            >
                               <FaExchangeAlt />
                             </button>
                           </div>
                         </div>
-                        <label className={s.champ}>
-                          <span className={s.etiquette}>
-                            Date souhaitée <span className={s.requis}>*</span>
-                          </span>
-                          <input type="date" value={desiredDate} onChange={(e) => setDesiredDate(e.target.value)} />
-                        </label>
-                        <label className={s.champ}>
-                          <span className={s.etiquette}>Heure souhaitée</span>
-                          <input type="time" value={desiredTime} onChange={(e) => setDesiredTime(e.target.value)} />
-                        </label>
                         <div className={s.champ}>
                           <label htmlFor="medecin" className={s.etiquette}>
-                            Médecin <span className={s.requis}>*</span>
+                            Médecin disponible <span className={s.requis}>*</span>
                           </label>
                           <SelectRecherche
                             id="medecin"
                             options={doctorsList.map((d) => ({
                               id: d.id,
                               name: d.nom,
-                              detail: d.specialite,
+                              detail: d.creneau ? `${d.specialite} · ${d.creneau}` : d.specialite,
                             }))}
                             value={doctorId}
                             onChange={setDoctorId}
-                            placeholder="-- Choisir un médecin --"
+                            placeholder={
+                              !momentChoisi
+                                ? '-- Choisissez d’abord la date et l’heure --'
+                                : momentPasse
+                                  ? '-- Date et heure déjà passées --'
+                                  : chargementMedecins
+                                    ? 'Recherche des médecins disponibles…'
+                                    : doctorsList.length
+                                      ? `-- ${doctorsList.length} médecin(s) disponible(s) --`
+                                      : '-- Aucun médecin disponible à ce moment --'
+                            }
                             placeholderRecherche="Rechercher un médecin…"
-                            aucunResultat="Aucun médecin disponible dans cet établissement"
+                            aucunResultat="Aucun médecin disponible à cette date et cette heure"
                           />
                         </div>
                       </div>
+                      {momentChoisi && !momentPasse && !chargementMedecins && doctorsList.length === 0 && (
+                        <p className={s.aideTele}>
+                          Aucun médecin de {selectedHospital?.nom || hopital.nom} n’est disponible à ce moment : changez l’heure, la date ou l’établissement.
+                        </p>
+                      )}
 
                       <label className={s.champ}>
                         <span className={s.etiquette}>Note clinique pour le médecin</span>
@@ -678,7 +757,7 @@ export default function FormulaireConstantes() {
                   <motion.div key="urgence" className={s.detail} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
                     <div className={`${s.detailInterieur} ${s.detailUrgence}`}>
                       <p className={s.alerteUrgence}>
-                        <FaPhoneVolume aria-hidden="true" /> L’appel vidéo sonne chez les médecins de garde (généralistes, urgences et service du patient) : le premier qui décroche prend le patient. Toutes les constantes sont obligatoires.
+                        <FaPhoneVolume aria-hidden="true" /> L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes de tous les hôpitaux de la DMHP : le premier qui décroche prend le patient.
                       </p>
                       <label className={s.champ}>
                         <span className={s.etiquette}>Motif de l’alerte</span>
@@ -709,7 +788,8 @@ export default function FormulaireConstantes() {
                   <>
                     {attendConstantes && (
                       <span className={s.aideBouton} id="aide-envoi">
-                        <FaThermometerHalf aria-hidden="true" /> Prenez les constantes pour activer
+                        <FaThermometerHalf aria-hidden="true" />{' '}
+                        {attendUrgence ? `Constantes manquantes pour l’appel : ${manquantesUrgence.join(', ')}` : 'Prenez les constantes pour activer'}
                       </span>
                     )}
                     <motion.button
@@ -718,7 +798,13 @@ export default function FormulaireConstantes() {
                       whileTap={attendConstantes ? undefined : { scale: 0.97 }}
                       disabled={sauvegarde || attendConstantes}
                       aria-describedby={attendConstantes ? 'aide-envoi' : undefined}
-                      title={attendConstantes ? 'Renseignez au moins une constante (TA, température, poids ou pouls)' : undefined}
+                      title={
+                        attendUrgence
+                          ? `Renseignez toutes les constantes pour lancer l’appel (manque : ${manquantesUrgence.join(', ')})`
+                          : attendConstantes
+                            ? 'Renseignez au moins une constante (TA, température, poids ou pouls)'
+                            : undefined
+                      }
                     >
                       <FaSave aria-hidden="true" /> {sauvegarde ? 'Enregistrement…' : libelleBouton}
                     </motion.button>

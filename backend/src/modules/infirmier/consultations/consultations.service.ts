@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { disponibiliteLe, type PermissionMedecin } from '../../../common/planning-medecin';
 import { DataSource } from 'typeorm';
 
 type Ligne = Record<string, unknown>;
@@ -269,30 +270,93 @@ export class InfirmierConsultationsService {
     };
   }
 
-  /** Liste des hôpitaux ayant la téléconsultation active pour le modal */
-  async getTeleconsultationHospitals(consultationId: number, dateStr?: string) {
+  /**
+   * Liste des hôpitaux ayant la téléconsultation active pour le modal.
+   * Avec une date (et une heure) : nombre de médecins DISPONIBLES à ce moment dans chaque hôpital.
+   */
+  async getTeleconsultationHospitals(_consultationId: number, date?: string, heure?: string) {
     const hospitals = await this.db.query(
       `SELECT h.id, COALESCE(h.label, h.nom_direction_generale, h.reference, CONCAT('Hôpital #', h.id)) AS name,
               h.reference, h.district_sanitaire AS district, h.contact,
               (SELECT COUNT(*) FROM doctors d JOIN users u ON u.id = d.user_id WHERE d.hospital_id = h.id AND d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL) AS available_doctors_count
          FROM hospitals h
         WHERE h.is_teleconsultation_active = 1
+          AND h.is_ucp_fm = 1 AND h.deleted_at IS NULL
           AND (h.\`delete\` = 0 OR h.\`delete\` IS NULL)
         ORDER BY h.label ASC`,
     );
 
+    const moment = this.momentValide(date, heure);
+    const disponibles = moment ? await this.medecinsDisponibles(null, moment.date, moment.heure) : null;
     return hospitals.map((h: any) => ({
       id: Number(h.id),
       name: h.name,
       reference: h.reference || `HO-${String(h.id).padStart(4, '0')}`,
       district: h.district || 'Côte d’Ivoire',
       contact: h.contact || '',
-      availableDoctorsCount: Number(h.available_doctors_count || 0),
+      availableDoctorsCount: disponibles
+        ? disponibles.filter((d) => d.hospitalId === Number(h.id) && d.disponible).length
+        : Number(h.available_doctors_count || 0),
     }));
   }
 
-  /** Médecins d'un hôpital donné disponibles pour la téléconsultation */
-  async getTeleconsultationDoctors(hospitalId: number) {
+  /** « AAAA-MM-JJ » + « HH:MM » valides, sinon null */
+  private momentValide(date?: string, heure?: string) {
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    const h = heure && /^([01]\d|2[0-3]):[0-5]\d/.test(heure) ? heure.slice(0, 5) : null;
+    return { date, heure: h };
+  }
+
+  /**
+   * Médecins actifs (d'un hôpital, ou de tous si hospitalId = null) avec leur disponibilité à la date / l'heure :
+   * planning (availabilities) + permissions accordées (status 'agree').
+   */
+  private async medecinsDisponibles(hospitalId: number | null, date: string, heure: string | null) {
+    const doctors: any[] = await this.db.query(
+      `SELECT d.id, d.hospital_id, d.user_id, d.type_agent_id, TRIM(CONCAT(u.name, ' ', COALESCE(u.prenom, ''))) AS nom,
+              s.libelle AS specialite, av.days, av.hour_start, av.hour_end
+         FROM doctors d
+         JOIN users u ON u.id = d.user_id
+         LEFT JOIN service_hospitals sh ON sh.id = d.service_hospital_id
+         LEFT JOIN services s ON s.id = sh.service_id
+         LEFT JOIN availabilities av ON av.id = (SELECT MAX(id) FROM availabilities WHERE user_id = d.user_id)
+         JOIN hospitals hd ON hd.id = d.hospital_id AND hd.is_ucp_fm = 1 AND hd.deleted_at IS NULL
+        WHERE ${hospitalId ? 'd.hospital_id = ? AND' : ''} d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL
+        ORDER BY u.name ASC`,
+      hospitalId ? [hospitalId] : [],
+    );
+    const permissions: any[] = doctors.length
+      ? await this.db.query(
+          `SELECT user_id, DATE_FORMAT(beging_date, '%Y-%m-%d') AS debut, DATE_FORMAT(end_date, '%Y-%m-%d') AS fin,
+                  TIME_FORMAT(beging_time, '%H:%i') AS heure_debut, TIME_FORMAT(end_time, '%H:%i') AS heure_fin
+             FROM permissions
+            WHERE type = 'doctor' AND status = 'agree' AND beging_date <= ? AND end_date >= ? AND user_id IN (?)`,
+          [date, date, doctors.map((d) => d.user_id)],
+        )
+      : [];
+    return doctors.map((d) => {
+      const perms: PermissionMedecin[] = permissions.filter((p) => Number(p.user_id) === Number(d.user_id));
+      const dispo = disponibiliteLe({ days: d.days, debut: d.hour_start, fin: d.hour_end }, date, heure, perms);
+      return {
+        id: Number(d.id),
+        hospitalId: Number(d.hospital_id),
+        nom: d.nom || 'Dr.',
+        specialite: Number(d.type_agent_id) === 2 ? 'Sage-femme' : d.specialite || 'Médecine générale',
+        ...dispo,
+      };
+    });
+  }
+
+  /**
+   * Médecins d'un hôpital donné pour la téléconsultation.
+   * Avec une date (et une heure) : seulement ceux DISPONIBLES à ce moment (planning, permissions), avec leur créneau.
+   */
+  async getTeleconsultationDoctors(hospitalId: number, date?: string, heure?: string) {
+    const moment = this.momentValide(date, heure);
+    if (moment) {
+      const liste = await this.medecinsDisponibles(hospitalId, moment.date, moment.heure);
+      return liste.filter((d) => d.disponible).map((d) => ({ id: d.id, nom: d.nom, specialite: d.specialite, creneau: d.creneau }));
+    }
     const doctors = await this.db.query(
       `SELECT d.id, TRIM(CONCAT(u.name, ' ', COALESCE(u.prenom, ''))) AS nom,
               s.libelle AS specialite
@@ -300,6 +364,7 @@ export class InfirmierConsultationsService {
          JOIN users u ON u.id = d.user_id
          LEFT JOIN service_hospitals sh ON sh.id = d.service_hospital_id
          LEFT JOIN services s ON s.id = sh.service_id
+         JOIN hospitals hd ON hd.id = d.hospital_id AND hd.is_ucp_fm = 1 AND hd.deleted_at IS NULL
         WHERE d.hospital_id = ? AND d.status = 0 AND d.\`delete\` = 0 AND d.deleted_at IS NULL
         ORDER BY u.name ASC`,
       [hospitalId],
@@ -339,6 +404,23 @@ export class InfirmierConsultationsService {
     // Sinon la consultation apparaîtrait dans la liste des téléconsultations (filtre "desired_date IS NOT NULL").
     const tele = orientation === 'teleconsultation';
     const doctorId = tele ? dto.doctor_id || null : null;
+
+    // Télémédecine programmée : date et heure obligatoires, pas dans le passé, médecin disponible à ce moment
+    if (tele) {
+      const moment = this.momentValide(dto.desired_date ?? undefined, dto.desired_time ?? undefined);
+      if (!moment || !moment.heure) throw new BadRequestException('Renseignez la date et l’heure de la télémédecine.');
+      const maintenant = new Date();
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      const aujourdhui = `${maintenant.getFullYear()}-${p2(maintenant.getMonth() + 1)}-${p2(maintenant.getDate())}`;
+      const heureCourante = `${p2(maintenant.getHours())}:${p2(maintenant.getMinutes())}`;
+      if (moment.date < aujourdhui || (moment.date === aujourdhui && moment.heure < heureCourante)) {
+        throw new BadRequestException('La date et l’heure de la télémédecine ne peuvent pas être dans le passé.');
+      }
+      if (!doctorId) throw new BadRequestException('Veuillez sélectionner un médecin pour la télémédecine.');
+      const [medecin] = (await this.medecinsDisponibles(null, moment.date, moment.heure)).filter((d) => d.id === Number(doctorId));
+      if (!medecin) throw new BadRequestException('Médecin introuvable ou inactif.');
+      if (!medecin.disponible) throw new BadRequestException(`Ce médecin n’est pas disponible à cette date et cette heure (${medecin.raison?.toLowerCase()}).`);
+    }
 
     if (orientation === 'sortie') {
       // Consultation terminée par l'infirmier (soins administrés sur place)

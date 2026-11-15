@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { hopitalDuCompte } from '../../../common/hopital-courant';
-import { compterParMois, derniersMois } from '../../../common/statistiques';
+import { compterParMois, derniersMois, moisDeLAnnee } from '../../../common/statistiques';
 
 /**
  * HÔPITAL > TABLEAU DE BORD
@@ -18,13 +18,31 @@ export class HospitalTableauDeBordService {
   async getDonnees(userId: number) {
     const hospitalId = await this.hospitalDe(userId);
     const mois = derniersMois();
-    const [cartes, naissances, deces, consultations] = await Promise.all([
+    const moisAnnee = moisDeLAnnee();
+    const naissancesDe = (m: string[]) => compterParMois(this.db, 'declarations', m, 'hospital_id = ? AND type = ?', [hospitalId, 'birth']);
+    const decesDe = (m: string[]) => compterParMois(this.db, 'declarations', m, 'hospital_id = ? AND type = ?', [hospitalId, 'death']);
+    const consultationsDe = (m: string[]) => compterParMois(this.db, 'consultations', m, 'hospital_id = ?', [hospitalId]);
+    const [[h], cartes, naissances, deces, consultations, naissancesA, decesA, consultationsA] = await Promise.all([
+      this.db.query('SELECT label FROM hospitals WHERE id = ? LIMIT 1', [hospitalId]) as Promise<{ label: string | null }[]>,
       this.cartes(hospitalId),
-      compterParMois(this.db, 'declarations', mois, 'hospital_id = ? AND type = ?', [hospitalId, 'birth']),
-      compterParMois(this.db, 'declarations', mois, 'hospital_id = ? AND type = ?', [hospitalId, 'death']),
-      compterParMois(this.db, 'consultations', mois, 'hospital_id = ?', [hospitalId]),
+      naissancesDe(mois),
+      decesDe(mois),
+      consultationsDe(mois),
+      naissancesDe(moisAnnee),
+      decesDe(moisAnnee),
+      consultationsDe(moisAnnee),
     ]);
-    return { cartes, mois, naissances, deces, consultations };
+    // `annee` : les 12 mois de l'année en cours, pour l'export Excel (les graphiques gardent les 10 derniers mois)
+    return {
+      /** Nom de l'hôpital (onglet « Par hôpital » de l'export : seulement cet hôpital) */
+      hopital: h?.label ?? 'Hôpital',
+      cartes,
+      mois,
+      naissances,
+      deces,
+      consultations,
+      annee: { mois: moisAnnee, naissances: naissancesA, deces: decesA, consultations: consultationsA },
+    };
   }
 
   private hospitalDe(userId: number): Promise<number> {

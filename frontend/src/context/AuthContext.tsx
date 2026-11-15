@@ -10,6 +10,8 @@ interface AuthContextValue {
   checking: boolean;
   login: (credentials: LoginCredentials) => Promise<AuthUser>;
   logout: () => void;
+  /** Recharge l'utilisateur connecté (ex. après modification du profil : nom, photo) */
+  rafraichir: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,7 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return connected;
   }, []);
 
-  const value = useMemo(() => ({ user, checking, login, logout }), [user, checking, login, logout]);
+  const rafraichir = useCallback(async () => {
+    const u = await api.me();
+    setUser(normalize(u));
+  }, []);
+
+  const value = useMemo(() => ({ user, checking, login, logout, rafraichir }), [user, checking, login, logout, rafraichir]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

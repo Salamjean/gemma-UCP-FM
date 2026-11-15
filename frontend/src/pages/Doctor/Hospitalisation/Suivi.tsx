@@ -11,6 +11,7 @@ import { AvatarPatient } from '../Consultations/ListeConsultations';
 import { FenetreLit, FenetreSortie } from './Fenetres';
 import { dateFr } from './ListeHospitalisations';
 import s from './Hospitalisation.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type CleDossier = Exclude<keyof DossierHospitalisation, 'motif' | 'motifSortie'>;
 const CHAMPS: { k: CleDossier; libelle: string; long?: boolean; placeholder: string }[] = [
@@ -84,6 +85,10 @@ export default function Suivi() {
       </button>
     </header>
   );
+
+  // Tableaux : 10 lignes par page (avant le retour anticipé du chargement)
+  const pgProtocole = usePagination(h?.protocole);
+  const pgSurveillances = usePagination(h?.surveillances);
 
   if (!h) {
     return (
@@ -243,6 +248,7 @@ export default function Suivi() {
         {h.protocole.length === 0 ? (
           <p className={s.note}>Aucun protocole enregistré.</p>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -256,7 +262,7 @@ export default function Suivi() {
                 </tr>
               </thead>
               <tbody>
-                {h.protocole.map((p) => (
+                {pgProtocole.lignes.map((p) => (
                   <tr key={p.id}>
                     <td className={s.diagnostic}>
                       <strong>{p.produit}</strong>
@@ -282,6 +288,8 @@ export default function Suivi() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pgProtocole} />
+          </>
         )}
       </section>
 
@@ -298,6 +306,7 @@ export default function Suivi() {
         {h.surveillances.length === 0 ? (
           <p className={s.note}>Aucune surveillance enregistrée pour le moment.</p>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -314,7 +323,7 @@ export default function Suivi() {
                 </tr>
               </thead>
               <tbody>
-                {h.surveillances.map((v) => (
+                {pgSurveillances.lignes.map((v) => (
                   <tr key={v.id}>
                     <td>
                       {heureFr(v.date)} {v.heure ?? ''}
@@ -332,6 +341,8 @@ export default function Suivi() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pgSurveillances} />
+          </>
         )}
       </section>
 

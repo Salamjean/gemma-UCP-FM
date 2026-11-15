@@ -9,6 +9,8 @@ import type { ObservationResume } from '../../../../types';
 import { jourHeureFr, lireDate, observationEnCours } from '../hospitalisation.format';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Suivi.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Filtre = 'toutes' | 'en-cours' | 'terminees';
 
@@ -51,6 +53,7 @@ export default function Observations() {
       );
     });
   }, [liste, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const compteurs = liste
     ? [
@@ -73,6 +76,23 @@ export default function Observations() {
         <div>
           <p className={c.surtitre}>Hospitalisation</p>
           <h1 className={c.titre}>Patients en observation</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="observations"
+            titre="Observations"
+            module="HOSPITALISATION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Code', valeur: (o) => o.code },
+              { titre: 'Patient', valeur: (o) => o.patient.nom },
+              { titre: 'Code patient', valeur: (o) => o.patient.code },
+              { titre: 'Début', valeur: (o) => jourHeureFr(o.debut) },
+              { titre: 'Durée', valeur: (o) => o.duree },
+              { titre: 'Fin prévue', valeur: (o) => jourHeureFr(o.fin) },
+              { titre: 'Statut', valeur: (o) => (observationEnCours(o.fin) ? 'En cours' : 'Terminée') },
+            ]}
+          />
         </div>
       </header>
 
@@ -115,6 +135,7 @@ export default function Observations() {
             <p>Les patients mis en observation par un médecin depuis une consultation apparaîtront ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -129,7 +150,7 @@ export default function Observations() {
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((o, i) => {
+                {pg.lignes.map((o, i) => {
                   const encours = observationEnCours(o.fin);
                   const pct = encours ? avancement(o.debut, o.fin) : null;
                   return (
@@ -175,6 +196,8 @@ export default function Observations() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

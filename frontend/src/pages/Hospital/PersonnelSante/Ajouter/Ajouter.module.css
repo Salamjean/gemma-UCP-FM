@@ -73,3 +73,10 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Téléphone : une carte de type d'agent par ligne */
+@media (max-width: 560px) {
+  .types {
+    grid-template-columns: 1fr;
+  }
+}

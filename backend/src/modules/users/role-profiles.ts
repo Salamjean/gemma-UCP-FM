@@ -39,7 +39,9 @@ export const ROLE_NOT_ALLOWED_MESSAGE =
   'Accès réservé aux hôpitaux, médecins, infirmiers, régulateurs et administrateurs.';
 
 /** Compte hôpital dont l'hôpital n'est pas UCP-FM (hospitals.is_ucp_fm != 1) */
-export const HOPITAL_NON_UCP_MESSAGE = 'Accès réservé aux hôpitaux du UCP-FM.';
+export const HOPITAL_NON_UCP_MESSAGE = 'Accès réservé aux hôpitaux de la DMHP.';
+/** Médecin, infirmier·ère ou régulateur d'un hôpital qui n'est pas UCP-FM */
+export const PERSONNEL_NON_UCP_MESSAGE = 'Accès réservé au personnel des hôpitaux de la DMHP : votre hôpital n’en fait pas partie.';
 
 export const ROLE_PROFILES: Record<string, RoleProfile> = {
   hospital: { table: 'hospitals', hasDeleteColumn: true, softDeletes: true },

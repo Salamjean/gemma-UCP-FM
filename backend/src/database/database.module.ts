@@ -6,9 +6,10 @@ import { OrdreDocumentsFm1731400000001 } from './migrations/1731400000001-OrdreD
 import { PersonnelSupprimeFm1731400000002 } from './migrations/1731400000002-PersonnelSupprimeFm';
 import { RegulateursFm1731400000003 } from './migrations/1731400000003-RegulateursFm';
 import { PermissionsRegulateursFm1731400000004 } from './migrations/1731400000004-PermissionsRegulateursFm';
+import { ReinitialisationsFm1731400000005 } from './migrations/1731400000005-ReinitialisationsFm';
 
 /** Migrations Gemma FM, dans l'ordre (ajouter ici chaque nouvelle migration) */
-const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004];
+const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004, ReinitialisationsFm1731400000005];
 
 /**
  * CONNEXION À LA BASE MYSQL PARTAGÉE AVEC LE PROJET LARAVEL "gemma".

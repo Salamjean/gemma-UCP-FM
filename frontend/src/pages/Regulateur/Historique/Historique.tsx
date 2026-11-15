@@ -5,6 +5,7 @@ import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { Reattribution } from '../../../types';
 import s from '../Regulation/Regulation.module.css';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 const dateHeure = (iso: string) =>
   new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
@@ -26,6 +27,7 @@ export default function Historique() {
     const l = liste ?? [];
     return q ? l.filter((r) => [r.patient, r.consultation, r.ancienMedecin, r.nouveauMedecin, r.motif, r.regulateur].some((v) => v?.toLowerCase().includes(q))) : l;
   }, [liste, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <div className={c.page}>
@@ -71,7 +73,7 @@ export default function Historique() {
                   </td>
                 </tr>
               )}
-              {filtres.map((r) => (
+              {pg.lignes.map((r) => (
                 <tr key={r.id}>
                   <td>{dateHeure(r.date)}</td>
                   <td>
@@ -89,6 +91,7 @@ export default function Historique() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
       </section>
     </div>
   );

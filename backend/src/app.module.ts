@@ -9,6 +9,8 @@ import { DoctorModule } from './modules/doctor/doctor.module';
 import { HospitalModule } from './modules/hospital/hospital.module';
 import { InfirmierModule } from './modules/infirmier/infirmier.module';
 import { RegulateurModule } from './modules/regulateur/regulateur.module';
+import { ExportsModule } from './modules/exports/exports.module';
+import { ProfilModule } from './modules/profil/profil.module';
 import { SuperModule } from './modules/super/super.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -32,6 +34,8 @@ import { UsersModule } from './modules/users/users.module';
     DoctorModule,
     InfirmierModule,
     RegulateurModule, // espace du régulateur (réattribution des patients)
+    ExportsModule, // traçabilité des exports Excel
+    ProfilModule, // « Mon profil » de chaque utilisateur
   ],
 })
 export class AppModule {}

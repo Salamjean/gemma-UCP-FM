@@ -16,6 +16,8 @@ import type { ConsultationHopital } from '../../../types';
 import styles from './Consultations.module.css';
 import { baseHopital } from '../../../services/contexteHopital';
 import { formatDateFr, formatHeureFr } from './Nouvelles';
+import ExportExcel from '../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type Filtre = 'toutes' | 'terminees' | 'en-cours';
 
@@ -59,6 +61,7 @@ export default function Historique() {
       );
     });
   }, [consultations, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const compteurs = consultations
     ? [
@@ -81,6 +84,26 @@ export default function Historique() {
         <div>
           <p className={c.surtitre}>Consultations</p>
           <h1 className={c.titre}>Historique des consultations</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="historique_consultations"
+            titre="Historique des consultations"
+            module="CONSULTATION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Date', valeur: (x) => formatDateFr(x.date) },
+              { titre: 'Heure', valeur: (x) => (x.createdAt ? formatHeureFr(x.createdAt) : null) },
+              { titre: 'Référence', valeur: (x) => x.patient.code },
+              { titre: 'Patient', valeur: (x) => x.patient.nom },
+              { titre: 'Motif', valeur: (x) => x.motif },
+              { titre: 'Médecin', valeur: (x) => x.medecin },
+              { titre: 'Statut', valeur: (x) => (x.terminee ? 'Terminée' : 'En cours') },
+              { titre: 'Ordonnances', valeur: (x) => x.nbOrdonnances ?? 0 },
+              { titre: 'Arrêts de travail', valeur: (x) => x.nbArrets ?? 0 },
+              { titre: "Bulletins d'examen", valeur: (x) => x.nbExamens ?? 0 },
+            ]}
+          />
         </div>
       </header>
 
@@ -144,6 +167,7 @@ export default function Historique() {
             <p>L’ensemble des consultations réalisées au sein de votre établissement s’affichera ici.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -158,7 +182,7 @@ export default function Historique() {
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((item, i) => (
+                {pg.lignes.map((item, i) => (
                   <motion.tr
                     key={item.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -237,6 +261,8 @@ export default function Historique() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

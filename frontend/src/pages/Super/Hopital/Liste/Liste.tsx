@@ -6,6 +6,8 @@ import { alerte, messageErreur } from '../../../../services/alertes';
 import { api, uploadUrl } from '../../../../services/api';
 import type { Hopital } from '../../../../types';
 import styles from './Liste.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 const PHOTO_DEFAUT = '/images/dashboard/avatar-hospital.gif';
 
@@ -44,15 +46,16 @@ export default function Liste() {
       [h.label, h.reference, h.contact, h.localite, h.email].some((v) => v?.toLowerCase().includes(q)),
     );
   }, [hopitaux, recherche]);
+  const pg = usePagination(filtres);
 
   return (
     <section className={styles.panel}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.titre}>Hôpitaux UCP-FM</h1>
+          <h1 className={styles.titre}>Hôpitaux DMHP</h1>
           {hopitaux && (
             <p className={styles.compte}>
-              {hopitaux.length} {hopitaux.length > 1 ? 'hôpitaux enregistrés' : 'hôpital enregistré'} · seuls les établissements appartenant au UCP-FM
+              {hopitaux.length} {hopitaux.length > 1 ? 'hôpitaux enregistrés' : 'hôpital enregistré'} · seuls les établissements appartenant à la DMHP
             </p>
           )}
         </div>
@@ -67,12 +70,28 @@ export default function Liste() {
               aria-label="Rechercher un hôpital"
             />
           </label>
+          <ExportExcel
+            fichier="hopitaux_dmhp"
+            titre="Hôpitaux DMHP"
+            module="HOPITAL"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Référence', valeur: (h) => h.reference },
+              { titre: 'Hôpital', valeur: (h) => h.label },
+              { titre: 'Localité', valeur: (h) => h.localite },
+              { titre: 'Contact', valeur: (h) => h.contact },
+              { titre: 'Créé le', valeur: (h) => formatDate(h.createdAt) },
+              { titre: 'Statut', valeur: (h) => (h.actif ? 'Activé' : 'Désactivé') },
+              { titre: 'Téléconsultation', valeur: (h) => (h.teleconsultation ? 'Activée' : 'Désactivée') },
+            ]}
+          />
         </div>
       </header>
 
       {!hopitaux && <p className={styles.vide}>{indisponible ? 'Liste indisponible.' : 'Chargement…'}</p>}
 
       {hopitaux && (
+        <>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -88,7 +107,7 @@ export default function Liste() {
               </tr>
             </thead>
             <tbody>
-              {filtres.map((h, i) => (
+              {pg.lignes.map((h, i) => (
                 <motion.tr
                   key={h.id}
                   initial={{ opacity: 0, y: 8 }}
@@ -148,6 +167,8 @@ export default function Liste() {
             </tbody>
           </table>
         </div>
+        <PaginationTableau pagination={pg} />
+        </>
       )}
     </section>
   );

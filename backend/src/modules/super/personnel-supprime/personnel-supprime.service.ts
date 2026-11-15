@@ -290,7 +290,7 @@ export class PersonnelSupprimeService {
 
   private async hopitalUcp(id: number): Promise<Ligne> {
     const [h] = await this.db.query(`SELECT id, label FROM hospitals WHERE id = ? AND ${HOPITAL_UCP}`, [id]);
-    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux UCP-FM sont gérés ici).');
+    if (!h) throw new NotFoundException('Hôpital introuvable (seuls les hôpitaux DMHP sont gérés ici).');
     return h;
   }
 

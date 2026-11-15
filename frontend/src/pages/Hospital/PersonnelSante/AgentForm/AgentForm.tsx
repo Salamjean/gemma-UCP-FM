@@ -3,12 +3,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaArrowLeft, FaArrowRight, FaCamera, FaCheck, FaEye, FaEyeSlash, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import SelectRecherche from '../../../../components/SelectRecherche';
+import { useAuth } from '../../../../context/AuthContext';
 import { alerte } from '../../../../services/alertes';
 import { uploadUrl } from '../../../../services/api';
 import { fcfa } from '../../../../services/format';
 import c from '../../../../styles/espace.module.css';
 import type { AgentFiche, OptionsPersonnel, TypeAgent } from '../../../../types';
-import { AGENTS, JOURS, prefixeMatricule } from '../personnel.config';
+import { AGENTS, JOURS } from '../personnel.config';
 import styles from './AgentForm.module.css';
 
 const AVATAR_DEFAUT = '/images/dashboard/avatar-doctor.png';
@@ -63,7 +64,10 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
   const [jours, setJours] = useState<Record<number, string>>(() => Object.fromEntries((fiche?.jours ?? []).map((j) => [j.jour, j.heure])));
 
   // --- Compte ---
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(fiche?.email ?? '');
+  // Modification : seul l'admin DMHP (hôpital ouvert) peut changer l'email de connexion
+  const { user } = useAuth();
+  const emailModifiable = !edition || user?.role === 'admin';
   const [motDePasse, setMotDePasse] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [voirMdp, setVoirMdp] = useState(false);
@@ -118,7 +122,7 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
     typeDoctor: type === 'medecin' && typeName === 'specialiste' && !typeDoctor,
     services: type === 'infirmier' && services.length === 0,
     jours: Object.keys(jours).length === 0,
-    email: !edition && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
+    email: emailModifiable && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
     motDePasse: edition ? motDePasse !== '' && motDePasse.length < 4 : motDePasse.length < 4,
     confirmation: motDePasse !== confirmation,
   };
@@ -177,9 +181,11 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
     f.set('name', nom.trim());
     f.set('contact', contact);
     if (adresse.trim()) f.set('address', adresse.trim());
+    // Admin DMHP : nouvel email envoyé seulement s'il a changé
+    if (edition && emailModifiable && email.trim() !== (fiche?.email ?? '')) f.set('email', email.trim());
     if (!edition) {
       f.set('email', email.trim());
-      f.set('matricule', matricule.trim().toUpperCase());
+      f.set('matricule', matricule.trim());
     }
     if (motDePasse) {
       f.set('password', motDePasse);
@@ -211,7 +217,7 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
         ? 'Généraliste'
         : options.specialites.find((s) => s.id === typeDoctor)?.libelle ?? 'Spécialiste'
       : conf.libelle;
-  const matriculeAffiche = fiche?.matricule ?? (matricule.trim() ? `${prefixeMatricule(type, typeName)}${matricule.trim().toUpperCase()}` : null);
+  const matriculeAffiche = fiche?.matricule ?? (matricule.trim() || null);
 
   return (
     <div className={styles.grille}>
@@ -272,10 +278,8 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
               {edition ? (
                 <input id="matricule" value={fiche?.matricule ?? '—'} disabled />
               ) : (
-                <div className={styles.prefixe}>
-                  <span>{prefixeMatricule(type, typeName)}</span>
-                  <input id="matricule" maxLength={30} placeholder="204783" value={matricule} onChange={(e) => setMatricule(e.target.value.replace(/[^A-Za-z0-9-]/g, ''))} />
-                </div>
+                // Matricule complet saisi par l'hôpital (aucun préfixe ajouté)
+                <input id="matricule" maxLength={30} placeholder="Ex. MG204783" value={matricule} onChange={(e) => setMatricule(e.target.value.replace(/[^A-Za-z0-9-]/g, ''))} />
               )}
             </div>
             <div className={`${styles.champ} ${invalide('contact') ? styles.invalide : ''}`}>
@@ -422,9 +426,9 @@ export default function AgentForm({ type, options, fiche, boutonTexte, envoi, on
         <h2 className={c.blocTitre}>Compte de connexion</h2>
         <div className={styles.champs}>
           <div className={`${styles.champ} ${styles.large} ${invalide('email') ? styles.invalide : ''}`}>
-            <label htmlFor="email">Adresse email {!edition && <span className={styles.requis}>*</span>}</label>
-            {edition ? (
-              <input id="email" value={fiche?.email ?? ''} disabled />
+            <label htmlFor="email">Adresse email {emailModifiable && <span className={styles.requis}>*</span>}</label>
+            {!emailModifiable ? (
+              <input id="email" value={fiche?.email ?? ''} disabled title="Seule l’administration DMHP peut modifier l’email" />
             ) : (
               <input id="email" type="email" maxLength={191} placeholder="agent@hopital.ci" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
             )}

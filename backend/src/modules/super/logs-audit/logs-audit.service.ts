@@ -22,7 +22,7 @@ const ACTIONS_LARAVEL = [
   'TELECHARGEMENT_PDF', 'EXPORT_EXCEL', 'EXPORT_SAGE',
 ];
 
-const PAR_PAGE = 20;
+const PAR_PAGE = 10; // comme tous les tableaux du projet
 /** Lecture du fichier laravel.log : seulement la fin si le fichier est très gros */
 const LOG_MAX_OCTETS = 20 * 1024 * 1024;
 

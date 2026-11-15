@@ -9,6 +9,8 @@ import type { HospitalisationResume } from '../../../../types';
 import { jourFr, joursTexte, nombreJours, statutHospitalisation } from '../hospitalisation.format';
 import { baseHopital } from '../../../../services/contexteHopital';
 import styles from './Suivi.module.css';
+import ExportExcel from '../../../../components/ExportExcel';
+import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Filtre = 'toutes' | 'en-cours' | 'terminees';
 
@@ -44,6 +46,7 @@ export default function Hospitalisations() {
         (!q || [h.code, h.patient.nom, h.patient.code, h.medecin, h.lit, h.motif].some((v) => v?.toLowerCase().includes(q))),
     );
   }, [liste, recherche, filtre]);
+  const pg = usePagination(filtres);
 
   const compteurs = liste
     ? [
@@ -66,6 +69,25 @@ export default function Hospitalisations() {
         <div>
           <p className={c.surtitre}>Hospitalisation</p>
           <h1 className={c.titre}>Patients en hospitalisation</h1>
+        </div>
+        <div className={c.boutons}>
+          <ExportExcel
+            fichier="hospitalisations"
+            titre="Hospitalisations"
+            module="HOSPITALISATION"
+            lignes={filtres}
+            colonnes={[
+              { titre: 'Dossier', valeur: (h) => h.code },
+              { titre: 'Patient', valeur: (h) => h.patient.nom },
+              { titre: 'Code patient', valeur: (h) => h.patient.code },
+              { titre: 'Médecin', valeur: (h) => h.medecin },
+              { titre: 'Chambre / lit', valeur: (h) => h.lit },
+              { titre: 'Entrée', valeur: (h) => jourFr(h.debut) },
+              { titre: 'Sortie', valeur: (h) => (h.fin ? jourFr(h.fin) : null) },
+              { titre: 'Durée', valeur: (h) => joursTexte(h.jours ?? nombreJours(h.debut, h.fin)) },
+              { titre: 'Statut', valeur: (h) => statutHospitalisation(h.statut).libelle },
+            ]}
+          />
         </div>
       </header>
 
@@ -108,6 +130,7 @@ export default function Hospitalisations() {
             <p>Les hospitalisations apparaîtront ici dès qu'un médecin mettra un patient en hospitalisation depuis une consultation.</p>
           </div>
         ) : (
+          <>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
@@ -123,7 +146,7 @@ export default function Hospitalisations() {
                 </tr>
               </thead>
               <tbody>
-                {filtres.map((h, i) => {
+                {pg.lignes.map((h, i) => {
                   const s = statutHospitalisation(h.statut);
                   const jours = h.jours ?? nombreJours(h.debut, h.fin);
                   return (
@@ -166,6 +189,8 @@ export default function Hospitalisations() {
               </tbody>
             </table>
           </div>
+          <PaginationTableau pagination={pg} />
+          </>
         )}
       </section>
     </div>

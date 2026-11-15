@@ -8,6 +8,7 @@ import {
   Graphique,
   moisFr,
 } from '../../../components/Statistiques';
+import ExportExcel, { feuilleExport } from '../../../components/ExportExcel';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import type { HospitalDashboard } from '../../../types';
@@ -39,9 +40,44 @@ export default function TableauDeBord() {
   ];
 
   const libelles = data.mois.map(moisFr);
+  // Export : les 12 mois de l'année en cours (janvier → décembre) ; à défaut, les mois du graphique
+  const serie = data.annee ?? data;
+  const parMois = serie.mois.map((m, i) => ({ mois: moisFr(m), naissances: serie.naissances[i] ?? 0, deces: serie.deces[i] ?? 0, consultations: serie.consultations[i] ?? 0 }));
+  // Export « Par hôpital » : comme l'admin, mais seulement pour cet hôpital
+  const parHopital = parMois.map((x) => ({ mois: x.mois, hopital: data.hopital ?? 'Hôpital', naissances: x.naissances, deces: x.deces }));
 
   return (
     <div className={styles.page}>
+      <div className={styles.barre}>
+        <ExportExcel
+          fichier="tableau_de_bord_hopital"
+          titre="Tableau de bord de l'hôpital"
+          module="TABLEAU_DE_BORD"
+          feuilles={[
+            feuilleExport('Indicateurs', [{ titre: 'Indicateur', valeur: (x) => x.libelle }, { titre: 'Valeur', valeur: (x) => x.valeur }], cartes),
+            feuilleExport(
+              data.annee ? `Année ${data.annee.mois[0].slice(0, 4)}` : 'Par mois',
+              [
+                { titre: 'Mois', valeur: (x) => x.mois },
+                { titre: 'Naissances', valeur: (x) => x.naissances },
+                { titre: 'Décès', valeur: (x) => x.deces },
+                { titre: 'Consultations', valeur: (x) => x.consultations },
+              ],
+              parMois,
+            ),
+            feuilleExport(
+              'Par hôpital',
+              [
+                { titre: 'Mois', valeur: (x) => x.mois },
+                { titre: 'Hôpital', valeur: (x) => x.hopital },
+                { titre: 'Naissances', valeur: (x) => x.naissances },
+                { titre: 'Décès', valeur: (x) => x.deces },
+              ],
+              parHopital,
+            ),
+          ]}
+        />
+      </div>
       <div className={styles.cartes}>
         {cartes.map((c, i) => (
           <CarteStat key={c.libelle} {...c} index={i} />
