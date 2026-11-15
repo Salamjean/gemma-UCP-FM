@@ -25,9 +25,6 @@ export interface RoleProfile {
  */
 export const ADMIN_ROLE = 'admin';
 
-/** Compte d'administration créé par le seeder au démarrage */
-export const EMAIL_ADMIN = 'admin@gmail.com';
-
 /**
  * RÔLES AUTORISÉS À SE CONNECTER SUR CETTE APPLICATION.
  * Les autres comptes Laravel (super, pharmacy, secretariat, cashier, accountant, patient…) sont refusés ici,
