@@ -895,6 +895,8 @@ export interface InfirmierDashboardConsultations {
     patient: PatientDashInfirmier;
     typeVisite: string | null;
     motif: string | null;
+    /** Consultation enregistrée (sinon en cours) */
+    terminee: boolean;
   }[];
   teleconsultations: {
     id: number;
@@ -947,6 +949,8 @@ export interface InfirmierConsultationItem {
   status: number;
   statusInf: number;
   terminee: boolean;
+  /** Faite par l'infirmier·ère avec le formulaire de consultation complet (« Consulter ») */
+  consultationDirecte?: boolean;
   motif: string;
   orientationInfirmier: string | null;
   patient: {
@@ -971,6 +975,8 @@ export interface InfirmierConstantesFormulaire {
     status: number;
     statusInf: number;
     terminee: boolean;
+    /** Faite par l'infirmier·ère lui-même (« Consulter ») */
+    consultationDirecte?: boolean;
     motif: string;
     serviceLibelle: string;
     orientationInfirmier: string | null;
@@ -1048,7 +1054,12 @@ export interface TeleconsultationHospitalItem {
 
 /** TÉLÉCONSULTATIONS INFIRMIER */
 export interface InfirmierTeleconsultationItem {
+  /** Téléconsultation : id de la consultation ; télé-expertise : id de la consultation d'origine */
   id: number;
+  type: 'teleconsultation' | 'urgence' | 'teleexpertise';
+  motif: string | null;
+  /** Télé-expertise : interne / externe, urgente, heure limite de la réponse, résultat reçu (ISO UTC) */
+  expertise: { externe: boolean; urgente: boolean; echeance: string | null; resultatLe: string | null } | null;
   code: string | null;
   dateConsultation: string | null;
   desiredDate: string | null;
@@ -1462,6 +1473,8 @@ export interface ParcoursIntervention {
   date: string;
   hopital: string;
   service: string;
+  /** Faite par l'infirmier·ère lui-même (« Consulter ») */
+  consultationDirecte?: boolean;
   enLigne: boolean;
   urgence: boolean;
   terminee: boolean;
@@ -1488,6 +1501,9 @@ export interface DoctorConsultationItem {
   prestation: string;
   urgence: boolean;
   enLigne: boolean;
+  /** Téléconsultation (programmée, en ligne ou appel d'urgence) */
+  teleconsultation: boolean;
+  appelEnCours: boolean;
   constantesPrises: boolean;
   terminee: boolean;
   issue: string | null;
@@ -1507,10 +1523,43 @@ export interface DoctorTelemedecineItem {
   terminee: boolean;
   appelEnCours: boolean;
   issue: string | null;
+  /** Téléconsultation (appel vidéo), télé-expertise (avis sur documents) ou appel d'urgence */
+  type: 'teleconsultation' | 'teleexpertise' | 'urgence';
+  /** Télé-expertise : interne / externe et consultation d'origine (documents partagés) */
+  expertise: {
+    externe: boolean;
+    origineId: number;
+    /** Urgente (synchrone, < 30 min) ou programmée (asynchrone, 24 à 48 h) */
+    urgente: boolean;
+    /** Formulaire de consultation pour l'expert (urgente, ou issue d'une vraie consultation) ; sinon résultat seulement */
+    avecConsultation: boolean;
+    /** Heure limite de la réponse (ISO UTC) */
+    echeance: string | null;
+    /** Résultat envoyé par l'expert (ISO UTC) */
+    resultatLe: string | null;
+  } | null;
+  /** Demandeur : infirmier·ère qui a programmé, ou médecin qui a demandé l'avis */
   infirmier: string | null;
   hopitalDemandeur: string | null;
   note: string | null;
   constantes: { tension: string | null; temperature: string | null; pouls: string | null; poids: string | null; saturation: string | null };
+  patient: DoctorConsultationItem['patient'];
+}
+
+/** Télé-expertise externe adressée à mon service, à prendre en charge */
+export interface ExpertiseDisponible {
+  origineId: number;
+  recueLe: string;
+  datePrevue: string | null;
+  heurePrevue: string | null;
+  urgente: boolean;
+  /** Heure limite de la réponse (ISO UTC) */
+  echeance: string | null;
+  motif: string | null;
+  referePar: string | null;
+  hopital: string | null;
+  serviceReference: string | null;
+  documents: number;
   patient: DoctorConsultationItem['patient'];
 }
 
@@ -1593,6 +1642,8 @@ export interface MedecinReference {
   id: number;
   nom: string;
   service: string;
+  /** service_hospitals.id du médecin */
+  serviceId: number | null;
   sageFemme: boolean;
   enService: boolean;
   creneau: string | null;
@@ -1608,8 +1659,31 @@ export interface DocumentReference {
   ajouteLe: string;
 }
 
+/** Suite donnée à une consultation terminée (télé-expertise, téléconsultation, appel d'urgence) */
+export interface SuiteConsultation {
+  type: 'teleexpertise' | 'teleconsultation' | 'urgence';
+  externe: boolean;
+  /** Télé-expertise urgente (< 30 min) */
+  urgente: boolean;
+  /** Résultat de l'expert reçu (ISO UTC) */
+  resultatLe: string | null;
+  service: string | null;
+  /** AAAA-MM-JJ */
+  date: string | null;
+  heure: string | null;
+  medecin: string | null;
+  hopital: string | null;
+  etat: string | null;
+}
+
 export interface DoctorConsultationFormulaire {
+  /** Consultation commencée par l'infirmier·ère puis envoyée au médecin : saisie reprise */
+  envoiMedecin: { par: string | null } | null;
+  /** Télé-expertise reçue (médecin expert) : consultation d'origine, résultat déjà envoyé ou non */
+  /** urgente : consultation (synchrone) ; programmée : pas de consultation, l'expert joint directement son résultat */
+  expertiseRecue: { origineId: number; resultatEnvoye: boolean; urgente: boolean; avecConsultation: boolean } | null;
   lecture: boolean;
+  suite: SuiteConsultation | null;
   /** Formulaire à afficher (d'après la prestation) : consultation prénatale (CPN), postnatale ou curative */
   type: 'prenatale' | 'postnatale' | 'accouchement' | 'curative';
   /** Accouchement : déclaration de naissance faite (certificat de naissance) */
@@ -1621,6 +1695,9 @@ export interface DoctorConsultationFormulaire {
   /** documents joints si la consultation a été référée */
   references: DocumentReference[];
   consultation: {
+    /** Service de la consultation : « Envoyer au médecin » ne propose que ses médecins */
+    serviceId: number | null;
+    service: string | null;
     id: number;
     code: string;
     date: string;
@@ -1811,6 +1888,11 @@ export interface RefereExterneItem {
   referePar: string | null;
   service: string | null;
   hopital: string | null;
+  /** Télé-expertise externe : service destinataire (null = ancienne référence, pour tous) */
+  serviceReference: string | null;
+  /** Date (AAAA-MM-JJ) et heure de prise en charge demandées */
+  datePrevue: string | null;
+  heurePrevue: string | null;
   documents: number;
   patient: DoctorConsultationItem['patient'];
   /** médecin qui a pris le patient en charge (null = disponible) */
@@ -1826,6 +1908,22 @@ export interface DoctorReferes {
 export interface RefereDetail {
   origineId: number;
   type: 'interne' | 'externe';
+  /** Télé-expertise externe : service destinataire */
+  serviceReference: string | null;
+  /** Date (AAAA-MM-JJ) et heure de prise en charge demandées */
+  datePrevue: string | null;
+  heurePrevue: string | null;
+  /** Délai de réponse : urgente (< 30 min) ou programmée (24 à 48 h), heure limite (ISO UTC) */
+  urgente: boolean;
+  echeance: string | null;
+  /** Formulaire de consultation pour l'expert (urgente, ou issue d'une vraie consultation) ; sinon résultat seulement */
+  avecConsultation: boolean;
+  /** Résultat joint par l'expert */
+  resultat: { le: string | null; dansDelai: boolean; avis: string | null; conduite: string | null; documents: DocumentReference[] } | null;
+  /** L'expert (destinataire) peut joindre son résultat */
+  peutRepondre: boolean;
+  /** Médecin sollicité (expert) : peut compléter les documents d'un résultat envoyé */
+  estExpert: boolean;
   /** référence interne qui m'est adressée : consultation à faire */
   consultationDestinataire: { id: number; terminee: boolean } | null;
   /** référence externe : prise en charge (premier médecin qui se l'attribue) */
@@ -1848,6 +1946,36 @@ export interface RefereDetail {
   documents: DocumentReference[];
   /** Documents prescrits par le médecin d'origine (ordonnance, bulletin d'examens, arrêt de travail), imprimables */
   documentsPrescrits: { type: 'ordonnance' | 'examens' | 'arret'; code: string | null; date: string }[];
+}
+
+/* =========================================================
+   RÉSULTATS D'EXPERTISE (côté demandeur : médecin ou infirmier·ère)
+   ========================================================= */
+export interface ResultatExpertiseItem {
+  origineId: number;
+  code: string;
+  externe: boolean;
+  urgente: boolean;
+  /** ISO UTC */
+  demandeLe: string | null;
+  echeance: string | null;
+  service: string | null;
+  expert: string | null;
+  hopital: string | null;
+  /** recu | termine (terminée sans résultat) | retard (échéance dépassée sans résultat) | attente */
+  etat: 'recu' | 'termine' | 'retard' | 'attente';
+  resultatLe: string | null;
+  dansDelai: boolean | null;
+  lu: boolean;
+  documents: number;
+  patient: DoctorConsultationItem['patient'];
+}
+
+export interface ResultatExpertiseDetail extends ResultatExpertiseItem {
+  motif: string | null;
+  avis: string | null;
+  conduite: string | null;
+  documentsResultat: DocumentReference[];
 }
 
 /* =========================================================
@@ -2041,6 +2169,8 @@ export interface ConsultationARegler {
   service: string | null;
   motif: string | null;
   medecin: { id: number; nom: string } | null;
+  /** Consultation faite par l'infirmier·ère lui-même : son nom (affiché comme agent attribué) */
+  infirmierAttribue: string | null;
   infirmier: string | null;
   etape: string;
   urgence: boolean;
@@ -2053,8 +2183,12 @@ export interface ConsultationARegler {
   reattributions: number;
   /** Minutes depuis l'affectation (ou la dernière réattribution) */
   attente: number;
-  /** À réguler : médecin indisponible OU en attente depuis au moins 30 min */
+  /** À réguler : médecin indisponible, en attente depuis au moins 30 min, ou télémédecine en retard */
   aReguler: boolean;
+  /** Télémédecine : téléconsultation programmée ou télé-expertise (destination) */
+  telemedecine: 'teleconsultation' | 'teleexpertise' | null;
+  /** Télémédecine en retard : minutes après l'heure prévue / l'heure limite de la réponse */
+  retardTelemedecine: number | null;
 }
 
 export interface TableauRegulation {

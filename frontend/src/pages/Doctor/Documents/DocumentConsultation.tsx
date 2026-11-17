@@ -3,7 +3,7 @@ import { FaArrowLeft, FaDownload, FaFileAlt, FaFlask, FaPills } from 'react-icon
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArretLaravel, BulletinLaravel, OrdonnanceLaravel } from '../../../components/DocumentsLaravel';
 import { alerte, messageErreur } from '../../../services/alertes';
-import { api } from '../../../services/api';
+import { useEspaceConsultation } from '../Consultations/Formulaire/espace';
 import c from '../../../styles/espace.module.css';
 import type { DocumentsConsultation } from '../../../types';
 import s from './DocumentConsultation.module.css';
@@ -25,12 +25,13 @@ export const DOCUMENTS: { id: TypeDocument; titre: string; icone: typeof FaPills
 export default function DocumentConsultation() {
   const { id, type } = useParams();
   const navigate = useNavigate();
+  const { api, racine } = useEspaceConsultation();
   const [doc, setDoc] = useState<DocumentsConsultation | null>(null);
   const [erreur, setErreur] = useState(false);
   const info = DOCUMENTS.find((d) => d.id === type) ?? DOCUMENTS[0];
 
   useEffect(() => {
-    api.doctor.consultations
+    api
       .documents(Number(id))
       .then(setDoc)
       .catch((e) => {
@@ -73,7 +74,7 @@ export default function DocumentConsultation() {
           {DOCUMENTS.map((d) => {
             const dispo = d.id === 'ordonnance' ? doc.ordonnance : d.id === 'examens' ? doc.examens : doc.arret;
             return dispo ? (
-              <Link key={d.id} to={`/medecin/consultations/${id}/document/${d.id}`} className={`${s.onglet} ${d.id === type ? s.ongletActif : ''}`}>
+              <Link key={d.id} to={`${racine}/${id}/document/${d.id}`} className={`${s.onglet} ${d.id === type ? s.ongletActif : ''}`}>
                 <d.icone aria-hidden="true" /> {d.titre}
               </Link>
             ) : (

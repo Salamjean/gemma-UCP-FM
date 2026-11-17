@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested, IsObject } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested, IsObject } from 'class-validator';
 
 const texte = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() || undefined : value);
 const OUI_NON = ['Oui', 'Non'];
@@ -7,7 +7,7 @@ const OUI_NON_NA = ['Oui', 'Non', 'NA'];
 
 /** Issues de consultation du formulaire curatif Laravel (currative.blade.php, champ mode_sortie) */
 // « Mise en observation », « À revoir » et « Cas présumé de TB » retirés à la demande (restent lisibles sur les anciennes consultations)
-export const MODES_SORTIE = ['sortie', 'hospitalisation', 'refere-interne', 'refere-externe'] as const;
+export const MODES_SORTIE = ['sortie', 'hospitalisation', 'refere-interne', 'refere-externe', 'teleconsultation', 'urgence'] as const;
 
 export class MedicamentDto {
   /** drugs.id (médicament choisi dans la liste) — sinon « nom » saisi librement */
@@ -235,9 +235,47 @@ export class ConsultationCurativeDto {
   @IsInt({ message: 'Médecin de la référence invalide.' })
   medecinReferenceId?: number;
 
+  /** Télé-expertise en externe : service (table services) des autres établissements à qui la référence est adressée */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Service de la référence invalide.' })
+  referenceServiceId?: number;
+
+  /** Télé-expertise urgente (synchrone, réponse < 30 min) ; sinon programmée (asynchrone, 24 à 48 h) */
+  @IsOptional()
+  @IsBoolean({ message: 'Type de télé-expertise invalide.' })
+  referenceUrgente?: boolean;
+
+  /** Télé-expertise (interne ou externe) : date (AAAA-MM-JJ) et heure (HH:MM) de la prise en charge */
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date de la prise en charge invalide.' }) referenceDate?: string;
+
+  @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Heure de la prise en charge invalide.' }) referenceHeure?: string;
+
+  /** Téléconsultation : médecin distant (tous hôpitaux de la DMHP), date AAAA-MM-JJ et heure HH:MM */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Médecin de la téléconsultation invalide.' })
+  teleMedecinId?: number;
+
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date de la téléconsultation invalide.' }) teleDate?: string;
+
+  @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Heure de la téléconsultation invalide.' }) teleHeure?: string;
+
   /** Obligatoire quand modeSortie = hospitalisation */
   @IsOptional()
   @ValidateNested()
   @Type(() => HospitalisationIssueDto)
   hospitalisation?: HospitalisationIssueDto;
+}
+
+/** Infirmier·ère : « Envoyer au médecin » — la consultation reste ouverte et passe au médecin choisi */
+export class EnvoiMedecinDto {
+  @Type(() => Number)
+  @IsInt({ message: 'Choisissez le médecin.' })
+  doctorId: number;
+
+  /** Valeurs déjà saisies dans le formulaire (reprises par le médecin) */
+  @IsOptional()
+  @IsObject({ message: 'Saisie invalide.' })
+  valeurs?: Record<string, unknown>;
 }

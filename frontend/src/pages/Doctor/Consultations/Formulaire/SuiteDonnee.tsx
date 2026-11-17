@@ -1,0 +1,52 @@
+import { FaClipboardCheck, FaShareSquare } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import type { SuiteConsultation } from '../../../../types';
+import { useEspaceConsultation } from './espace';
+import s from './FormulaireConsultation.module.css';
+
+const TITRES: Record<SuiteConsultation['type'], string> = {
+  teleexpertise: 'Télé-expertise',
+  teleconsultation: 'Téléconsultation',
+  urgence: 'Appel d’urgence',
+};
+
+/**
+ * FICHE (consultation terminée) > SUITE DONNÉE
+ * Ce que l'auteur de la consultation a fait ensuite : à qui, quand, et où en est la demande.
+ */
+export default function SuiteDonnee({ suite, consultationId }: { suite: SuiteConsultation; consultationId: number }) {
+  const { espace } = useEspaceConsultation();
+  const date = suite.date ? suite.date.split('-').reverse().join('/') : null;
+  const expertise = suite.type === 'teleexpertise';
+  const lignes: [string, string | null][] = [
+    ['Type', `${TITRES[suite.type]}${expertise ? `${suite.externe ? ' en externe' : ' en interne'} · ${suite.urgente ? 'urgente' : 'programmée'}` : ''}`],
+    ['Service', suite.service],
+    ['Prévue le', date ? `${date}${suite.heure ? ` à ${suite.heure}` : ''}` : null],
+    ['Médecin', suite.medecin],
+    ['Établissement', suite.hopital],
+    ['État', suite.etat],
+  ];
+  return (
+    <div className={s.noteInfirmier}>
+      <span>
+        <FaShareSquare aria-hidden="true" /> Suite donnée
+      </span>
+      <dl className={s.suiteListe}>
+        {lignes
+          .filter(([, v]) => v)
+          .map(([libelle, valeur]) => (
+            <div key={libelle}>
+              <dt>{libelle}</dt>
+              <dd>{valeur}</dd>
+            </div>
+          ))}
+      </dl>
+      {/* Télé-expertise : délai et résultat de l'expert dans « Résultats d'expertise » */}
+      {expertise && (
+        <Link to={`/${espace}/resultats-expertise/${consultationId}`} className={s.lienResultat}>
+          <FaClipboardCheck aria-hidden="true" /> {suite.resultatLe ? 'Voir le résultat de l’expert' : 'Suivre la demande'}
+        </Link>
+      )}
+    </div>
+  );
+}

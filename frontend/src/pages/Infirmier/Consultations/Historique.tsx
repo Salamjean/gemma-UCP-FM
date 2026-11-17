@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   FaClock,
   FaEye,
+  FaFolderOpen,
   FaHistory,
   FaSearch,
   FaUsers,
@@ -188,14 +189,26 @@ export default function Historique() {
                       </td>
                       <td>
                         <div className={c.actions} style={{ justifyContent: 'center' }}>
+                          {/* Comme chez le médecin : la fiche est le formulaire de consultation, en lecture seule */}
                           <Link
-                            to={`/infirmier/consultations/formulaire/${item.id}`}
+                            to={`/infirmier/consultations/medicale/${item.id}`}
                             className={c.secondaire}
                             style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px' }}
                             title="Voir la fiche"
                           >
                             <FaEye aria-hidden="true" /> Fiche
                           </Link>
+                          {/* Dossier médical complet du patient */}
+                          {item.patient.id != null && (
+                            <Link
+                              to={`/infirmier/patients/${item.patient.id}/dossier`}
+                              className={c.secondaire}
+                              style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px' }}
+                              title="Voir le dossier médical du patient"
+                            >
+                              <FaFolderOpen aria-hidden="true" /> Dossier
+                            </Link>
+                          )}
                         </div>
                       </td>
                     </motion.tr>

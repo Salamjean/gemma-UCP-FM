@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { FaDownload, FaFileAlt, FaFileImage, FaFilePdf, FaPaperclip, FaPlus, FaTrashAlt } from 'react-icons/fa';
 import { alerte, messageErreur } from '../../../../services/alertes';
-import { api } from '../../../../services/api';
+import type { ApiFormulaireConsultation } from '../../../../services/api';
+import { useEspaceConsultation } from './espace';
 import type { DocumentReference } from '../../../../types';
 import s from './FormulaireConsultation.module.css';
 
@@ -16,40 +17,54 @@ export interface PieceEnAttente {
 const taille = (o: number) => (o < 1024 * 1024 ? `${Math.max(1, Math.round(o / 1024))} Ko` : `${(o / 1024 / 1024).toFixed(1)} Mo`);
 const icone = (type: string) => (type.includes('pdf') ? FaFilePdf : type.startsWith('image/') ? FaFileImage : FaFileAlt);
 
-/** Saisie d'un document : libellé obligatoire + fichier */
-function AjoutPiece({ onAjout, enCours }: { onAjout: (p: PieceEnAttente) => void | Promise<void>; enCours?: boolean }) {
+/** Libellé par défaut : nom du fichier sans son extension */
+const libelleParDefaut = (f: File) => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 191) || 'Document';
+
+/**
+ * Saisie d'un document : libellé + fichier.
+ * Choisir le fichier l'AJOUTE AUSSITÔT (libellé saisi, sinon le nom du fichier) : un fichier choisi n'est plus perdu
+ * parce qu'on a oublié de cliquer sur « Joindre ».
+ */
+function AjoutPiece({ onAjout, enCours, compact }: { onAjout: (p: PieceEnAttente) => void | Promise<void>; enCours?: boolean; compact?: boolean }) {
   const [libelle, setLibelle] = useState('');
   const [fichier, setFichier] = useState<File | null>(null);
   const champ = useRef<HTMLInputElement>(null);
 
-  const ajouter = async () => {
-    if (!libelle.trim()) {
-      alerte.attention('Précisez le libellé du document (ex. : Résultat NFS, Radiographie thoracique…).');
-      return;
-    }
-    if (!fichier) {
+  const ajouter = async (f: File | null = fichier) => {
+    if (!f) {
       alerte.attention('Choisissez le fichier à joindre.');
       return;
     }
-    if (fichier.size > MAX) {
-      alerte.attention(`« ${fichier.name} » dépasse 10 Mo.`);
+    if (f.size > MAX) {
+      alerte.attention(`« ${f.name} » dépasse 10 Mo.`);
+      if (champ.current) champ.current.value = '';
+      setFichier(null);
       return;
     }
-    await onAjout({ libelle: libelle.trim(), fichier });
+    await onAjout({ libelle: libelle.trim() || libelleParDefaut(f), fichier: f });
     setLibelle('');
     setFichier(null);
     if (champ.current) champ.current.value = '';
   };
 
   return (
-    <div className={s.ajoutPiece}>
+    <div className={`${s.ajoutPiece} ${compact ? s.ajoutPieceCompact : ''}`}>
       <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé du document (ex. : Résultat NFS)" aria-label="Libellé du document" maxLength={191} />
       <label className={s.choixFichier}>
         <FaPaperclip aria-hidden="true" />
         <span>{fichier ? fichier.name : 'Choisir un fichier'}</span>
-        <input ref={champ} type="file" accept={FORMATS} onChange={(e) => setFichier(e.target.files?.[0] ?? null)} />
+        <input
+          ref={champ}
+          type="file"
+          accept={FORMATS}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            setFichier(f);
+            if (f) void ajouter(f);
+          }}
+        />
       </label>
-      <button type="button" className={s.boutonAjout} onClick={ajouter} disabled={enCours}>
+      <button type="button" className={s.boutonAjout} onClick={() => void ajouter()} disabled={enCours}>
         <FaPlus aria-hidden="true" /> {enCours ? 'Envoi…' : 'Joindre'}
       </button>
     </div>
@@ -57,13 +72,26 @@ function AjoutPiece({ onAjout, enCours }: { onAjout: (p: PieceEnAttente) => void
 }
 
 /** Étape 4 : documents préparés avant l'enregistrement (envoyés juste après) */
-export function PiecesAJoindre({ pieces, onChange }: { pieces: PieceEnAttente[]; onChange: (p: PieceEnAttente[]) => void }) {
+export function PiecesAJoindre({
+  pieces,
+  onChange,
+  compact,
+  facultatif,
+}: {
+  pieces: PieceEnAttente[];
+  onChange: (p: PieceEnAttente[]) => void;
+  compact?: boolean;
+  /** Documents facultatifs (ex. résultat de l'expert) */
+  facultatif?: boolean;
+}) {
+  // compact : dans une colonne (télé-expertise en interne), sans cadre
   return (
-    <div className={s.hospBloc}>
+    <div className={compact ? s.piecesCompact : s.hospBloc}>
       <h3 className={s.sousTitre}>
-        <FaPaperclip aria-hidden="true" /> Documents à joindre à la référence <small className={s.facultatif}>facultatif · PDF, image ou Word, 10 Mo maximum</small>
+        <FaPaperclip aria-hidden="true" /> {compact ? 'Documents' : facultatif ? 'Documents joints' : 'Documents à partager'} {!facultatif && <em className={s.requis}>*</em>}
+        {!compact && <small className={s.facultatif}>PDF, image ou Word, 10 Mo maximum</small>}
       </h3>
-      <AjoutPiece onAjout={(p) => onChange([...pieces, p])} />
+      <AjoutPiece compact={compact} onAjout={(p) => onChange([...pieces, p])} />
       {pieces.length > 0 && (
         <ul className={s.pieces}>
           {pieces.map((p, i) => {
@@ -90,23 +118,24 @@ export function PiecesAJoindre({ pieces, onChange }: { pieces: PieceEnAttente[];
 }
 
 /** Envoi groupé des documents d'une consultation référée */
-export async function envoyerPieces(consultationId: number, pieces: PieceEnAttente[]) {
+export async function envoyerPieces(api: ApiFormulaireConsultation, consultationId: number, pieces: PieceEnAttente[]) {
   const fd = new FormData();
   pieces.forEach((p) => {
     fd.append('fichiers', p.fichier);
     fd.append('libelles', p.libelle);
   });
-  return api.doctor.consultations.references.ajouter(consultationId, fd);
+  return api.references.ajouter(consultationId, fd);
 }
 
 /** Fiche : documents de la référence (télécharger, retirer, en ajouter) */
 export function DocumentsReference({ consultationId, documents, onChange }: { consultationId: number; documents: DocumentReference[]; onChange: (d: DocumentReference[]) => void }) {
   const [envoi, setEnvoi] = useState(false);
+  const { api } = useEspaceConsultation();
 
   const ajouter = async (p: PieceEnAttente) => {
     setEnvoi(true);
     try {
-      const r = await envoyerPieces(consultationId, [p]);
+      const r = await envoyerPieces(api, consultationId, [p]);
       onChange(r.documents);
       alerte.succes(r.message);
     } catch (e) {
@@ -120,7 +149,7 @@ export function DocumentsReference({ consultationId, documents, onChange }: { co
   const retirer = async (d: DocumentReference) => {
     if (!window.confirm(`Retirer « ${d.libelle} » de la référence ?`)) return;
     try {
-      const r = await api.doctor.consultations.references.supprimer(consultationId, d.id);
+      const r = await api.references.supprimer(consultationId, d.id);
       onChange(documents.filter((x) => x.id !== d.id));
       alerte.succes(r.message);
     } catch (e) {
@@ -151,7 +180,7 @@ export function DocumentsReference({ consultationId, documents, onChange }: { co
                 <button
                   type="button"
                   className={s.telechargerPiece}
-                  onClick={() => api.doctor.consultations.references.telecharger(consultationId, d.id, d.nom).catch((e) => alerte.echec(messageErreur(e)))}
+                  onClick={() => api.references.telecharger(consultationId, d.id, d.nom).catch((e) => alerte.echec(messageErreur(e)))}
                   aria-label={`Télécharger ${d.libelle}`}
                 >
                   <FaDownload />

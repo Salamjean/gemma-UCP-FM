@@ -1,0 +1,217 @@
+/* TÉLÉMÉDECINE > PROGRAMMER (recherche du patient + programmation directe) */
+
+.titre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 1rem;
+  color: var(--dash-text);
+}
+
+.numero {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1f6fc6;
+  color: #ffffff;
+  font-size: 0.8rem;
+}
+
+.recherche {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recherche select,
+.recherche input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #dfe4ee;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+}
+
+.recherche input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.resultats {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultats li,
+.patientChoisi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f6f8fc;
+}
+
+.resultats li > span,
+.patientChoisi > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.resultats small,
+.patientChoisi small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.patientChoisi {
+  background: #e3f5ee;
+}
+
+.patientChoisi > svg {
+  flex-shrink: 0;
+  color: #0b7a54;
+  font-size: 1.2rem;
+}
+
+.vide {
+  justify-content: center;
+  color: var(--dash-muted);
+}
+
+.types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #dfe4ee;
+  border-radius: 12px;
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+.type > svg {
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  color: #1f6fc6;
+}
+
+.type span {
+  display: flex;
+  flex-direction: column;
+}
+
+.type small {
+  font-size: 0.76rem;
+  color: var(--dash-muted);
+}
+
+.typeActif {
+  border-color: #1f6fc6;
+  background: #eaf3fe;
+}
+
+.expertise {
+  display: grid;
+  gap: 12px;
+}
+
+.motif {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.motif em {
+  color: #c4213f;
+  font-style: normal;
+}
+
+.motif textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dfe4ee;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.pied {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Résultat de recherche : informations côte à côte, bouton « Choisir » au bout de la ligne */
+.infos {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
+.infos div {
+  min-width: 0;
+}
+
+.infos dt {
+  font-size: 0.7rem;
+  color: var(--dash-muted);
+}
+
+.infos dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.resultats li > button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1000px) {
+  .infos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .infos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .types {
+    grid-template-columns: 1fr;
+  }
+}

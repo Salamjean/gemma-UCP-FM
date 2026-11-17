@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import type { IconType } from 'react-icons';
 import {
   FaArrowRight,
-  FaBed,
   FaClipboardList,
   FaNotesMedical,
+  FaEye,
   FaPlay,
   FaSearch,
   FaStethoscope,
@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 import { displayName } from '../../../config/roles';
 import { useAuth } from '../../../context/AuthContext';
 import { alerte, messageErreur } from '../../../services/alertes';
-import { api, uploadUrl } from '../../../services/api';
+import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { InfirmierDashboard, InfirmierDashboardConsultations, InfirmierDashboardSoins } from '../../../types';
 import s from './TableauDeBord.module.css';
@@ -59,7 +59,7 @@ const apparition = (i: number, base = 0) => ({
  * Données : GET /api/infirmier/tableau-de-bord (Laravel : DashboardController + partials/dashboard/infirmier.blade.php)
  * En tête : salutation + 2 boutons d'accueil (inscrire un nouveau patient / rechercher et affecter un patient).
  *  - service "Soins infirmier" → nouveaux soins + soins en cours
- *  - autres services → file d'attente du jour (à gauche), télémédecine et hospitalisés (à droite)
+ *  - autres services → file d'attente du jour (à gauche), télémédecine (à droite)
  */
 export default function TableauDeBord() {
   const { user } = useAuth();
@@ -103,7 +103,7 @@ export default function TableauDeBord() {
               <FaSearch aria-hidden="true" />
             </span>
             <span className={s.actionTexte}>
-              <strong>Rechercher et affecter</strong>
+              <strong>Vérifier / Rechercher</strong>
               <small>Patient déjà inscrit : dossier, téléphone ou nom</small>
             </span>
             <FaArrowRight className={s.actionFleche} aria-hidden="true" />
@@ -219,16 +219,16 @@ function VueConsultations({ data }: { data: InfirmierDashboardConsultations }) {
           <EnteteBloc
             icone={FaStethoscope}
             titre="File d'attente du jour"
-            sousTitre="Patients qui attendent la prise de leurs constantes"
+            sousTitre="Consultations que vous avez effectuées aujourd'hui"
             compte={data.aConsulter.length}
-            lien="/infirmier/consultations/toutes"
-            libelleLien={`Toutes (${data.totalAConsulter})`}
+            lien="/infirmier/consultations/historique"
+            libelleLien={`Historique (${data.totalAConsulter})`}
           />
           {data.aConsulter.length === 0 ? (
             <div className={s.vide}>
               <FaUsers aria-hidden="true" />
-              <strong>Personne en attente</strong>
-              <p>Inscrivez un patient ou affectez un patient existant avec les boutons ci-dessus.</p>
+              <strong>Aucune consultation aujourd'hui</strong>
+              <p>Recherchez un patient avec les boutons ci-dessus, puis « Consulter ».</p>
             </div>
           ) : (
             <ul className={s.file}>
@@ -243,9 +243,18 @@ function VueConsultations({ data }: { data: InfirmierDashboardConsultations }) {
                       {x.motif ? ` · ${x.motif}` : ''}
                     </small>
                   </span>
-                  <span className={`${c.badge} ${s.badgeInfo}`}>{x.typeVisite || 'Consultation'}</span>
-                  <Link to={`/infirmier/consultations/formulaire/${x.id}`} className={s.boutonPrincipal} title="Prendre les constantes">
-                    <FaPlay aria-hidden="true" /> Constantes
+                  {x.terminee ? (
+                    <span className={`${c.badge} ${c.badgeOk}`}>Terminée</span>
+                  ) : (
+                    <span className={`${c.badge} ${s.badgeInfo}`}>En cours</span>
+                  )}
+                  {/* Terminée : fiche en lecture ; en cours : reprendre le formulaire de consultation */}
+                  <Link
+                    to={`/infirmier/consultations/medicale/${x.id}`}
+                    className={x.terminee ? s.boutonSecondaire : s.boutonPrincipal}
+                    title={x.terminee ? 'Voir la fiche' : 'Voir la consultation'}
+                  >
+                    <FaEye aria-hidden="true" /> {x.terminee ? 'Fiche' : 'Voir'}
                   </Link>
                 </motion.li>
               ))}
@@ -253,7 +262,7 @@ function VueConsultations({ data }: { data: InfirmierDashboardConsultations }) {
           )}
         </motion.section>
 
-        {/* --- Colonne droite : télémédecine + hospitalisés --- */}
+        {/* --- Colonne droite : télémédecine --- */}
         <div className={s.colonneDroite}>
           <motion.section className={c.bloc} {...apparition(1, 0.15)}>
             <EnteteBloc icone={FaVideo} titre="Télémédecine" compte={data.teleconsultations.length} lien="/infirmier/teleconsultations" libelleLien="Ouvrir" />
@@ -281,36 +290,6 @@ function VueConsultations({ data }: { data: InfirmierDashboardConsultations }) {
                     )}
                   </motion.li>
                 ))}
-              </ul>
-            )}
-          </motion.section>
-
-          <motion.section className={c.bloc} {...apparition(2, 0.15)}>
-            <EnteteBloc icone={FaBed} titre="Hospitalisés" compte={data.hospitalises.length} lien="/infirmier/hospitalisations/en-cours" libelleLien="Suivi" />
-            {data.hospitalises.length === 0 ? (
-              <p className={s.videListe}>Aucun patient hospitalisé.</p>
-            ) : (
-              <ul className={s.mini}>
-                {data.hospitalises.slice(0, 4).map((h, i) => {
-                  const feminin = (h.patient.genre ?? '').toLowerCase().startsWith('f');
-                  return (
-                    <motion.li key={h.hospitalisationId} {...apparition(i)}>
-                      {h.patient.imgUrl ? (
-                        <img className={s.avatarMini} src={h.patient.imgUrl.startsWith('http') ? h.patient.imgUrl : uploadUrl('patient', h.patient.imgUrl)} alt="" />
-                      ) : (
-                        <span className={`${s.avatarMini} ${feminin ? s.avatarF : ''}`}>{initiales(h.patient.nom)}</span>
-                      )}
-                      <span className={s.patient}>
-                        <Link to={`/infirmier/hospitalisations/${h.hospitalisationId}/suivi`} className={s.lienPatient}><strong>{h.patient.nom}</strong></Link>
-                        <small>
-                          {h.lit ? `Chambre ${h.lit}` : 'En attente de chambre'}
-                          {h.medecin ? ` · Dr ${h.medecin.replace(/^dr\.?\s*/i, '')}` : ''}
-                        </small>
-                      </span>
-                      {h.confieAMoi ? <span className={`${c.badge} ${c.badgeOk}`}>Vous</span> : !h.lit && <span className={`${c.badge} ${s.badgeAttente}`}>Sans lit</span>}
-                    </motion.li>
-                  );
-                })}
               </ul>
             )}
           </motion.section>

@@ -5,7 +5,7 @@
    - JAMAIS mis en cache : /api (données des patients, connexion…), ni les fichiers du serveur de développement.
    Changer VERSION pour forcer le renouvellement du cache après un déploiement.
    ========================================================= */
-const VERSION = 'gemma-v1';
+const VERSION = 'gemma-v2';
 const CACHE = `${VERSION}-statique`;
 const COQUILLE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/images/logo.jpg'];
 

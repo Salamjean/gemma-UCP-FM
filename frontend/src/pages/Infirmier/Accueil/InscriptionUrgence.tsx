@@ -6,7 +6,7 @@ import { alerte, messageErreur } from '../../../services/alertes';
 import { apiAgent, type EspaceAgent } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { OptionsAccueilInfirmier } from '../../../types';
-import ChampsAffectation, { type ValeurAffectation } from './ChampsAffectation';
+import { ouvrirConsultation } from './InscrirePatient';
 import s from './Accueil.module.css';
 
 /** Valeurs par défaut des champs obligatoires non demandés en urgence (modifiables ensuite dans la fiche du patient) */
@@ -15,9 +15,10 @@ const SITUATION_PAR_DEFAUT = 'celibataire';
 const PIECE_PAR_DEFAUT = 'Aucune';
 
 /**
- * INFIRMIER / MÉDECIN > INSCRIPTION D'URGENCE (avec affectation)
- * Une seule page : les informations obligatoires du patient (nom, prénom, sexe, date ou âge, téléphone) + N° CMU facultatif
- * + l'affectation (obligatoire). Même enregistrement que l'inscription complète (POST patients) :
+ * INFIRMIER / MÉDECIN > INSCRIPTION D'URGENCE
+ * Une seule page : les informations obligatoires du patient (nom, prénom, sexe, date ou âge, téléphone) + N° CMU facultatif.
+ * Comme « Consulter » : après l'enregistrement, la consultation s'ouvre directement dans le service de l'agent connecté.
+ * Même enregistrement que l'inscription complète (POST patients) :
  * situation matrimoniale « Célibataire » et pièce « Aucune » par défaut, le reste se complète plus tard dans la fiche.
  */
 export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: EspaceAgent } = {}) {
@@ -35,7 +36,6 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
   const [age, setAge] = useState('');
   const [telephone, setTelephone] = useState('');
   const [numCmu, setNumCmu] = useState('');
-  const [affectation, setAffectation] = useState<ValeurAffectation>({ prestationId: null, doctorId: null, infirmierId: null, motif: '' });
 
   useEffect(() => {
     source.patients
@@ -68,10 +68,6 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
     genre: { message: 'Choisissez le sexe du patient.', ko: !genre },
     dateNaissance: { message: 'La date de naissance ou l’âge est obligatoire.', ko: !dateNaissance },
     telephone: { message: 'Le téléphone doit contenir 10 chiffres.', ko: !/^\d{10}$/.test(telephone) },
-    prestation: { message: 'Choisissez le service puis la prestation.', ko: !affectation.prestationId },
-    medecin: { message: 'Veuillez choisir le médecin.', ko: !affectation.doctorId },
-    infirmier: { message: 'Veuillez choisir l’infirmier·ère.', ko: espace === 'medecin' && !affectation.infirmierId },
-    motif: { message: 'Le motif de la consultation est obligatoire.', ko: !affectation.motif.trim() },
   };
   const ko = (k: string) => verifier && erreurs[k].ko;
 
@@ -93,16 +89,16 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
         telephone,
         typePiece: PIECE_PAR_DEFAUT,
         numCmu: numCmu.trim() || undefined,
-        affectation: {
-          prestationId: affectation.prestationId!,
-          motif: affectation.motif.trim(),
-          doctorId: affectation.doctorId!,
-          infirmierId: espace === 'medecin' ? affectation.infirmierId ?? undefined : undefined,
-        },
       });
-      await alerte.succes(r.message);
-      // Infirmier : prise des constantes directement ; médecin : retour au tableau de bord
-      navigate(r.consultationId && espace !== 'medecin' ? `/infirmier/consultations/formulaire/${r.consultationId}` : base);
+      // Comme « Consulter » : consultation du jour dans le service de l'agent, puis formulaire de consultation
+      try {
+        const cons = await source.patients.consulter(r.patientId);
+        alerte.succes(`${r.message} La consultation est ouverte.`);
+        navigate(ouvrirConsultation(espace, cons.consultationId), { state: { annulable: cons.nouvelle ?? !cons.message.startsWith('Reprise') } });
+      } catch (err) {
+        alerte.echec(`Patient inscrit (${r.codePatient}), mais la consultation n’a pas pu être ouverte : ${messageErreur(err)}`);
+        navigate(`${base}/patients/${espace === 'medecin' ? 'affecter' : 'rechercher'}`);
+      }
     } catch (err) {
       alerte.echec(messageErreur(err));
     } finally {
@@ -181,8 +177,6 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
               </div>
             </div>
 
-            <p className={s.sousTitre}>Affectation</p>
-            <ChampsAffectation options={options} valeur={affectation} onChange={setAffectation} verifier={verifier} />
             <p className={s.aide}>Situation matrimoniale « Célibataire » et pièce d'identité « Aucune » par défaut : le reste du dossier se complète plus tard depuis la fiche du patient.</p>
           </>
         )}
@@ -196,7 +190,7 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
               'Enregistrement…'
             ) : (
               <>
-                <FaCheck aria-hidden="true" /> {espace === 'medecin' ? 'Inscrire et affecter' : 'Inscrire et prendre les constantes'}
+                <FaCheck aria-hidden="true" /> Inscrire et consulter
               </>
             )}
           </motion.button>

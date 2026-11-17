@@ -1,5 +1,6 @@
 import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import InstallerApplication from '../components/InstallerApplication';
 import Loader from '../components/Loader';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { ROUTES } from '../config/site';
@@ -44,6 +45,8 @@ export default function App() {
       {/* Le site n'est monté qu'après le loader : ses animations d'entrée se jouent au bon moment */}
       {!loading && (
         <AuthProvider>
+          {/* PWA : bouton « Installer l'application » (vraie installation, pas un simple raccourci) */}
+          <InstallerApplication />
           <BrowserRouter>
             <Routes>
               {/* HOME : pages publiques, avec la navbar */}

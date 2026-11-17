@@ -635,8 +635,10 @@
 
 /* --- Issues --- */
 .issues {
+  /* Toutes les issues sur une seule ligne, quel que soit leur nombre */
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -932,9 +934,6 @@
   .constantes {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .issues {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .recap {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -953,6 +952,9 @@
 @media (max-width: 760px) {
   .questionsDocs,
   .etapes,
+  .issues {
+    grid-auto-flow: row;
+  }
   .issues,
   .grilleChoix,
   .deuxColonnes,
@@ -1465,4 +1467,391 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Issue « Télémédecine » : date et heure côte à côte */
+.ligneTele {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ligneTele > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ligneTele .sousTitre {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .ligneTele {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Issue « Appel d'urgence » */
+.alerteUrgence {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fdecef;
+  color: #9f1c33;
+  font-size: 0.84rem;
+}
+
+.alerteUrgence svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Télémédecine : médecin tant que date / heure / hôpital ne sont pas choisis (même hauteur qu'une liste) */
+.champBloqueTele {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #f3f5fb;
+  color: var(--dash-muted);
+  font-size: 0.82rem;
+}
+
+/* Message d'erreur sous un champ (ex. télémédecine dans le passé) */
+.noteErreur {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #c4213f;
+}
+
+/* Constantes : état sous la valeur (repère indicatif) */
+.repere {
+  min-height: 16px;
+  line-height: 1;
+}
+
+.repereBadge {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.repereVide {
+  font-size: 0.72rem;
+  color: #c3c9d5;
+}
+
+.repere_ok {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.repere_attention {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.repere_alerte {
+  background: #fdecef;
+  color: #c4213f;
+}
+
+/* Télé-expertise en interne : service, date et heure sur la même ligne */
+.ligneReferenceInterne {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* Date et heure dans la même case */
+.dateHeure {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.dateHeure input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  outline: none;
+}
+
+.dateHeure input:focus {
+  border-color: #3596f7;
+  box-shadow: 0 0 0 3px rgba(53, 150, 247, 0.15);
+}
+
+/* Documents dans une colonne : libellé, puis fichier + bouton */
+.piecesCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.piecesCompact .sousTitre {
+  margin-bottom: 0;
+}
+
+.ajoutPieceCompact {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ajoutPieceCompact > input {
+  grid-column: 1 / -1;
+}
+
+.ligneReferenceInterne > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ligneReferenceInterne .sousTitre {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .ligneReferenceInterne {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .ligneReferenceInterne {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Télé-expertise en externe : service et documents sur la même ligne */
+.ligneReferenceExterne {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.ligneReferenceExterne > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ligneReferenceExterne .sousTitre {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .ligneReferenceExterne {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Téléconsultation : date, heure, hôpital et médecin sur la même ligne */
+.ligneTeleQuatre {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.6fr) minmax(0, 1.6fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.ligneTeleQuatre > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ligneTeleQuatre .sousTitre {
+  margin-bottom: 0;
+}
+
+.ligneTeleQuatre input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--dash-text);
+  outline: none;
+}
+
+.ligneTeleQuatre input:focus {
+  border-color: #3596f7;
+  box-shadow: 0 0 0 3px rgba(53, 150, 247, 0.15);
+}
+
+@media (max-width: 1100px) {
+  .ligneTeleQuatre {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .ligneTeleQuatre {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fiche terminée : suite donnée (télé-expertise, téléconsultation, urgence) */
+.suiteListe {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.suiteListe > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.suiteListe dt {
+  color: var(--dash-muted);
+}
+
+.suiteListe dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--dash-text);
+  text-align: right;
+}
+
+/* Télé-expertise urgente : prise en charge immédiate (à la place de la date et l'heure) */
+.champImmediat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #fde8ec;
+  color: #c4213f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* Suite donnée : lien vers le résultat de la télé-expertise */
+.lienResultat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1f6fc6;
+  text-decoration: none;
+}
+
+.lienResultat:hover {
+  text-decoration: underline;
+}
+
+/* Fin de consultation (télé-expertise reçue) : fournir un résultat au requérant ? */
+.questionResultat {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.questionResultat strong {
+  font-size: 0.86rem;
+  color: var(--dash-text, #172b4c);
+}
+
+.questionResultat > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.questionResultat button {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid #dfe4ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172b4c;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.questionResultat button.reponseActive {
+  border-color: #1f6fc6;
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+/* Télé-expertise : « interne / externe » et « type de demande » sur la même ligne */
+.ligneChoixDouble {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .ligneChoixDouble {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   TÉLÉPHONE / TABLETTE — cohérence du formulaire
+   ========================================================= */
+@media (max-width: 760px) {
+  /* Étapes : bande qui défile horizontalement (plus de 4 à 7 colonnes écrasées) */
+  .etapes,
+  .etapesCinq,
+  .etapesSept {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(130px, 1fr);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .etapes > * {
+    scroll-snap-align: start;
+  }
+
+  /* Choix segmentés (Oui / Non, Interne / Externe, Urgente / Programmée…) : passent à la ligne au lieu de déborder */
+  .ligneChoix {
+    flex-wrap: wrap;
+  }
+  .segments {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    max-width: 100%;
+  }
+  .segments button {
+    flex: 1 1 auto;
+  }
 }

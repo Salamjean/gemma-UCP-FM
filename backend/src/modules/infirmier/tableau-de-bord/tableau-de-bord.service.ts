@@ -115,9 +115,10 @@ export class InfirmierTableauDeBordService {
     const filtreInf = `c.hospital_id = ? AND (c.infirmier_id = ? OR c.infirmier_id IS NULL)`;
 
     const [aConsulterRows, [total], teleRows, historiqueRows, hospRows] = await Promise.all([
-      // Patients à consulter ce jour (DashboardInfirmierRepository::consultation)
+      // File d'attente du jour : consultations effectuées aujourd'hui par l'infirmier·ère connecté·e
+      // (bouton « Consulter » : à son nom, sans médecin) — en cours ou terminées
       this.db.query(
-        `SELECT c.id, c.code_consultation, c.created_at,
+        `SELECT c.id, c.code_consultation, c.created_at, c.status,
                 p.id AS patient_id, p.code_patient, pu.name, pu.prenom,
                 ps.libelle AS type_visite, COALESCE(a.motif_consultation, c.motif_consultation) AS motif
            FROM consultations c
@@ -126,15 +127,15 @@ export class InfirmierTableauDeBordService {
            LEFT JOIN admissions a ON a.id = c.admission_id
            LEFT JOIN prestation_hospitals ph ON ph.id = c.prestation_hospital_id
            LEFT JOIN prestation_services ps ON ps.id = ph.prestation_service_id
-          WHERE ${filtreInf} AND c.deleted_at IS NULL
-            AND c.date_consultation = CURDATE() AND c.status_inf = 0
-          ORDER BY c.created_at DESC`,
+          WHERE c.hospital_id = ? AND c.infirmier_id = ? AND c.doctor_id IS NULL AND c.deleted_at IS NULL
+            AND c.date_consultation = CURDATE()
+          ORDER BY c.status ASC, c.created_at DESC`,
         [hospitalId, infirmierId],
       ),
-      // Badge "Toutes les consultations"
+      // Lien « Historique » : toutes les consultations effectuées par l'infirmier·ère
       this.db.query(
         `SELECT COUNT(*) AS n FROM consultations c
-          WHERE ${filtreInf} AND c.deleted_at IS NULL AND c.status_inf = 0`,
+          WHERE c.hospital_id = ? AND c.infirmier_id = ? AND c.doctor_id IS NULL AND c.deleted_at IS NULL`,
         [hospitalId, infirmierId],
       ),
       // Téléconsultations avec les médecins
@@ -213,6 +214,7 @@ export class InfirmierTableauDeBordService {
         },
         typeVisite: r.type_visite ?? null,
         motif: r.motif ?? null,
+        terminee: Number(r.status) === 1,
       })),
       teleconsultations: teleRows.map((r: any) => {
         const urgence = r.orientation_infirmier === 'urgence' || Number(r.is_urgence) === 1;

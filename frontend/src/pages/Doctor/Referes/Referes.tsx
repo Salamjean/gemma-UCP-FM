@@ -12,7 +12,8 @@ import s from './Referes.module.css';
 import { PaginationTableau, usePagination } from '../../../components/Pagination';
 
 type Onglet = 'internes' | 'externes';
-const sansDr = (n: string | null) => (n ? `Dr ${n.replace(/^dr\.?\s*/i, '')}` : '—');
+/** Requérant (déjà formaté par le serveur : « Dr … » ou « … (infirmier·ère) ») */
+const sansDr = (n: string | null) => n ?? '—';
 
 /**
  * MÉDECIN > RÉFÉRÉS
@@ -181,7 +182,13 @@ export default function Referes() {
                             {x.service && <small>{x.service}</small>}
                           </span>
                         </td>
-                        <td>{x.hopital ?? '—'}</td>
+                        <td>
+                          <span className={s.empile}>
+                            <strong>{x.hopital ?? '—'}</strong>
+                            {x.serviceReference && <small>Pour : {x.serviceReference}</small>}
+                            {x.datePrevue && <small>Prévu le {x.datePrevue.split('-').reverse().join('/')}{x.heurePrevue ? ` à ${x.heurePrevue}` : ''}</small>}
+                          </span>
+                        </td>
                         <td className={s.texteLong}>{x.justification ?? x.motif ?? '—'}</td>
                         <td>
                           {x.documents ? (

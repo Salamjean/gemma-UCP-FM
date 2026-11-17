@@ -1,17 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { FaArrowLeft, FaCheck, FaSearch, FaUserPlus, FaBaby, FaUserEdit } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaSearch, FaUserPlus, FaBaby, FaUserEdit, FaStethoscope, FaFolderOpen } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { uploadUrl, apiAgent, type EspaceAgent } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
-import type { InfirmierPatientItem, OptionsAccueilInfirmier, RecherchePatientFilters } from '../../../types';
-import ChampsAffectation, { type ValeurAffectation } from './ChampsAffectation';
+import type { InfirmierPatientItem, OptionsAccueilInfirmier, PatientIdentite, RecherchePatientFilters } from '../../../types';
 import ModifierPatient from './ModifierPatient';
 import m from './ModifierPatient.module.css';
 import s from './Accueil.module.css';
 
-/** Les 4 critères de recherche (comme "Vérifier / Rechercher") ; ils se combinent */
+/** Les 4 critères de recherche ; ils se combinent */
 interface Criteres {
   code: string;
   telephone: string;
@@ -38,10 +37,21 @@ const initiales = (nom: string) =>
     .join('')
     .toUpperCase() || 'P';
 
+/** "AAAA-MM-JJ" → "JJ/MM/AAAA (xx ans)" */
+function naissance(date: string | null): string | null {
+  const r = date ? /^(\d{4})-(\d{2})-(\d{2})/.exec(date) : null;
+  if (!r) return date;
+  const auj = new Date();
+  let age = auj.getFullYear() - Number(r[1]);
+  if (auj.getMonth() + 1 < Number(r[2]) || (auj.getMonth() + 1 === Number(r[2]) && auj.getDate() < Number(r[3]))) age--;
+  return `${r[3]}/${r[2]}/${r[1]}${age >= 0 ? ` (${age} an${age > 1 ? 's' : ''})` : ''}`;
+}
+
 /**
- * INFIRMIER > RECHERCHER UN PATIENT ET L'AFFECTER (bouton du tableau de bord)
- * Recherche (n° de dossier, téléphone ou nom) → choix du patient → affectation :
- * la consultation du jour est créée directement (pas de caisse) et l'infirmier arrive sur la prise des constantes.
+ * INFIRMIER / MÉDECIN > VÉRIFIER / RECHERCHER UN PATIENT
+ * Recherche (n° de dossier, téléphone, CMU ou nom) → dossier du patient → « Consulter » :
+ * la consultation du jour est créée dans le service de l'agent connecté, à son nom (pas de caisse, pas de choix
+ * de service / prestation / médecin / motif). L'infirmier arrive sur la prise des constantes, le médecin sur la consultation.
  */
 export default function AffecterPatient({ espace = 'infirmier' }: { espace?: EspaceAgent } = {}) {
   const source = apiAgent(espace);
@@ -53,17 +63,17 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
   const [resultats, setResultats] = useState<InfirmierPatientItem[] | null>(null);
   const [cherche, setCherche] = useState(false);
   const [patient, setPatient] = useState<InfirmierPatientItem | null>(null);
-  const [affectation, setAffectation] = useState<ValeurAffectation>({ prestationId: null, doctorId: null, infirmierId: null, motif: '' });
-  const [verifier, setVerifier] = useState(false);
+  const [dossier, setDossier] = useState<PatientIdentite | null>(null);
   const [envoi, setEnvoi] = useState(false);
   // Mise à jour des informations du patient choisi (ex. nouveau-né : nom et prénoms)
   const [miseAJour, setMiseAJour] = useState(false);
 
+  // Localités (résidence du dossier, formulaire « Mettre à jour »)
   useEffect(() => {
     source.patients
       .optionsAccueil()
       .then(setOptions)
-      .catch((e) => alerte.echec(`Impossible de charger les services : ${messageErreur(e)}`));
+      .catch(() => undefined);
   }, []);
 
   // Recherche pendant la frappe, dès qu'un critère a au moins 2 caractères
@@ -94,30 +104,34 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
     };
   }, [criteres]);
 
-  const choisir = (p: InfirmierPatientItem) => {
-    setPatient(p);
-    setVerifier(false);
-    setAffectation({ prestationId: null, doctorId: null, infirmierId: null, motif: '' });
-  };
-
-  const affecter = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Dossier du patient choisi
+  useEffect(() => {
+    setDossier(null);
     if (!patient) return;
-    setVerifier(true);
-    if (!affectation.prestationId) return void alerte.echec('Choisissez le service puis la prestation.');
-    if (!affectation.doctorId) return void alerte.echec('Veuillez choisir le médecin.');
-    if (espace === 'medecin' && !affectation.infirmierId) return void alerte.echec('Veuillez choisir l’infirmier·ère.');
-    if (!affectation.motif.trim()) return void alerte.echec('Le motif de la consultation est obligatoire.');
+    let actif = true;
+    source.patients
+      .identite(patient.id)
+      .then((d) => {
+        if (actif) setDossier(d);
+      })
+      .catch((e) => {
+        if (actif) alerte.echec(`Dossier indisponible : ${messageErreur(e)}`);
+      });
+    return () => {
+      actif = false;
+    };
+  }, [patient?.id]);
+
+  const consulter = async () => {
+    if (!patient) return;
     setEnvoi(true);
     try {
-      const r = await source.patients.affecter(patient.id, {
-        prestationId: affectation.prestationId,
-        motif: affectation.motif.trim(),
-        doctorId: affectation.doctorId,
-        infirmierId: espace === 'medecin' ? (affectation.infirmierId ?? undefined) : undefined,
+      const r = await source.patients.consulter(patient.id);
+      // Même formulaire de consultation pour le médecin et l'infirmier·ère
+      // Consultation toute neuve : quitter le formulaire sans issue proposera de l'annuler
+      navigate(espace === 'medecin' ? `/medecin/consultations/${r.consultationId}` : `/infirmier/consultations/medicale/${r.consultationId}`, {
+        state: { annulable: r.nouvelle ?? !r.message.startsWith('Reprise') },
       });
-      await alerte.succes(r.message);
-      navigate(espace === 'medecin' ? base : `/infirmier/consultations/formulaire/${r.consultationId}`);
     } catch (err) {
       alerte.echec(messageErreur(err));
     } finally {
@@ -125,12 +139,33 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
     }
   };
 
+  const residence = dossier?.residence ? options?.localites.find((l) => l.id === dossier.residence)?.nom ?? null : null;
+  const lignesDossier: [string, string | null | undefined][] = dossier
+    ? [
+        ['N° de dossier', dossier.code ?? patient?.codePatient],
+        ['Nom', dossier.nom],
+        ['Prénoms', dossier.prenom],
+        ['Genre', dossier.genre],
+        ['Date de naissance', naissance(dossier.dateNaissance)],
+        ['Lieu de naissance', dossier.lieuNaissanceNom],
+        ['Téléphone', dossier.telephone],
+        ['2e contact', dossier.contact2],
+        ['N° CMU', dossier.numCmu],
+        ['Situation matrimoniale', dossier.situationMatrimoniale],
+        ['Profession', dossier.profession],
+        ['Résidence', residence],
+        ['Adresse', dossier.adresse],
+        ['Personne à prévenir', [dossier.urgenceNom, dossier.urgenceLien && `(${dossier.urgenceLien})`, dossier.urgenceTelephone].filter(Boolean).join(' ') || null],
+        ...(dossier.mere ? ([['Mère', `${dossier.mere.nom}${dossier.mere.code ? ` · ${dossier.mere.code}` : ''}`]] as [string, string][]) : []),
+      ]
+    : [];
+
   return (
     <div className={c.page}>
       <header className={c.entete}>
         <div>
           <p className={c.surtitre}>Accueil · Patient existant</p>
-          <h1 className={c.titre}>Rechercher et affecter un patient</h1>
+          <h1 className={c.titre}>Vérifier / Rechercher un patient</h1>
         </div>
         <div className={c.boutons}>
           <Link to={`${base}/patients/inscrire`} className={c.secondaire}>
@@ -207,7 +242,7 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
                   key={p.id}
                   type="button"
                   className={`${s.resultat} ${actif ? s.resultatActif : ''}`}
-                  onClick={() => choisir(p)}
+                  onClick={() => setPatient(p)}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i, 10) * 0.03 }}
@@ -235,19 +270,17 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
           </div>
         </section>
 
-        {/* --- Affectation --- */}
+        {/* --- Dossier du patient + Consulter --- */}
         <section className={c.bloc}>
           <AnimatePresence mode="wait" initial={false}>
             {!patient ? (
               <motion.div key="vide" className={s.attente} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <FaSearch aria-hidden="true" />
                 <strong>Choisissez un patient</strong>
-                <p>
-                  Recherchez-le à gauche, puis indiquez le service et le motif : la consultation sera créée et {espace === 'medecin' ? 'l’infirmier·ère prendra ses constantes.' : 'vous pourrez prendre ses constantes.'}
-                </p>
+                <p>Recherchez-le à gauche pour afficher son dossier, puis cliquez sur « Consulter » pour le prendre en charge dans votre service.</p>
               </motion.div>
             ) : (
-              <motion.form key={patient.id} onSubmit={affecter} noValidate initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+              <motion.div key={patient.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
                 <div className={s.patientChoisi}>
                   <span className={s.avatar}>{initiales(patient.nomComplet)}</span>
                   <div>
@@ -274,14 +307,31 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
                     </button>
                   </p>
                 )}
-                {options ? <ChampsAffectation options={options} valeur={affectation} onChange={setAffectation} verifier={verifier} /> : <p className={c.vide}>Chargement…</p>}
+
+                <h3 className={s.dossierTitre}>Dossier du patient</h3>
+                {dossier ? (
+                  <dl className={s.dossierGrille}>
+                    {lignesDossier.map(([libelle, valeur]) => (
+                      <div key={libelle}>
+                        <dt>{libelle}</dt>
+                        <dd>{valeur || '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className={c.vide}>Chargement du dossier…</p>
+                )}
+
                 <footer className={s.pied}>
-                  <span className={s.piedEtape}>Aucun passage à la caisse : la consultation est créée tout de suite.</span>
-                  <motion.button type="submit" className={c.principal} whileTap={{ scale: 0.97 }} disabled={envoi || !options}>
-                    <FaCheck aria-hidden="true" /> {envoi ? 'Affectation…' : espace === 'medecin' ? 'Affecter le patient' : 'Affecter et prendre les constantes'}
+                  {/* Médecin comme infirmier·ère : dossier médical complet (toutes les consultations du patient) */}
+                  <Link to={`${base}/patients/${patient.id}/dossier`} className={c.secondaire}>
+                    <FaFolderOpen aria-hidden="true" /> Dossier médical complet
+                  </Link>
+                  <motion.button type="button" className={c.principal} whileTap={{ scale: 0.97 }} disabled={envoi} onClick={consulter}>
+                    <FaStethoscope aria-hidden="true" /> {envoi ? 'Ouverture…' : 'Consulter'}
                   </motion.button>
                 </footer>
-              </motion.form>
+              </motion.div>
             )}
           </AnimatePresence>
         </section>
@@ -296,6 +346,8 @@ export default function AffecterPatient({ espace = 'infirmier' }: { espace?: Esp
             setMiseAJour(false);
             setPatient((x) => (x ? { ...x, nomComplet } : x));
             setResultats((r) => (r ? r.map((x) => (x.id === patient.id ? { ...x, nomComplet } : x)) : r));
+            // Recharger le dossier mis à jour
+            source.patients.identite(patient.id).then(setDossier).catch(() => undefined);
           }}
         />
       )}

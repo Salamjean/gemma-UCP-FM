@@ -20,7 +20,7 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ModifierPatient from '../../Accueil/ModifierPatient';
 import { alerte, messageErreur } from '../../../../services/alertes';
-import { api, uploadUrl } from '../../../../services/api';
+import { apiAgent, uploadUrl, type EspaceAgent } from '../../../../services/api';
 import c from '../../../../styles/espace.module.css';
 import type { DossierMedical as Dossier } from '../../../../types';
 import s from './DossierMedical.module.css';
@@ -32,7 +32,8 @@ import { age, CONSTANTES, dateHeure, initiales } from './outils';
  *   en-tête patient, puis historique de toutes ses consultations (tous établissements) ;
  *   chaque consultation se déplie : constantes, bilan & diagnostic, ordonnances, documents, antécédents.
  */
-export default function DossierMedical() {
+export default function DossierMedical({ espace = 'infirmier' }: { espace?: EspaceAgent } = {}) {
+  const base = espace === 'medecin' ? '/medecin' : '/infirmier';
   const { id } = useParams();
   const navigate = useNavigate();
   const [dossier, setDossier] = useState<Dossier | null>(null);
@@ -43,8 +44,8 @@ export default function DossierMedical() {
   const [rechargement, setRechargement] = useState(0);
 
   useEffect(() => {
-    api.infirmier.patients
-      .dossier(Number(id))
+    apiAgent(espace)
+      .patients.dossier(Number(id))
       .then((d) => {
         setDossier(d);
         setOuverte(d.interventions[0]?.id ?? null); // la plus récente ouverte par défaut
@@ -53,7 +54,7 @@ export default function DossierMedical() {
         setErreur(true);
         alerte.echec(`Impossible d'ouvrir le dossier : ${messageErreur(e)}`);
       });
-  }, [id, rechargement]);
+  }, [id, rechargement, espace]);
 
   const retour = (
     <button type="button" className={c.secondaire} onClick={() => navigate(-1)}>
@@ -93,9 +94,11 @@ export default function DossierMedical() {
           <button type="button" className={c.secondaire} onClick={() => setMiseAJour(true)}>
             <FaUserEdit aria-hidden="true" /> Mettre à jour les informations
           </button>
-          <Link to="/infirmier/patients/liste" className={c.secondaire}>
-            Liste des patients
-          </Link>
+          {espace === 'infirmier' && (
+            <Link to="/infirmier/patients/liste" className={c.secondaire}>
+              Liste des patients
+            </Link>
+          )}
           {retour}
         </div>
       </header>
@@ -325,7 +328,7 @@ export default function DossierMedical() {
                           </div>
                         </div>
                         <div className={s.actionsDetail}>
-                          <Link to={`/infirmier/patients/${patient.id}/parcours/${it.id}`} className={c.principal}>
+                          <Link to={`${base}/patients/${patient.id}/parcours/${it.id}`} className={c.principal}>
                             <FaRoute aria-hidden="true" /> Voir tout le parcours
                           </Link>
                         </div>
@@ -340,6 +343,7 @@ export default function DossierMedical() {
       </section>
       {miseAJour && (
         <ModifierPatient
+          espace={espace}
           patientId={Number(id)}
           onFermer={() => setMiseAJour(false)}
           onEnregistre={() => {

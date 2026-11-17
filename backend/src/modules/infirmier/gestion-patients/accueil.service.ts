@@ -262,7 +262,7 @@ export class InfirmierAccueilService {
   async inscrire(userId: number, dto: InscriptionPatientDto, ctx: ContexteAudit) {
     const { infirmierId, hospitalId, role } = await this.getInfirmier(userId);
     const auteur = role === 'doctor' ? 'le médecin' : "l'infirmier";
-    if (dto.urgence && !dto.affectation) throw new BadRequestException("L'inscription d'urgence doit comporter l'affectation du patient.");
+    // Inscription d'urgence : plus d'affectation obligatoire — la consultation est ouverte ensuite par « Consulter »
 
     // Unicités de Laravel : téléphone, 2e contact, n° de pièce (patients), email (users)
     const [telPris] = await this.db.query('SELECT id FROM patients WHERE telephone = ? OR contact2 = ? LIMIT 1', [dto.telephone, dto.telephone]);
@@ -407,6 +407,99 @@ export class InfirmierAccueilService {
     // SMS au patient (sans attendre : la réponse au soignant ne dépend pas du fournisseur SMS)
     void smsAffectationPatient(this.db, consultationId);
     return { consultationId, message: `${patient.nom} est affecté(e) : ${role === 'doctor' ? 'l’infirmier·ère choisi·e prend ses constantes puis décide de son orientation (consultation, télémédecine…).' : 'vous pouvez prendre ses constantes.'}` };
+  }
+
+  /**
+   * « Consulter » (page Vérifier / Rechercher) : l'agent connecté prend lui-même le patient en charge.
+   * Pas de choix de service / prestation / médecin / motif :
+   *   - service = celui auquel l'agent est rattaché (infirmiers / doctors.service_hospital_id) ;
+   *   - prestation = l'acte « consultation » de ce service (sinon le premier acte actif, sinon aucune) ;
+   *   - infirmier·ère → consultation à son nom, sans médecin : il/elle remplit le même formulaire de consultation que le médecin ;
+   *   - médecin → consultation à son nom.
+   * Les constantes se prennent dans le formulaire de consultation : status_inf 1 dans les deux cas.
+   * Si le patient a déjà une consultation ouverte aujourd'hui confiée à cet agent, on la reprend.
+   */
+  async consulter(userId: number, patientId: number, ctx: ContexteAudit) {
+    const agent = await agentDuCompte(this.db, userId);
+    const { hospitalId, role } = agent;
+    const medecin = role === 'doctor';
+    const [patient] = await this.db.query(
+      `SELECT p.id, p.code_patient, TRIM(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.prenom, ''))) AS nom
+         FROM patients p JOIN users u ON u.id = p.user_id WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1`,
+      [patientId],
+    );
+    if (!patient) throw new NotFoundException('Patient introuvable.');
+
+    const [ouverte] = await this.db.query(
+      `SELECT id, doctor_id, infirmier_id FROM consultations
+        WHERE patient_id = ? AND hospital_id = ? AND date_consultation = CURDATE() AND status = 0 AND deleted_at IS NULL
+        ORDER BY id DESC LIMIT 1`,
+      [patientId, hospitalId],
+    );
+    if (ouverte) {
+      // Même règle que le formulaire : médecin → doctor_id ; infirmier·ère → à son nom et sans médecin
+      const aMoi = medecin ? Number(ouverte.doctor_id) === agent.doctorId : Number(ouverte.infirmier_id) === agent.infirmierId && !ouverte.doctor_id;
+      if (aMoi) return { consultationId: Number(ouverte.id), nouvelle: false, message: `Reprise de la consultation en cours de ${patient.nom}.` };
+      throw new ConflictException(`${patient.nom} a déjà une consultation en cours aujourd'hui.`);
+    }
+
+    // Service de rattachement de l'agent connecté
+    const [svc] = await this.db.query(
+      medecin
+        ? 'SELECT service_hospital_id AS sh FROM doctors WHERE id = ? LIMIT 1'
+        : 'SELECT service_hospital_id AS sh FROM infirmiers WHERE id = ? LIMIT 1',
+      [medecin ? agent.doctorId : agent.infirmierId],
+    );
+    const serviceHospitalId = svc?.sh ? Number(svc.sh) : null;
+    if (!serviceHospitalId) throw new BadRequestException("Vous n'êtes rattaché·e à aucun service : contactez l'administrateur de l'hôpital.");
+
+    // Acte du service : « consultation » de préférence, sinon le premier acte actif
+    const [prestation] = await this.db.query(
+      `SELECT ph.id, ph.prix FROM prestation_hospitals ph
+         JOIN prestation_services ps ON ps.id = ph.prestation_service_id
+        WHERE ph.service_hospital_id = ? AND ph.status = 0
+        ORDER BY (ps.libelle LIKE '%consult%') DESC, ph.id ASC LIMIT 1`,
+      [serviceHospitalId],
+    );
+
+    const now = laravelNow();
+    const consultationId = await this.db.transaction(async (t) => {
+      const [{ n }] = await t.query('SELECT COUNT(*) AS n FROM consultations WHERE patient_id = ?', [patientId]);
+      const code = `CONSULT${String(patient.code_patient).slice(2)}${Number(n) + 1}`;
+      const r = await t.query(
+        `INSERT INTO consultations (code_consultation, date_consultation, hospital_id, patient_id, infirmier_id, doctor_id,
+                                    prestation_hospital_id, motif_consultation, montant, status, status_inf, created_at, updated_at)
+         VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+        [
+          code,
+          hospitalId,
+          patientId,
+          agent.infirmierId,
+          agent.doctorId,
+          prestation ? Number(prestation.id) : null,
+          '',
+          prestation ? Number(prestation.prix) || 0 : 0,
+          now,
+          now,
+        ],
+      );
+      await t.query(
+        'INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES (?, ?, CURDATE(), ?, ?, ?)',
+        [medecin ? 'Consultation (médecin)' : 'Consultation (infirmier)', hospitalId, patientId, now, now],
+      );
+      return Number(r.insertId);
+    });
+
+    await this.audit.log(
+      ctx,
+      'AFFECTATION_PATIENT',
+      'PATIENT',
+      `Consultation directe du patient ${patient.nom} [${patient.code_patient}] par ${medecin ? 'le médecin' : "l'infirmier"}`,
+      { patient_id: patientId, consultation_id: consultationId },
+      hospitalId,
+    );
+    // nouvelle : quitter le formulaire sans issue proposera d'annuler cette consultation (comme si de rien n'était)
+    return { consultationId, nouvelle: true, message: `Consultation de ${patient.nom} ouverte.` };
   }
 
   // ---------------------------------------------------------------------------

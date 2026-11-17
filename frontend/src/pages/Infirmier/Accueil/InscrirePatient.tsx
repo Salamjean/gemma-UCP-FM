@@ -1,19 +1,18 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaCheck, FaIdCard, FaStethoscope, FaUser } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaCheck, FaClipboardCheck, FaIdCard, FaUser } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import SelectRecherche from '../../../components/SelectRecherche';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { apiAgent, type EspaceAgent } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
 import type { OptionsAccueilInfirmier } from '../../../types';
-import ChampsAffectation, { type ValeurAffectation } from './ChampsAffectation';
 import s from './Accueil.module.css';
 
 const ETAPES = [
   { titre: 'Identité', icone: FaUser },
   { titre: 'Contacts & pièce', icone: FaIdCard },
-  { titre: 'Affectation', icone: FaStethoscope },
+  { titre: 'Récapitulatif', icone: FaClipboardCheck },
 ];
 
 const SITUATIONS = [
@@ -28,8 +27,14 @@ const PIECES = ['CNI', 'Passeport', 'Attestation', 'Permis de conduire', 'Carte 
 /**
  * INFIRMIER > INSCRIRE UN NOUVEAU PATIENT (bouton du tableau de bord)
  * Repris du formulaire du secrétariat Laravel (Secretariat\PatientController@addPatient), en 3 étapes :
- *   1. identité  2. contacts & pièce  3. affectation (facultative : crée la consultation du jour, sans caisse)
- * Après l'affectation, l'infirmier arrive directement sur la prise des constantes.
+ *   1. identité  2. contacts & pièce  3. récapitulatif
+ * Comme « Vérifier / Rechercher » → « Consulter » : après l'enregistrement, la consultation du jour est ouverte
+ * dans le service de l'agent connecté, à son nom, et il arrive directement sur le formulaire de consultation.
+ */
+export const ouvrirConsultation = (espace: EspaceAgent, consultationId: number) =>
+  espace === 'medecin' ? `/medecin/consultations/${consultationId}` : `/infirmier/consultations/medicale/${consultationId}`;
+
+/**
  */
 export default function InscrirePatient({ espace = 'infirmier' }: { espace?: EspaceAgent } = {}) {
   const source = apiAgent(espace);
@@ -82,9 +87,6 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
   const [urgenceNom, setUrgenceNom] = useState('');
   const [urgenceTelephone, setUrgenceTelephone] = useState('');
   const [urgenceLien, setUrgenceLien] = useState('');
-  // Étape 3
-  const [affecter, setAffecter] = useState(true);
-  const [affectation, setAffectation] = useState<ValeurAffectation>({ prestationId: null, doctorId: null, infirmierId: null, motif: '' });
 
   useEffect(() => {
     source.patients
@@ -104,10 +106,6 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
     contact2: { etape: 2, message: 'Le 2e contact doit contenir 10 chiffres.', ko: !!contact2 && !/^\d{10}$/.test(contact2) },
     email: { etape: 2, message: 'Adresse email invalide.', ko: !!email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) },
     urgenceTelephone: { etape: 2, message: 'Le téléphone de la personne à prévenir doit contenir 10 chiffres.', ko: !!urgenceTelephone && !/^\d{10}$/.test(urgenceTelephone) },
-    prestation: { etape: 3, message: 'Choisissez le service puis la prestation.', ko: affecter && !affectation.prestationId },
-    medecin: { etape: 3, message: 'Veuillez choisir le médecin.', ko: affecter && !affectation.doctorId },
-    infirmier: { etape: 3, message: 'Veuillez choisir l’infirmier·ère.', ko: affecter && espace === 'medecin' && !affectation.infirmierId },
-    motif: { etape: 3, message: 'Le motif de la consultation est obligatoire.', ko: affecter && !affectation.motif.trim() },
   };
   const ko = (k: string) => verifiees.includes(erreurs[k].etape) && erreurs[k].ko;
   const premiereErreur = (etapes: number[]) => Object.values(erreurs).find((e) => e.ko && etapes.includes(e.etape));
@@ -156,11 +154,17 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
         urgenceNom: urgenceNom.trim() || undefined,
         urgenceTelephone: urgenceTelephone || undefined,
         urgenceLien: urgenceLien.trim() || undefined,
-        affectation: affecter ? { prestationId: affectation.prestationId!, motif: affectation.motif.trim(), doctorId: affectation.doctorId!, infirmierId: espace === 'medecin' ? affectation.infirmierId ?? undefined : undefined } : undefined,
       });
-      await alerte.succes(r.message);
-      // Affecté → prise des constantes directement ; sinon retour au tableau de bord
-      navigate(r.consultationId && espace !== 'medecin' ? `/infirmier/consultations/formulaire/${r.consultationId}` : base);
+      // Comme « Consulter » : consultation du jour dans le service de l'agent, puis formulaire de consultation
+      try {
+        const cons = await source.patients.consulter(r.patientId);
+        alerte.succes(`${r.message} La consultation est ouverte.`);
+        navigate(ouvrirConsultation(espace, cons.consultationId), { state: { annulable: cons.nouvelle ?? !cons.message.startsWith('Reprise') } });
+      } catch (err) {
+        // Patient bien inscrit, mais consultation impossible (ex. pas de service rattaché) : on le retrouve par la recherche
+        alerte.echec(`Patient inscrit (${r.codePatient}), mais la consultation n’a pas pu être ouverte : ${messageErreur(err)}`);
+        navigate(`${base}/patients/${espace === 'medecin' ? 'affecter' : 'rechercher'}`);
+      }
     } catch (err) {
       alerte.echec(messageErreur(err));
     } finally {
@@ -384,17 +388,6 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
 
               {etape === 3 && (
                 <div className={s.etape3}>
-                  <label className={s.interrupteur}>
-                    <input type="checkbox" checked={affecter} onChange={(e) => setAffecter(e.target.checked)} />
-                    <span className={s.interrupteurPiste} aria-hidden="true" />
-                    <span>
-                      <strong>Affecter le patient maintenant</strong>
-                      <small>
-                        {espace === 'medecin' ? 'Crée la consultation du jour : l’infirmier·ère prendra ses constantes.' : 'Crée la consultation du jour : vous prendrez ses constantes juste après l’inscription.'}
-                      </small>
-                    </span>
-                  </label>
-                  {affecter && <ChampsAffectation options={options} valeur={affectation} onChange={setAffectation} verifier={verifiees.includes(3)} />}
                   <div className={s.recapInscription}>
                     <span className={s.avatarRecap}>{`${nom.trim()[0] ?? ''}${prenom.trim()[0] ?? ''}`.toUpperCase() || '?'}</span>
                     <div>
@@ -405,7 +398,9 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
                         {genre === 'feminin' ? 'Féminin' : genre === 'masculin' ? 'Masculin' : '—'} · {telephone || 'sans téléphone'}
                       </small>
                     </div>
-                    <span className={s.recapNote}>Le numéro de dossier (DM) sera créé à l'enregistrement.</span>
+                    <span className={s.recapNote}>
+                      Le numéro de dossier (DM) sera créé à l'enregistrement, puis la consultation s'ouvrira dans votre service.
+                    </span>
                   </div>
                 </div>
               )}
@@ -431,7 +426,7 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
               </>
             ) : (
               <>
-                <FaCheck aria-hidden="true" /> {envoi ? 'Enregistrement…' : affecter ? (espace === 'medecin' ? 'Inscrire et affecter' : 'Inscrire et prendre les constantes') : 'Inscrire le patient'}
+                <FaCheck aria-hidden="true" /> {envoi ? 'Enregistrement…' : 'Inscrire et consulter'}
               </>
             )}
           </motion.button>

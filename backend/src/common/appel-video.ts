@@ -14,7 +14,7 @@ import { SQL_EN_PERMISSION } from './permission-en-cours';
  * Participants : le médecin de la consultation et l'infirmier·ère de la consultation.
  * Configuration : LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET dans backend/.env (mêmes valeurs que Laravel).
  */
-function configLiveKit() {
+export function configLiveKit() {
   const url = process.env.LIVEKIT_URL;
   const cle = process.env.LIVEKIT_API_KEY;
   const secret = process.env.LIVEKIT_API_SECRET;

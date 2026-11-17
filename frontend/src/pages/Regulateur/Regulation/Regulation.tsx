@@ -20,7 +20,8 @@ const duree = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60
  * RÉGULATEUR > RÉGULATION DES PATIENTS (page d'accueil de l'espace)
  * Consultations ouvertes du jour dans l'hôpital. Quand le médecin choisi par l'infirmier·ère n'est pas disponible
  * (aucun médecin, compte désactivé, permission en cours, hors de son planning), le régulateur attribue le patient
- * à un autre médecin disponible maintenant. Une affectation en attente depuis 30 minutes ou plus passe aussi « À réguler ».
+ * à un autre médecin disponible maintenant. Une affectation en attente depuis 30 minutes ou plus passe aussi « À réguler »,
+ * comme une télémédecine en retard (télé-expertise sans réponse à l'heure limite, téléconsultation non faite 30 min après l'heure prévue).
  * Le patient reçoit un SMS avec son nouveau médecin.
  */
 export default function Regulation() {
@@ -47,7 +48,7 @@ export default function Regulation() {
     const q = recherche.trim().toLowerCase();
     return (data?.consultations ?? [])
       .filter((x) => filtre === 'toutes' || x.aReguler)
-      .filter((x) => !q || [x.patient.nom, x.patient.code, x.code, x.medecin?.nom, x.infirmier, x.prestation, x.service].some((v) => v?.toLowerCase().includes(q)));
+      .filter((x) => !q || [x.patient.nom, x.patient.code, x.code, x.medecin?.nom, x.infirmierAttribue, x.infirmier, x.prestation, x.service].some((v) => v?.toLowerCase().includes(q)));
   }, [data, filtre, recherche]);
   const pg = usePagination(liste);
 
@@ -133,7 +134,7 @@ export default function Regulation() {
                 <tr>
                   <td colSpan={7} className={c.vide}>
                     {filtre === 'a-reguler'
-                      ? `Aucun patient à réguler : les médecins attribués sont disponibles et aucune affectation n'attend depuis ${ATTENTE_MAX} minutes.`
+                      ? `Aucun patient à réguler : les médecins attribués sont disponibles, aucune affectation n'attend depuis ${ATTENTE_MAX} minutes et aucune télémédecine n'est en retard.`
                       : "Aucune consultation ouverte aujourd'hui."}
                   </td>
                 </tr>
@@ -142,20 +143,38 @@ export default function Regulation() {
                 <tr key={x.id}>
                   <td>
                     {heure(x.arrivee)}
-                    {x.attente >= ATTENTE_MAX && !x.enAppel && <span className={s.attente}>En attente depuis {duree(x.attente)}</span>}
+                    {x.retardTelemedecine !== null ? (
+                      <span className={s.attente}>Délai dépassé de {duree(x.retardTelemedecine)}</span>
+                    ) : (
+                      !x.telemedecine && x.attente >= ATTENTE_MAX && !x.enAppel && <span className={s.attente}>En attente depuis {duree(x.attente)}</span>
+                    )}
                   </td>
                   <td>
                     <strong>{x.patient.nom}</strong>
                     <span className={c.sousTexte}>{x.patient.code ?? x.code}</span>
                     {x.urgence && <span className={`${c.badge} ${s.badgeUrgence}`}>Urgence</span>}
+                    {x.telemedecine && (
+                      <span className={`${c.badge} ${x.telemedecine === 'teleexpertise' ? s.badgeExpertise : s.badgeTeleconsultation}`}>
+                        {x.telemedecine === 'teleexpertise' ? 'Télé-expertise' : 'Téléconsultation'}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {x.prestation ?? '—'}
                     {x.service && <span className={c.sousTexte}>{x.service}</span>}
                   </td>
                   <td>
-                    {x.medecin?.nom ?? '—'}
-                    <span className={`${c.badge} ${x.disponible ? c.badgeOk : s.badgeKo}`}>{x.disponible ? 'Disponible' : x.raison}</span>
+                    {x.infirmierAttribue ? (
+                      <>
+                        {x.infirmierAttribue}
+                        <span className={`${c.badge} ${s.badgeInfirmier}`}>Infirmier·ère</span>
+                      </>
+                    ) : (
+                      <>
+                        {x.medecin?.nom ?? '—'}
+                        <span className={`${c.badge} ${x.disponible ? c.badgeOk : s.badgeKo}`}>{x.disponible ? 'Disponible' : x.raison}</span>
+                      </>
+                    )}
                     {x.reattributions > 0 && <span className={c.sousTexte}>Réattribué {x.reattributions} fois</span>}
                   </td>
                   <td>{x.infirmier ?? '—'}</td>
@@ -251,7 +270,7 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
           <div>
             <h2 id="reattribution-titre">Réattribuer {consultation.patient.nom}</h2>
             <p>
-              {consultation.prestation ?? 'Consultation'} · actuellement : {consultation.medecin?.nom ?? 'aucun médecin'}
+              {consultation.prestation ?? 'Consultation'} · actuellement : {consultation.medecin?.nom ?? (consultation.infirmierAttribue ? `${consultation.infirmierAttribue} (infirmier·ère)` : 'aucun médecin')}
               {consultation.raison
                 ? ` (${consultation.raison.toLowerCase()})`
                 : consultation.attente >= ATTENTE_MAX

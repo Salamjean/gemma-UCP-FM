@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import { alerte, messageErreur } from '../../../../services/alertes';
 import { api } from '../../../../services/api';
-import { fcfa } from '../../../../services/format';
 import c from '../../../../styles/espace.module.css';
 import type { ServiceHopital } from '../../../../types';
 import { baseHopital } from '../../../../services/contexteHopital';
@@ -14,12 +13,6 @@ import ExportExcel from '../../../../components/ExportExcel';
 import { PaginationTableau, usePagination } from '../../../../components/Pagination';
 
 type Action = { type: 'statut' | 'supprimer'; service: ServiceHopital };
-
-/** "1 000 FCFA" ou "1 000 – 33 000 FCFA" */
-const fourchette = (s: ServiceHopital) => {
-  if (s.prixMin === null || s.prixMax === null) return null;
-  return s.prixMin === s.prixMax ? fcfa(s.prixMin) : `${s.prixMin.toLocaleString('fr-FR')} – ${fcfa(s.prixMax)}`;
-};
 
 /**
  * HÔPITAL > SERVICES > LISTE
@@ -75,7 +68,7 @@ export default function Liste() {
     ? [
         { icone: FaBuilding, valeur: services.length, libelle: 'Services ouverts', fond: '#eaf3fe', texte: '#1f6fc6' },
         { icone: FaCheckCircle, valeur: services.filter((s) => s.actif).length, libelle: 'Services activés', fond: '#e3f5ee', texte: '#0b7a54' },
-        { icone: FaStethoscope, valeur: services.reduce((t, s) => t + s.actes, 0), libelle: 'Actes médicaux tarifés', fond: '#fff3df', texte: '#b56b00' },
+        { icone: FaStethoscope, valeur: services.reduce((t, s) => t + s.actes, 0), libelle: 'Actes médicaux', fond: '#fff3df', texte: '#b56b00' },
         { icone: FaUserMd, valeur: services.reduce((t, s) => t + s.agents, 0), libelle: 'Agents affectés', fond: '#efe9fd', texte: '#6a3fd6' },
       ]
     : [];
@@ -123,7 +116,6 @@ export default function Liste() {
               { titre: 'Service', valeur: (s) => s.libelle },
               { titre: 'Description', valeur: (s) => s.description },
               { titre: 'Actes', valeur: (s) => s.actes },
-              { titre: 'Prix des actes', valeur: (s) => fourchette(s) || null },
               { titre: 'Agents', valeur: (s) => s.agents },
               { titre: 'Statut', valeur: (s) => (s.actif ? 'Activé' : 'Désactivé') },
             ]}
@@ -173,7 +165,6 @@ export default function Liste() {
                   </td>
                   <td>
                     <strong>{s.actes} acte{s.actes > 1 ? 's' : ''}</strong>
-                    {fourchette(s) && <span className={c.sousTexte}>{fourchette(s)}</span>}
                   </td>
                   <td>{s.agents}</td>
                   <td>
@@ -184,7 +175,7 @@ export default function Liste() {
                       <Link to={`${baseHopital()}/services/${s.id}`} className={`${c.icone} ${c.iconeVoir}`} title="Voir la fiche du service" aria-label={`Voir ${s.libelle}`}>
                         <FaEye />
                       </Link>
-                      <Link to={`${baseHopital()}/services/${s.id}/modifier`} className={`${c.icone} ${styles.iconeModifier}`} title="Modifier les actes et les prix" aria-label={`Modifier ${s.libelle}`}>
+                      <Link to={`${baseHopital()}/services/${s.id}/modifier`} className={`${c.icone} ${styles.iconeModifier}`} title="Modifier les actes" aria-label={`Modifier ${s.libelle}`}>
                         <FaEdit />
                       </Link>
                       <button

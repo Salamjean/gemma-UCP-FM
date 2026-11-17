@@ -60,7 +60,8 @@ export default function RefereDetail() {
     try {
       const r = await api.doctor.referes.prendreEnCharge(d.origineId);
       alerte.succes(r.message);
-      navigate(`/medecin/consultations/${r.consultationId}`);
+      // Programmée : directement le résultat à joindre ; urgente : la consultation
+      navigate(d.avecConsultation ? `/medecin/consultations/${r.consultationId}` : `/medecin/referes/${d.origineId}/resultat`);
     } catch (e) {
       alerte.echec(messageErreur(e));
       setConfirmation(false);
@@ -127,7 +128,7 @@ export default function RefereDetail() {
           <div>
             <dt>Référé par</dt>
             <dd>
-              Dr {(d.referePar ?? '—').replace(/^dr\.?\s*/i, '')}
+              {d.referePar ?? '—'}
               {d.service ? ` · ${d.service}` : ''}
             </dd>
           </div>
@@ -138,6 +139,21 @@ export default function RefereDetail() {
               {d.hopitalContact ? ` · ${d.hopitalContact}` : ''}
             </dd>
           </div>
+          {d.serviceReference && (
+            <div>
+              <dt>Service demandé</dt>
+              <dd>{d.serviceReference}</dd>
+            </div>
+          )}
+          {d.datePrevue && (
+            <div>
+              <dt>Prise en charge prévue</dt>
+              <dd>
+                {d.datePrevue.split('-').reverse().join('/')}
+                {d.heurePrevue ? ` à ${d.heurePrevue}` : ''}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Date</dt>
             <dd>
@@ -233,7 +249,7 @@ export default function RefereDetail() {
                     <span>
                       <strong>{info.titre}</strong>
                       <small>
-                        Prescrit par {d.referePar ? `Dr ${d.referePar.replace(/^dr\.?\s*/i, '')}` : 'le médecin d’origine'}
+                        Prescrit par {d.referePar ?? 'le requérant'}
                         {x.code ? ` · ${x.code}` : ''} · {jour(x.date)}
                       </small>
                     </span>
@@ -293,15 +309,28 @@ export default function RefereDetail() {
         </section>
       )}
 
-      {/* Référence interne qui m'est adressée : consulter le patient après avoir lu la référence */}
-      {d.consultationDestinataire && (
+      {/* Télé-expertise programmée directement (sans consultation préalable) : on joint seulement le résultat */}
+      {d.consultationDestinataire && !d.avecConsultation && (
+        <section className={`${c.bloc} ${s.barreConsulter}`}>
+          <span>
+            <FaCheckCircle aria-hidden="true" />
+            {d.resultat ? 'Vous avez envoyé votre résultat.' : 'Après avoir étudié la demande et les documents, joignez votre résultat.'}
+          </span>
+          <Link to={`/medecin/referes/${d.origineId}/resultat`} className={d.resultat ? c.secondaire : c.principal}>
+            {d.resultat ? <FaEye aria-hidden="true" /> : <FaPlay aria-hidden="true" />} {d.resultat ? 'Voir le résultat' : 'Joindre le résultat'}
+          </Link>
+        </section>
+      )}
+
+      {/* Télé-expertise urgente, ou issue d'une vraie consultation : formulaire de consultation (résultat demandé à la fin) */}
+      {d.consultationDestinataire && d.avecConsultation && (
         <section className={`${c.bloc} ${s.barreConsulter}`}>
           <span>
             <FaCheckCircle aria-hidden="true" />
             {d.consultationDestinataire.terminee ? 'Vous avez déjà consulté ce patient.' : 'Après avoir pris connaissance de la référence, consultez le patient.'}
           </span>
           <Link to={`/medecin/consultations/${d.consultationDestinataire.id}`} className={d.consultationDestinataire.terminee ? c.secondaire : c.principal}>
-            {d.consultationDestinataire.terminee ? <FaEye aria-hidden="true" /> : <FaPlay aria-hidden="true" />} {d.consultationDestinataire.terminee ? 'Voir la consultation' : 'Consulter le patient'}
+            {d.consultationDestinataire.terminee ? <FaEye aria-hidden="true" /> : <FaPlay aria-hidden="true" />} {d.consultationDestinataire.terminee ? 'Voir la consultation' : 'Continuer la consultation'}
           </Link>
         </section>
       )}

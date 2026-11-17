@@ -11,13 +11,28 @@
   --dash-green: #0e8a62;
   --dash-orange: #ffa500;
 
+  position: relative;
+  isolation: isolate;
   min-height: 100dvh;
   font-family: 'Poppins', var(--font-body);
   color: var(--dash-text);
-  background: var(--dash-bg) url('/images/dashboard/fond.jpg') center / cover fixed;
+  background: var(--dash-bg);
+}
+
+/* Fond à motif sur un calque fixe à part : même rendu que « background-attachment: fixed »,
+   sans redessiner l'image à chaque défilement (sur tablette / téléphone le défilement restait bloqué ou saccadé) */
+.shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--dash-bg) url('/images/dashboard/fond.jpg') center / cover no-repeat;
+  pointer-events: none;
+  transform: translateZ(0);
 }
 
 .main {
+  min-width: 0;
   min-height: 100dvh;
   margin-left: calc(var(--sidebar-width) + 4px);
   padding: 6px 12px 32px 16px;
@@ -60,6 +75,8 @@
 
 .content {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 900px) {

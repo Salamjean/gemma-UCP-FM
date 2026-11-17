@@ -388,3 +388,100 @@
   font-size: 0.72rem;
   color: var(--dash-muted);
 }
+
+/* --- Télé-expertise : délai de réponse et résultat de l'expert --- */
+.delaiReponse {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.delaiReponse .note {
+  margin: 0;
+}
+
+.barreResultat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.barreResultat .note {
+  margin: 0;
+}
+
+.formResultat {
+  display: grid;
+  gap: 14px;
+}
+
+.champResultat {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.champResultat em {
+  color: #c4213f;
+  font-style: normal;
+}
+
+.champResultat textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--dash-border, #dfe4ee);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.piedResultat {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.sousTitreResultat {
+  margin: 14px 0 4px;
+  font-size: 0.8rem;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.texteResultat {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--dash-text);
+  line-height: 1.5;
+}
+
+.badgeRetardResultat {
+  background: #fde8ec;
+  color: #c4213f;
+}
+
+/* Résultat envoyé : ajout de documents par l'expert */
+.ajoutResultat {
+  margin-top: 14px;
+}
+
+/* Page « Joindre le résultat » : lien vers la fiche complète */
+.lienFiche {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1f6fc6;
+}
+
+.boutonConsultation {
+  margin: 10px 0 0 12px;
+}

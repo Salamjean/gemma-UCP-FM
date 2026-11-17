@@ -1,31 +1,30 @@
-import { FaFileSignature, FaHospitalUser, FaHourglassHalf, FaProcedures, FaShareSquare, FaShieldAlt, FaStethoscope, FaVideo } from 'react-icons/fa';
+import { FaClipboardCheck, FaFileSignature, FaHospitalUser, FaHourglassHalf, FaProcedures, FaShareSquare, FaShieldAlt, FaStethoscope, FaVideo } from 'react-icons/fa';
 import { MdDashboard } from 'react-icons/md';
 import type { RoleSpace } from '../../layouts/DashboardLayout/types';
-import type { AuthUser } from '../../types';
 import { api } from '../../services/api';
-import { AffecterPatientMedecin, ChoixInscriptionMedecin, InscriptionUrgenceMedecin, InscrirePatientMedecin, PermissionsMedecin, PlanningMedecin } from './Agent';
+import {
+  AffecterPatientMedecin,
+  ChoixInscriptionMedecin,
+  DossierMedicalMedecin,
+  InscriptionUrgenceMedecin,
+  InscrirePatientMedecin,
+  ParcoursMedecin,
+  PermissionsMedecin,
+  PlanningMedecin,
+} from './Agent';
 import { DocumentConsultation, FormulaireConsultation, Historique, Nouvelles, SuiviMereEnfant, TousLesPatients } from './Consultations';
 import { DetailDeces, DetailNaissance, EnregistrerDeces, ListeDeces, ListeNaissances } from './Declarations';
 import * as Hospitalisation from './Hospitalisation';
 import { TableauDeBord } from './TableauDeBord';
-import { RefereDetail, Referes } from './Referes';
+import { JoindreResultat, RefereDetail, Referes } from './Referes';
 import { Telemedecine } from './Telemedecine';
+import { ProgrammerTelemedecineMedecin } from './Telemedecine/Programmer';
+import { ResultatExpertiseMedecin, ResultatsExpertiseMedecin } from './ResultatsExpertise';
 
-/**
- * Comme Laravel (partials/inc/_doctor.blade.php) : le menu dépend du type d'agent
- *   type_agent_id 2 = Sage femme → menu "sage" ; sinon → menu "médecin"
- */
-const estSageFemme = (u: AuthUser) => u.profile.typeAgentId === 2;
-const estMedecin = (u: AuthUser) => !estSageFemme(u);
-
-/** Badge du menu : patients du jour en attente du médecin */
-const compterPatientsDuJour = () => api.doctor.consultations.nouvelles().then((l) => l.length);
-/** Badge du menu : patients hospitalisés en attente de chambre */
-const compterEnAttenteDeChambre = () => api.doctor.hospitalisations.compteurs().then((c) => c.enAttente);
-/** Badge du menu : patients référés à moi, pas encore consultés */
-const compterReferes = () => api.doctor.referes.liste().then((r) => r.internes.filter((x) => !x.terminee).length);
 /** Badge du menu : télémédecines en attente */
 const compterTelemedecines = () => api.doctor.telemedecines('en-attente').then((d) => d.compteurs.enAttente);
+/** Badge du menu : résultats d'expertise reçus non lus */
+const compterResultats = () => api.doctor.resultatsExpertise.nonLus().then((r) => r.nonLus);
 
 /**
  * ESPACE MÉDECIN / SAGE-FEMME (rôle "doctor") — menu de la sidebar ET routes.
@@ -42,43 +41,69 @@ export const doctorSpace: RoleSpace = {
       icon: FaHospitalUser,
       children: [
         { label: 'Inscrire un patient', path: 'patients/inscrire', element: <ChoixInscriptionMedecin /> },
-        { label: 'Rechercher / affecter', path: 'patients/affecter', element: <AffecterPatientMedecin /> },
+        { label: 'Vérifier / Rechercher', path: 'patients/affecter', element: <AffecterPatientMedecin /> },
       ],
       // Ouvertes depuis la page « Inscrire un patient » (choix : complète ou d'urgence)
       hiddenPages: [
         { label: 'Inscription complète', path: 'patients/inscrire/complete', element: <InscrirePatientMedecin /> },
         { label: "Inscription d'urgence", path: 'patients/inscrire/urgence', element: <InscriptionUrgenceMedecin /> },
-      ],
-    },
-    {
-      label: 'Consultations',
-      icon: FaStethoscope,
-      badge: compterPatientsDuJour,
-      hiddenPages: [
-        { label: 'Consultation', path: 'consultations/:id', element: <FormulaireConsultation /> },
-        { label: 'Document', path: 'consultations/:id/document/:type', element: <DocumentConsultation /> },
-      ],
-      children: [
-        { label: 'Nouvelles', path: 'consultations/nouvelles', element: <Nouvelles /> },
-        { label: 'Tous les patients', path: 'consultations/tous-les-patients', element: <TousLesPatients />, visible: estMedecin },
-        { label: 'Historique', path: 'consultations/historique', element: <Historique /> },
-        { label: 'Suivi mère-enfant', path: 'consultations/suivi-mere-enfant', element: <SuiviMereEnfant />, visible: estSageFemme },
+        // Dossier médical du patient trouvé (Vérifier / Rechercher) et parcours d'une intervention
+        { label: 'Dossier médical', path: 'patients/:id/dossier', element: <DossierMedicalMedecin /> },
+        { label: 'Parcours', path: 'patients/:id/parcours/:consultationId', element: <ParcoursMedecin /> },
       ],
     },
     // Remplace « Appels Vidéo HD » : télémédecines programmées par l'infirmier ou demandées en ligne
-    { label: 'Télémédecine', icon: FaVideo, path: 'telemedecine', element: <Telemedecine />, badge: compterTelemedecines },
-    // Référés : patients adressés par un collègue (interne) + références externes de tous les médecins
+    {
+      label: 'Télémédecine',
+      icon: FaVideo,
+      path: 'telemedecine',
+      element: <Telemedecine />,
+      badge: compterTelemedecines,
+      // Bouton « Programmer » : recherche du patient puis téléconsultation ou télé-expertise
+      hiddenPages: [{ label: 'Programmer', path: 'telemedecine/programmer', element: <ProgrammerTelemedecineMedecin /> }],
+    },
+    // Consultations : plus de sous-onglets, l'onglet ouvre directement l'historique.
+    // Les autres pages restent accessibles par les liens (tableau de bord, formulaire…).
+    {
+      label: 'Consultations',
+      icon: FaStethoscope,
+      path: 'consultations/historique',
+      element: <Historique />,
+      hiddenPages: [
+        { label: 'Nouvelles', path: 'consultations/nouvelles', element: <Nouvelles /> },
+        { label: 'Tous les patients', path: 'consultations/tous-les-patients', element: <TousLesPatients /> },
+        { label: 'Suivi mère-enfant', path: 'consultations/suivi-mere-enfant', element: <SuiviMereEnfant /> },
+        { label: 'Consultation', path: 'consultations/:id', element: <FormulaireConsultation /> },
+        { label: 'Document', path: 'consultations/:id/document/:type', element: <DocumentConsultation /> },
+      ],
+    },
+    // Télé-expertises que j'ai demandées : délai et résultat joint par l'expert
+    {
+      label: 'Résultats d’expertise',
+      icon: FaClipboardCheck,
+      path: 'resultats-expertise',
+      element: <ResultatsExpertiseMedecin />,
+      badge: compterResultats,
+      hiddenPages: [{ label: 'Résultat', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseMedecin /> }],
+    },
+    // Référés : onglet retiré du menu (les télé-expertises sont dans Télémédecine) ; pages gardées pour les liens
     {
       label: 'Référés',
       icon: FaShareSquare,
       path: 'referes',
       element: <Referes />,
-      badge: compterReferes,
-      hiddenPages: [{ label: 'Référence', path: 'referes/:id', element: <RefereDetail /> }],
+      visible: () => false,
+      hiddenPages: [
+        { label: 'Référence', path: 'referes/:id', element: <RefereDetail /> },
+        // Fin de consultation d'une télé-expertise : l'expert joint son résultat
+        { label: 'Joindre le résultat', path: 'referes/:id/resultat', element: <JoindreResultat /> },
+      ],
     },
+    // Déclarations : onglet retiré du menu ; pages gardées (certificat de naissance ouvert depuis le formulaire)
     {
       label: 'Déclarations',
       icon: FaFileSignature,
+      visible: () => false,
       hiddenPages: [
         { label: 'Détail décès', path: 'declarations/deces/:id', element: <DetailDeces /> },
         { label: 'Détail naissance', path: 'declarations/naissances/:id', element: <DetailNaissance /> },
@@ -89,11 +114,11 @@ export const doctorSpace: RoleSpace = {
         { label: 'Liste des naissances', path: 'declarations/naissances', element: <ListeNaissances /> },
       ],
     },
+    // Hospitalisation : onglet retiré du menu ; pages gardées (ouvertes depuis l'issue « Hospitalisation »)
     {
       label: 'Hospitalisation',
       icon: FaProcedures,
-      visible: estMedecin,
-      badge: compterEnAttenteDeChambre,
+      visible: () => false,
       hiddenPages: [{ label: 'Suivi', path: 'hospitalisation/:id', element: <Hospitalisation.Suivi /> }],
       children: [
         { label: 'En attente', path: 'hospitalisation/en-attente', element: <Hospitalisation.EnAttente /> },

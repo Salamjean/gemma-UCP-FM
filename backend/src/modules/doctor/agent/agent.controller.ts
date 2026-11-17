@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { RolesGuard } from '../../auth/roles.guard';
 import { InfirmierAccueilService } from '../../infirmier/gestion-patients/accueil.service';
+import { InfirmierDossierService } from '../../infirmier/gestion-patients/dossier.service';
 import { AffectationDto, InscriptionPatientDto, MiseAJourPatientDto } from '../../infirmier/gestion-patients/dto/accueil.dto';
 import { InfirmierPatientsService, RecherchePatientParams } from '../../infirmier/gestion-patients/patients.service';
 import { CreerPermissionDto, InfirmierPermissionsService } from '../../infirmier/permissions/permissions.service';
@@ -26,6 +27,7 @@ export class DoctorAgentController {
     private readonly patients: InfirmierPatientsService,
     private readonly permissions: InfirmierPermissionsService,
     private readonly planning: InfirmierPlanningService,
+    private readonly dossiers: InfirmierDossierService,
   ) {}
 
   // --- Patients ---
@@ -44,9 +46,27 @@ export class DoctorAgentController {
     return this.accueil.affecter(req.user.sub, id, dto, contexteAudit(req));
   }
 
+  /** Consultation du jour dans le service du médecin connecté, à son nom */
+  @Post('patients/:id/consulter')
+  consulter(@Req() req: Req_, @Param('id', ParseIntPipe) id: number) {
+    return this.accueil.consulter(req.user.sub, id, contexteAudit(req));
+  }
+
   @Get('patients/rechercher')
   rechercher(@Req() req: Req_, @Query() params: RecherchePatientParams) {
     return this.patients.rechercher(req.user.sub, params);
+  }
+
+  /** Dossier médical complet du patient (toutes ses consultations), en lecture seule */
+  @Get('patients/:id/dossier')
+  dossier(@Req() req: Req_, @Param('id', ParseIntPipe) id: number) {
+    return this.dossiers.dossier(req.user.sub, id, 'doctor');
+  }
+
+  /** Parcours complet d'une intervention du dossier */
+  @Get('patients/:id/parcours/:consultationId')
+  parcours(@Req() req: Req_, @Param('id', ParseIntPipe) id: number, @Param('consultationId', ParseIntPipe) consultationId: number) {
+    return this.dossiers.parcours(req.user.sub, id, consultationId, 'doctor');
   }
 
   @Get('patients/:id/identite')

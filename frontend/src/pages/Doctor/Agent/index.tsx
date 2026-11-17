@@ -4,6 +4,8 @@ import InscriptionUrgence from '../../Infirmier/Accueil/InscriptionUrgence';
 import ChoixInscription from '../../Infirmier/Accueil/ChoixInscription';
 import PermissionsAgent from '../../Infirmier/Permissions/Permissions';
 import PlanningAgent from '../../Infirmier/Planning/Planning';
+import DossierMedical from '../../Infirmier/GestionPatients/DossierMedical/DossierMedical';
+import Parcours from '../../Infirmier/GestionPatients/Parcours/Parcours';
 
 /**
  * MÉDECIN / SAGE-FEMME : pages partagées avec l'espace infirmier (même affichage, API /api/doctor/…)
@@ -17,3 +19,5 @@ export const ChoixInscriptionMedecin = () => <ChoixInscription espace="medecin" 
 export const AffecterPatientMedecin = () => <AffecterPatient espace="medecin" />;
 export const PermissionsMedecin = () => <PermissionsAgent espace="medecin" />;
 export const PlanningMedecin = () => <PlanningAgent espace="medecin" />;
+export const DossierMedicalMedecin = () => <DossierMedical espace="medecin" />;
+export const ParcoursMedecin = () => <Parcours espace="medecin" />;

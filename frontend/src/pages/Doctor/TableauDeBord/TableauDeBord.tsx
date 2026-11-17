@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { FaArrowRight, FaClock, FaHistory, FaHospital, FaMugHot, FaPlay, FaStethoscope, FaSyncAlt, FaUsers, FaVideo } from 'react-icons/fa';
+import { FaArrowRight, FaClock, FaHistory, FaHospital, FaMugHot, FaPlay, FaSearch, FaStethoscope, FaSyncAlt, FaUserPlus, FaUsers, FaVideo } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
-import type { DoctorDashboard } from '../../../types';
+import type { DoctorDashboard, ExpertiseDisponible } from '../../../types';
+import Chrono, { CompteARebours, delaiExpertise } from '../Telemedecine/Chrono';
+import { BadgeType } from '../Telemedecine/Telemedecine';
 import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
 import { AvatarPatient, heure } from '../Consultations/ListeConsultations';
 import { libelleDate } from '../Telemedecine/CarteTelemedecine';
@@ -22,8 +24,14 @@ const docteur = (nom: string) => (/^dr\.?\s/i.test(nom) ? nom : `Dr ${nom}`);
 export default function TableauDeBord() {
   const [data, setData] = useState<DoctorDashboard | null>(null);
   const [maj, setMaj] = useState<Date | null>(null);
+  // Télé-expertises externes de mon service, à prendre en charge
+  const [disponibles, setDisponibles] = useState<ExpertiseDisponible[]>([]);
 
   const charger = useCallback(() => {
+    api.doctor.referes
+      .disponibles()
+      .then(setDisponibles)
+      .catch(() => setDisponibles([]));
     api.doctor
       .tableauDeBord()
       .then((d) => {
@@ -76,6 +84,29 @@ export default function TableauDeBord() {
               {data?.medecin.creneau ? ` · ${data.medecin.creneau}` : ''}
             </small>
           </div>
+        </div>
+        {/* Accueil du patient, comme chez l'infirmier·ère : inscription ou vérification, puis consultation directe */}
+        <div className={s.actions}>
+          <Link to="/medecin/patients/inscrire" className={`${s.action} ${s.actionBleue}`}>
+            <span className={s.actionIcone}>
+              <FaUserPlus aria-hidden="true" />
+            </span>
+            <span className={s.actionTexte}>
+              <strong>Inscrire un nouveau patient</strong>
+              <small>Complète ou d'urgence, puis consultation</small>
+            </span>
+            <FaArrowRight className={s.actionFleche} aria-hidden="true" />
+          </Link>
+          <Link to="/medecin/patients/affecter" className={`${s.action} ${s.actionVerte}`}>
+            <span className={s.actionIcone}>
+              <FaSearch aria-hidden="true" />
+            </span>
+            <span className={s.actionTexte}>
+              <strong>Vérifier / Rechercher</strong>
+              <small>Patient déjà inscrit : dossier, téléphone ou nom</small>
+            </span>
+            <FaArrowRight className={s.actionFleche} aria-hidden="true" />
+          </Link>
         </div>
         <dl className={s.chiffres}>
           <div>
@@ -197,9 +228,13 @@ export default function TableauDeBord() {
           <motion.section className={`${s.prochain} ${teleProchaine ? '' : s.prochainVide}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             {teleProchaine ? (
               <>
-                <span className={s.etiquette}>
-                  <FaVideo aria-hidden="true" /> Prochaine télémédecine
-                </span>
+                {/* Même ligne : type de demande à gauche, compte à rebours à droite */}
+                <div className={s.prochainEntete}>
+                  <span className={s.etiquette}>
+                    <FaVideo aria-hidden="true" /> Prochaine demande · <BadgeType item={teleProchaine} />
+                  </span>
+                  <CompteARebours date={teleProchaine.date} heure={teleProchaine.heure} echeance={teleProchaine.expertise?.echeance} delai={delaiExpertise(teleProchaine.expertise)} />
+                </div>
                 <div className={s.prochainPatient}>
                   <AvatarPatient patient={teleProchaine.patient} />
                   <div>
@@ -216,7 +251,7 @@ export default function TableauDeBord() {
                       <dd title={String(teleProchaine.motif)}>{teleProchaine.motif}</dd>
                     </div>
                     <div>
-                      <dt>Programmée par</dt>
+                      <dt>Demandée par</dt>
                       <dd title={String(teleProchaine.infirmier ?? 'Demande en ligne du patient')}>{teleProchaine.infirmier ?? 'Demande en ligne du patient'}</dd>
                     </div>
                     <div>
@@ -229,15 +264,28 @@ export default function TableauDeBord() {
                     </div>
                   </dl>
                 </div>
-                <Link to={`/medecin/consultations/${teleProchaine.id}`} className={s.commencer}>
-                  <FaPlay aria-hidden="true" /> Démarrer la télémédecine
+                <Link
+                  // Télé-expertise programmée : pas de consultation, le résultat est joint directement
+                  to={
+                    teleProchaine.expertise && !teleProchaine.expertise.avecConsultation
+                      ? `/medecin/referes/${teleProchaine.expertise.origineId}/resultat`
+                      : `/medecin/consultations/${teleProchaine.id}`
+                  }
+                  className={s.commencer}
+                >
+                  <FaPlay aria-hidden="true" />{' '}
+                  {teleProchaine.type === 'teleexpertise'
+                    ? teleProchaine.expertise?.avecConsultation
+                      ? 'Démarrer la télé-expertise'
+                      : 'Joindre le résultat'
+                    : 'Démarrer la téléconsultation'}
                 </Link>
               </>
             ) : (
               <>
                 <FaVideo className={s.videIcone} aria-hidden="true" />
-                <strong>Aucune télémédecine en attente</strong>
-                <small>Les télémédecines programmées pour vous par l'infirmier s'afficheront ici.</small>
+                <strong>Aucune demande en attente</strong>
+                <small>Les téléconsultations et télé-expertises qui vous sont adressées s'afficheront ici.</small>
               </>
             )}
           </motion.section>
@@ -248,7 +296,7 @@ export default function TableauDeBord() {
                 <FaVideo aria-hidden="true" />
               </span>
               <div>
-                <h2>Télémédecines programmées</h2>
+                <h2>Téléconsultations et télé-expertises</h2>
                 <p>
                   <FaClock aria-hidden="true" /> Actualisée automatiquement{maj ? ` · ${maj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}
                 </p>
@@ -263,7 +311,7 @@ export default function TableauDeBord() {
             ) : teleSuivantes.length === 0 ? (
               <div className={s.fileVide}>
                 <FaVideo aria-hidden="true" />
-                <p>{teleProchaine ? 'Aucune autre télémédecine après la prochaine.' : 'Aucune télémédecine programmée pour le moment.'}</p>
+                <p>{teleProchaine ? 'Aucune autre demande après la prochaine.' : 'Aucune demande pour le moment.'}</p>
               </div>
             ) : (
               <ol className={s.file}>
@@ -276,13 +324,14 @@ export default function TableauDeBord() {
                         {x.urgence && <em className={s.urgence}>Urgence</em>}
                       </strong>
                       <small>
-                        {x.motif}
+                        {x.type === 'teleexpertise' ? 'Télé-expertise' : x.type === 'urgence' ? 'Urgence' : 'Téléconsultation'} · {x.motif}
                         {x.infirmier ? ` · ${x.infirmier}` : ''}
                       </small>
                     </span>
                     <span className={s.fileHeure}>
                       {libelleDate(x.date)}
                       {x.heure ? ` · ${x.heure}` : ''}
+                      <Chrono compact recueLe={x.creeLe} date={x.date} heure={x.heure} echeance={x.expertise?.echeance} delai={delaiExpertise(x.expertise)} />
                     </span>
                     <Link to={`/medecin/consultations/${x.id}`} className={`${c.principal} ${s.consulter}`}>
                       <FaPlay aria-hidden="true" /> Démarrer
@@ -290,6 +339,40 @@ export default function TableauDeBord() {
                   </motion.li>
                 ))}
               </ol>
+            )}
+
+            {disponibles.length > 0 && (
+              <>
+                <div className={s.fileEntete}>
+                  <div>
+                    <h2>Télé-expertises externes à prendre en charge</h2>
+                    <p>Adressées à votre service par d'autres établissements de la DMHP</p>
+                  </div>
+                  <Link to="/medecin/telemedecine" className={s.lien}>
+                    Toutes <span>{disponibles.length}</span>
+                  </Link>
+                </div>
+                <ol className={s.file}>
+                  {disponibles.slice(0, 5).map((x) => (
+                    <li key={x.origineId}>
+                      <AvatarPatient patient={x.patient} />
+                      <span className={s.fileTexte}>
+                        <strong>{x.patient.nom}</strong>
+                        <small>
+                          {x.hopital ?? '—'}
+                          {x.motif ? ` · ${x.motif}` : ''}
+                        </small>
+                      </span>
+                      <span className={s.fileHeure}>
+                        <Chrono compact recueLe={x.recueLe} date={x.datePrevue} heure={x.heurePrevue} echeance={x.echeance} delai={delaiExpertise(x)} />
+                      </span>
+                      <Link to={`/medecin/referes/${x.origineId}`} className={`${c.principal} ${s.consulter}`}>
+                        <FaPlay aria-hidden="true" /> Voir
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </>
             )}
           </motion.section>
         </div>

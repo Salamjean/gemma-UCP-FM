@@ -737,6 +737,38 @@
   color: var(--dash-muted);
 }
 
+/* Dossier du patient trouvé (Vérifier / Rechercher) */
+.dossierTitre {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.dossierGrille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.dossierGrille > div {
+  min-width: 0;
+}
+
+.dossierGrille dt {
+  font-size: 0.72rem;
+  color: var(--dash-muted);
+}
+
+.dossierGrille dd {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--dash-text);
+  overflow-wrap: anywhere;
+}
+
 .changer {
   height: 32px;
   padding: 0 12px;

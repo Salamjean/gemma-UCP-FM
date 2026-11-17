@@ -1,0 +1,226 @@
+/* INFIRMIER·ÈRE > « Envoyer au médecin » : fenêtre de choix du médecin (service + créneau) */
+.fond {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(23, 43, 76, 0.4);
+}
+
+.fenetre {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(620px, 100%);
+  max-height: calc(100dvh - 32px);
+  padding: 22px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(23, 43, 76, 0.25);
+  font-family: 'Poppins', var(--font-body);
+  color: #172b4c;
+}
+
+.entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.entete h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.entete p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.fermer {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f5fb;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  color: #6c757d;
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.86rem;
+  color: #172b4c;
+  outline: none;
+}
+
+.liste {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.vide {
+  padding: 18px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #6c757d;
+}
+
+.medecin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.choisi {
+  border-color: #1f6fc6;
+  background: #eaf3fe;
+}
+
+.icone {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.choisi .icone {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.texte,
+.creneau {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.texte {
+  flex: 1;
+}
+
+.creneau {
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+.texte strong {
+  font-size: 0.88rem;
+}
+
+.texte small,
+.creneau small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #6c757d;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badgeOk {
+  background: #e3f5ee;
+  color: #0b7a54;
+}
+
+.badgeKo {
+  background: #fff3df;
+  color: #b56b00;
+}
+
+.pied {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.annuler,
+.envoyer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.annuler {
+  background: #f3f5fb;
+  color: #172b4c;
+}
+
+.envoyer {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.envoyer:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .medecin {
+    flex-wrap: wrap;
+  }
+  .creneau {
+    flex-basis: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}

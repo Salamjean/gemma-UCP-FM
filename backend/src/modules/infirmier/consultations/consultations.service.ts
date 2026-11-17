@@ -82,6 +82,7 @@ export class InfirmierConsultationsService {
           AND (c.infirmier_id = ? OR c.infirmier_id IS NULL)
           AND c.date_consultation = CURDATE()
           AND c.status_inf = 0
+          AND c.status = 0
           AND c.deleted_at IS NULL
         ORDER BY c.created_at DESC`,
       [hospitalId, infirmierId],
@@ -116,6 +117,7 @@ export class InfirmierConsultationsService {
         WHERE c.hospital_id = ?
           AND (c.infirmier_id = ? OR c.infirmier_id IS NULL)
           AND c.status_inf = 0
+          AND c.status = 0
           AND c.deleted_at IS NULL
         ORDER BY c.created_at DESC`,
       [hospitalId, infirmierId],
@@ -138,7 +140,9 @@ export class InfirmierConsultationsService {
               ps.libelle AS prestation_libelle,
               (SELECT COUNT(*) FROM ordonnances o WHERE o.consultation_id = c.id) AS nb_ordonnances,
               (SELECT COUNT(*) FROM arret_travails a WHERE a.consultation_id = c.id) AS nb_arrets,
-              (SELECT COUNT(*) FROM bulletin_examens b WHERE b.consultation_id = c.id) AS nb_examens
+              (SELECT COUNT(*) FROM bulletin_examens b WHERE b.consultation_id = c.id) AS nb_examens,
+              -- Consultation faite par l'infirmier·ère (« Consulter ») : à son nom, sans médecin, avec un registre
+              (c.infirmier_id = ? AND (c.doctor_id IS NULL OR c.status = 1) AND EXISTS (SELECT 1 FROM registres rg WHERE rg.consultation_id = c.id)) AS consultation_directe
          FROM consultations c
          LEFT JOIN admissions a ON a.id = c.admission_id
          LEFT JOIN patients p ON p.id = c.patient_id
@@ -149,10 +153,11 @@ export class InfirmierConsultationsService {
          LEFT JOIN prestation_services ps ON ps.id = ph.prestation_service_id
         WHERE c.hospital_id = ?
           AND (c.infirmier_id = ? OR (c.infirmier_id IS NULL AND c.status_inf = 1))
-          AND (c.date_consultation < CURDATE() OR c.status_inf = 1)
+          -- Historique : consultations TERMINÉES seulement (pas de consultation en attente)
+          AND c.status = 1
           AND c.deleted_at IS NULL
         ORDER BY c.date_consultation DESC, c.created_at DESC`,
-      [hospitalId, infirmierId],
+      [infirmierId, hospitalId, infirmierId],
     );
 
     return rows.map((r) => this.mapperConsultation(r));
@@ -168,6 +173,7 @@ export class InfirmierConsultationsService {
               c.tension_arterielle, c.temperature, c.taille, c.poids, c.imc, c.pouls,
               c.observation_infirmiere, c.type_soins_infirmier, c.observation_soins,
               c.desired_date, c.desired_time, c.doctor_id, c.hospital_id,
+              (c.infirmier_id = ? AND (c.doctor_id IS NULL OR c.status = 1) AND EXISTS (SELECT 1 FROM registres rg WHERE rg.consultation_id = c.id)) AS consultation_directe,
               COALESCE(a.motif_consultation, c.motif_consultation) AS motif,
               p.id AS patient_id, p.code_patient, p.img_url AS patient_img,
               p.gender AS patient_genre, p.birth_date AS patient_birth_date,
@@ -192,7 +198,7 @@ export class InfirmierConsultationsService {
          LEFT JOIN prestation_services ps ON ps.id = ph.prestation_service_id
         WHERE c.id = ? AND c.hospital_id = ?
         LIMIT 1`,
-      [consultationId, infInfo.hospitalId],
+      [infInfo.infirmierId, consultationId, infInfo.hospitalId],
     );
 
     if (!row) throw new NotFoundException('Consultation introuvable.');
@@ -219,7 +225,9 @@ export class InfirmierConsultationsService {
         createdAt: row.created_at,
         status: Number(row.status),
         statusInf: Number(row.status_inf),
-        terminee: Number(row.status_inf) === 1,
+        terminee: Number(row.status_inf) === 1 || Number(row.status) === 1,
+        /** Faite par l'infirmier·ère lui-même (« Consulter ») : la fiche est le formulaire de consultation */
+        consultationDirecte: Number(row.consultation_directe ?? 0) === 1,
         motif: (row.motif as string) ?? 'Consultation générale',
         serviceLibelle: (row.service_libelle as string) ?? 'Consultation générale',
         orientationInfirmier: (row.orientation_infirmier as string) ?? null,
@@ -301,7 +309,7 @@ export class InfirmierConsultationsService {
   }
 
   /** « AAAA-MM-JJ » + « HH:MM » valides, sinon null */
-  private momentValide(date?: string, heure?: string) {
+  momentValide(date?: string, heure?: string) {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
     const h = heure && /^([01]\d|2[0-3]):[0-5]\d/.test(heure) ? heure.slice(0, 5) : null;
     return { date, heure: h };
@@ -311,7 +319,7 @@ export class InfirmierConsultationsService {
    * Médecins actifs (d'un hôpital, ou de tous si hospitalId = null) avec leur disponibilité à la date / l'heure :
    * planning (availabilities) + permissions accordées (status 'agree').
    */
-  private async medecinsDisponibles(hospitalId: number | null, date: string, heure: string | null) {
+  async medecinsDisponibles(hospitalId: number | null, date: string, heure: string | null) {
     const doctors: any[] = await this.db.query(
       `SELECT d.id, d.hospital_id, d.user_id, d.type_agent_id, TRIM(CONCAT(u.name, ' ', COALESCE(u.prenom, ''))) AS nom,
               s.libelle AS specialite, av.days, av.hour_start, av.hour_end
@@ -518,7 +526,9 @@ export class InfirmierConsultationsService {
       createdAt: r.created_at,
       status: Number(r.status),
       statusInf: Number(r.status_inf),
-      terminee: Number(r.status_inf) === 1,
+      terminee: Number(r.status_inf) === 1 || Number(r.status) === 1,
+      /** Faite par l'infirmier·ère avec le formulaire de consultation complet → fiche de consultation */
+      consultationDirecte: Number(r.consultation_directe ?? 0) === 1,
       motif: (r.motif as string) ?? (r.prestation_libelle as string) ?? 'Consultation générale',
       orientationInfirmier: (r.orientation_infirmier as string) ?? null,
       patient: {

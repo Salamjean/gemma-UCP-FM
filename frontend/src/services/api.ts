@@ -86,6 +86,7 @@ import type {
   DocumentsConsultation,
   DocumentReference,
   MedecinReference,
+  ExpertiseDisponible,
   DoctorReferes,
   AccesAppelVideo,
   DossierSuiviMereEnfant,
@@ -108,6 +109,8 @@ import type {
   MedecinPropose,
   Reattribution,
   TableauRegulation,
+  ResultatExpertiseItem,
+  ResultatExpertiseDetail,
 } from '../types';
 import { hopitalOuvertId } from './contexteHopital';
 import { tokenStorage } from './token';
@@ -231,8 +234,14 @@ const agentSante = (prefixe: 'infirmier' | 'doctor' | 'regulateur') => ({
       }),
     affecter: (id: number, data: AffectationSaisie) =>
       request<{ consultationId: number; message: string }>(`/${prefixe}/patients/${id}/affecter`, { method: 'POST', body: JSON.stringify(data) }),
+    /** « Consulter » : consultation du jour dans le service de l'agent connecté, à son nom */
+    /** nouvelle : consultation créée maintenant (annulable en quittant sans issue) ; sinon reprise d'une consultation en cours */
+    consulter: (id: number) => request<{ consultationId: number; nouvelle: boolean; message: string }>(`/${prefixe}/patients/${id}/consulter`, { method: 'POST' }),
     /** Informations modifiables (ex. nouveau-né : nom et prénoms à compléter) */
     identite: (id: number) => request<PatientIdentite>(`/${prefixe}/patients/${id}/identite`),
+    /** Dossier médical complet (toutes les consultations, tous établissements) */
+    dossier: (id: number) => request<DossierMedical>(`/${prefixe}/patients/${id}/dossier`),
+    parcours: (id: number, consultationId: number) => request<ParcoursIntervention>(`/${prefixe}/patients/${id}/parcours/${consultationId}`),
     modifier: (id: number, data: MiseAJourPatientSaisie) =>
       request<{ success: boolean; message: string; nomComplet: string }>(`/${prefixe}/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
@@ -249,6 +258,77 @@ const agentSante = (prefixe: 'infirmier' | 'doctor' | 'regulateur') => ({
 
 /** Espace de l'agent de santé connecté (pages partagées infirmier / médecin) */
 /** Espace qui utilise les pages partagées (Permissions, Planning…) ; le régulateur n'a que permissions et planning */
+/**
+ * Formulaire de consultation (médecin, ou infirmier·ère qui consulte lui-même) : mêmes routes sous deux préfixes
+ *   /doctor/consultations  et  /infirmier/consultations-medicales
+ */
+const formulaireConsultation = (racine: string) => ({
+  medicaments: (q: string) => request<{ id: number; nom: string; unite: string | null }[]>(`${racine}/medicaments?q=${encodeURIComponent(q)}`),
+  formulaire: (id: number) => request<DoctorConsultationFormulaire>(`${racine}/${id}`),
+  documents: (id: number) => request<DocumentsConsultation>(`${racine}/${id}/documents`),
+  /** Télé-expertise en externe : services des autres établissements de la DMHP */
+  servicesExternes: () => request<{ id: number; libelle: string; hopitaux: number }[]>(`${racine}/services-externes`),
+  /** Avec date et heure : disponibilité des médecins à ce moment (sinon maintenant) */
+  medecinsReference: (date?: string, heure?: string) => request<MedecinReference[]>(`${racine}/medecins-reference${qs({ date, heure })}`),
+  /** Issue « Télémédecine » : hôpitaux de la DMHP / médecins disponibles à la date et l'heure */
+  teleHopitaux: (date?: string, heure?: string) => request<TeleconsultationHospitalItem[]>(`${racine}/teleconsultation-hopitaux${qs({ date, heure })}`),
+  teleMedecins: (hospitalId: number, date?: string, heure?: string) =>
+    request<{ id: number; nom: string; specialite: string; creneau?: string | null }[]>(`${racine}/teleconsultation-medecins/${hospitalId}${qs({ date, heure })}`),
+  /** Documents joints à une référence (interne / externe) */
+  references: {
+    ajouter: (id: number, data: FormData) =>
+      request<{ success: boolean; message: string; documents: DocumentReference[] }>(`${racine}/${id}/references`, { method: 'POST', body: data }),
+    telecharger: (id: number, docId: string, nom: string) => telecharger(`${racine}/${id}/references/${docId}`, nom),
+    supprimer: (id: number, docId: string) => request<{ success: boolean; message: string }>(`${racine}/${id}/references/${docId}`, { method: 'DELETE' }),
+  },
+  /** « Consulter » puis sortie sans issue : la consultation (vierge) est supprimée, comme si de rien n'était */
+  annuler: (id: number) => request<{ success: boolean; message: string }>(`${racine}/${id}/annuler`, { method: 'DELETE' }),
+  /** Infirmier·ère : « Envoyer au médecin » — consultation non terminée, passée au médecin avec la saisie */
+  envoyerMedecin: (id: number, doctorId: number, valeurs: Record<string, unknown>) =>
+    request<{ success: boolean; message: string; medecin: string }>(`${racine}/${id}/envoyer-medecin`, {
+      method: 'POST',
+      body: JSON.stringify({ doctorId, valeurs }),
+    }),
+  enregistrer: (id: number, payload: ConsultationCurativePayload) =>
+    request<{
+      success: boolean;
+      message: string;
+      hospitalisation: string | null;
+      declarationNaissance: { id: number; reference: string } | null;
+      /** Télémédecine / urgence : consultation créée pour la suite */
+      consultationSuivante: number | null;
+      /** Appel d'urgence : accès à l'appel vidéo */
+      appel: AccesAppelVideo | null;
+    }>(`${racine}/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+});
+export type ApiFormulaireConsultation = ReturnType<typeof formulaireConsultation>;
+
+/** Télémédecine > Programmer : patient + issue (téléconsultation / télé-expertise), programmation directe */
+export const apiProgrammationTelemedecine = (espace: 'medecin' | 'infirmier') => (payload: Record<string, unknown>) =>
+  request<{ success: boolean; message: string; consultationId: number }>(
+    espace === 'infirmier' ? '/infirmier/consultations-medicales/programmer' : '/doctor/telemedecines/programmer',
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+
+/** Résultats d'expertise (demandeur : médecin ou infirmier·ère) */
+const resultatsExpertise = (racine: string) => ({
+  liste: () => request<ResultatExpertiseItem[]>(racine),
+  nonLus: () => request<{ nonLus: number }>(`${racine}/non-lus`),
+  /** Ouvre le résultat (le marque comme lu) */
+  detail: (origineId: number) => request<ResultatExpertiseDetail>(`${racine}/${origineId}`),
+  telecharger: (origineId: number, docId: string, nom: string) => telecharger(`${racine}/${origineId}/documents/${docId}`, nom),
+});
+export type ApiResultatsExpertise = ReturnType<typeof resultatsExpertise>;
+/** API des résultats d'expertise selon l'espace */
+export const apiResultatsExpertise = (espace: 'medecin' | 'infirmier'): ApiResultatsExpertise =>
+  resultatsExpertise(espace === 'infirmier' ? '/infirmier/consultations-medicales/resultats-expertise' : '/doctor/resultats-expertise');
+/** API du formulaire de consultation selon l'espace */
+export const apiFormulaireConsultation = (espace: 'medecin' | 'infirmier'): ApiFormulaireConsultation =>
+  espace === 'infirmier' ? formulaireConsultation('/infirmier/consultations-medicales') : api.doctor.consultations;
+
 export type EspaceAgent = 'infirmier' | 'medecin' | 'regulateur';
 export const apiAgent = (espace: EspaceAgent) => agentSante(espace === 'medecin' ? 'doctor' : espace === 'regulateur' ? 'regulateur' : 'infirmier');
 
@@ -298,11 +378,21 @@ export const api = {
     telemedecines: (filtre = 'en-attente') => request<DoctorTelemedecines>(`/doctor/telemedecines?filtre=${filtre}`),
     referes: {
       liste: () => request<DoctorReferes>('/doctor/referes'),
+      /** Télé-expertises externes adressées à mon service, à prendre en charge */
+      disponibles: () => request<ExpertiseDisponible[]>('/doctor/referes/disponibles'),
       detail: (origineId: number) => request<RefereDetail>(`/doctor/referes/${origineId}`),
       telecharger: (origineId: number, docId: string, nom: string) => telecharger(`/doctor/referes/${origineId}/documents/${docId}`, nom),
       prendreEnCharge: (origineId: number) =>
         request<{ success: boolean; message: string; consultationId: number }>(`/doctor/referes/${origineId}/prendre-en-charge`, { method: 'POST' }),
+      /** Expert : avis, conduite à tenir et documents (multipart), envoyés une seule fois */
+      envoyerResultat: (origineId: number, data: FormData) =>
+        request<{ success: boolean; message: string }>(`/doctor/referes/${origineId}/resultat`, { method: 'POST', body: data }),
+      /** Expert : documents ajoutés à un résultat déjà envoyé */
+      ajouterDocumentsResultat: (origineId: number, data: FormData) =>
+        request<{ success: boolean; message: string; documents: DocumentReference[] }>(`/doctor/referes/${origineId}/resultat/documents`, { method: 'POST', body: data }),
     },
+    /** Résultats des télé-expertises que j'ai demandées */
+    resultatsExpertise: resultatsExpertise('/doctor/resultats-expertise'),
     hospitalisations: {
       liste: (statut: 'en-attente' | 'en-cours' | 'historique') => request<DoctorHospitalisationItem[]>(`/doctor/hospitalisations?statut=${statut}`),
       compteurs: () => request<{ enAttente: number; enCours: number }>('/doctor/hospitalisations/compteurs'),
@@ -319,22 +409,7 @@ export const api = {
       nouvelles: () => request<DoctorConsultationItem[]>('/doctor/consultations/nouvelles'),
       enAttente: () => request<DoctorConsultationItem[]>('/doctor/consultations/en-attente'),
       historique: () => request<DoctorConsultationItem[]>('/doctor/consultations/historique'),
-      medicaments: (q: string) => request<{ id: number; nom: string; unite: string | null }[]>(`/doctor/consultations/medicaments?q=${encodeURIComponent(q)}`),
-      formulaire: (id: number) => request<DoctorConsultationFormulaire>(`/doctor/consultations/${id}`),
-      documents: (id: number) => request<DocumentsConsultation>(`/doctor/consultations/${id}/documents`),
-      medecinsReference: () => request<MedecinReference[]>('/doctor/consultations/medecins-reference'),
-      /** Documents joints à une référence (interne / externe) */
-      references: {
-        ajouter: (id: number, data: FormData) =>
-          request<{ success: boolean; message: string; documents: DocumentReference[] }>(`/doctor/consultations/${id}/references`, { method: 'POST', body: data }),
-        telecharger: (id: number, docId: string, nom: string) => telecharger(`/doctor/consultations/${id}/references/${docId}`, nom),
-        supprimer: (id: number, docId: string) => request<{ success: boolean; message: string }>(`/doctor/consultations/${id}/references/${docId}`, { method: 'DELETE' }),
-      },
-      enregistrer: (id: number, payload: ConsultationCurativePayload) =>
-        request<{ success: boolean; message: string; hospitalisation: string | null; declarationNaissance: { id: number; reference: string } | null }>(`/doctor/consultations/${id}`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        }),
+      ...formulaireConsultation('/doctor/consultations'),
     },
   },
 

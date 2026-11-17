@@ -26,9 +26,16 @@ const iso = (v: unknown): string | null => {
 export class InfirmierDossierService {
   constructor(@InjectDataSource() private readonly db: DataSource) {}
 
-  async dossier(userId: number, patientId: number) {
-    const [inf] = await this.db.query('SELECT id FROM infirmiers WHERE user_id = ? LIMIT 1', [userId]);
-    if (!inf) throw new NotFoundException('Profil infirmier introuvable.');
+  /** Agent connecté : infirmier·ère ou médecin (même dossier, en lecture seule) */
+  private async agent(userId: number, role: 'infirmier' | 'doctor') {
+    const table = role === 'doctor' ? 'doctors' : 'infirmiers';
+    const [a] = await this.db.query(`SELECT id FROM ${table} WHERE user_id = ? LIMIT 1`, [userId]);
+    if (!a) throw new NotFoundException(role === 'doctor' ? 'Profil médecin introuvable.' : 'Profil infirmier introuvable.');
+    return { id: Number(a.id), role };
+  }
+
+  async dossier(userId: number, patientId: number, role: 'infirmier' | 'doctor' = 'infirmier') {
+    await this.agent(userId, role);
 
     const [p] = await this.db.query(
       `SELECT p.*, u.name, u.prenom, u.email, sa.name AS residence, sn.name AS lieu_naissance
@@ -176,9 +183,8 @@ export class InfirmierDossierService {
    * Repris de Laravel : Hospital\PatientController@parcoursIntervention + parcours_intervention.blade.php
    * (équipe, constantes, examen & diagnostic, prescriptions, issue, registre) + une frise chronologique datée.
    */
-  async parcours(userId: number, patientId: number, consultationId: number) {
-    const [inf] = await this.db.query('SELECT id FROM infirmiers WHERE user_id = ? LIMIT 1', [userId]);
-    if (!inf) throw new NotFoundException('Profil infirmier introuvable.');
+  async parcours(userId: number, patientId: number, consultationId: number, role: 'infirmier' | 'doctor' = 'infirmier') {
+    const agent = await this.agent(userId, role);
 
     const [c] = await this.db.query(
       `SELECT c.*,
@@ -342,6 +348,9 @@ export class InfirmierDossierService {
       date: c.created_at,
       hopital: String(c.hopital),
       service: texte(c.prestation) ?? texte(c.service) ?? 'Consultation générale',
+      // Faite par l'infirmier·ère lui-même (« Consulter ») : lien vers le formulaire de consultation en lecture
+      // Consultation de l'agent connecté : lien vers son formulaire de consultation (lecture)
+      consultationDirecte: Number(role === 'doctor' ? c.doctor_id : c.infirmier_id) === agent.id,
       enLigne,
       urgence: Number(c.is_urgence) === 1,
       terminee,

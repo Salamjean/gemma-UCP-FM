@@ -266,3 +266,169 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Chronos : temps écoulé depuis la demande / compte à rebours jusqu'à l'heure prévue */
+.chrono {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chrono > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chronoCompact {
+  font-size: 0.7rem;
+}
+
+.chronoRecue {
+  color: var(--dash-muted);
+}
+
+/* Compte à rebours (listes) : couleur selon le temps restant */
+.ton_large,
+.ton_proche,
+.ton_imminent,
+.ton_retard {
+  font-weight: 700;
+}
+
+.ton_large {
+  color: #0b7a54;
+}
+
+.ton_proche {
+  color: #b45309;
+}
+
+.ton_imminent {
+  color: #c4213f;
+}
+
+.ton_retard {
+  color: #8f1230;
+}
+
+/* Compte à rebours du tableau de bord : pastille à la taille du titre, fond selon le temps restant */
+.rebours {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.6s ease;
+}
+
+.rebours strong {
+  font-weight: 800;
+}
+
+.rebours_large {
+  background: #0b7a54;
+}
+
+.rebours_proche {
+  background: #c26a07;
+}
+
+.rebours_imminent {
+  background: #c4213f;
+}
+
+.rebours_retard {
+  background: #8f1230;
+  animation: reboursPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes reboursPulse {
+  50% {
+    opacity: 0.82;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rebours_retard {
+    animation: none;
+  }
+}
+
+/* Type de demande */
+.badgeType {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.badgeExpertise {
+  background: #f1ecfd;
+  color: #6b46c1;
+}
+
+.titreSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.titreSection span {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f1ecfd;
+  color: #6b46c1;
+  font-size: 0.74rem;
+}
+
+/* Barre d'outils de la liste : recherche · type · nombre de séances */
+.barreOutils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rechercheListe {
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f6f8fc;
+  color: var(--dash-muted);
+}
+
+.rechercheListe input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--dash-text);
+  outline: none;
+}
+
+.nombreSeances {
+  font-size: 0.82rem;
+  color: #64748b;
+  white-space: nowrap;
+}

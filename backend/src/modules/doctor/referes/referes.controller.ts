@@ -1,4 +1,6 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Req, Res, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { DOCUMENT_MAX_SIZE, DOCUMENTS_MAX_PAR_ENVOI } from '../../../common/documents-prives';
 import type { Request, Response } from 'express';
 import type { JwtPayload } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
@@ -20,6 +22,12 @@ export class DoctorReferesController {
     return this.service.liste(req.user.sub);
   }
 
+  /** GET /api/doctor/referes/disponibles → télé-expertises externes à prendre en charge (mon service) — avant « :origineId » */
+  @Get('disponibles')
+  disponibles(@Req() req: Req_) {
+    return this.service.disponibles(req.user.sub);
+  }
+
   /** GET /api/doctor/referes/:origineId → fiche de la référence */
   @Get(':origineId')
   detail(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number) {
@@ -30,6 +38,32 @@ export class DoctorReferesController {
   @Post(':origineId/prendre-en-charge')
   prendreEnCharge(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number) {
     return this.service.prendreEnCharge(req.user.sub, origineId);
+  }
+
+  /** POST /api/doctor/referes/:origineId/resultat (multipart : avis, conduite, fichiers[] + libelles[]) → résultat de l'expert */
+  @Post(':origineId/resultat')
+  @UseInterceptors(FilesInterceptor('fichiers', DOCUMENTS_MAX_PAR_ENVOI, { limits: { fileSize: DOCUMENT_MAX_SIZE } }))
+  envoyerResultat(
+    @Req() req: Req_,
+    @Param('origineId', ParseIntPipe) origineId: number,
+    @UploadedFiles() fichiers: Express.Multer.File[],
+    @Body('avis') avis: string,
+    @Body('conduite') conduite: string,
+    @Body('libelles') libelles: string | string[],
+  ) {
+    return this.service.envoyerResultat(req.user.sub, origineId, avis, conduite, fichiers ?? [], Array.isArray(libelles) ? libelles : libelles ? [libelles] : []);
+  }
+
+  /** POST /api/doctor/referes/:origineId/resultat/documents (multipart) → documents ajoutés à un résultat déjà envoyé */
+  @Post(':origineId/resultat/documents')
+  @UseInterceptors(FilesInterceptor('fichiers', DOCUMENTS_MAX_PAR_ENVOI, { limits: { fileSize: DOCUMENT_MAX_SIZE } }))
+  ajouterDocumentsResultat(
+    @Req() req: Req_,
+    @Param('origineId', ParseIntPipe) origineId: number,
+    @UploadedFiles() fichiers: Express.Multer.File[],
+    @Body('libelles') libelles: string | string[],
+  ) {
+    return this.service.ajouterDocumentsResultat(req.user.sub, origineId, fichiers ?? [], Array.isArray(libelles) ? libelles : libelles ? [libelles] : []);
   }
 
   /** GET /api/doctor/referes/:origineId/documents/:docId → téléchargement (protégé) */

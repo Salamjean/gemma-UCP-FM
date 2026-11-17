@@ -5,11 +5,13 @@ import type { Request, Response } from 'express';
 import { DataSource } from 'typeorm';
 import { appelsEntrants, lienInvitation, rejoindreAppel, terminerAppel } from '../../../common/appel-video';
 import { DOCUMENT_MAX_SIZE, DOCUMENTS_MAX_PAR_ENVOI } from '../../../common/documents-prives';
+import { contexteAudit } from '../../../common/audit/audit.service';
 import type { JwtPayload } from '../../auth/auth.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { RolesGuard } from '../../auth/roles.guard';
 import { DoctorConsultationsService } from './consultations.service';
+import { ProgrammationTelemedecineDto, ProgrammationTelemedecineService } from './programmation.service';
 import { ConsultationCurativeDto } from './dto/consultation.dto';
 
 type Req_ = Request & { user: JwtPayload };
@@ -22,12 +24,19 @@ export class DoctorConsultationsController {
   constructor(
     private readonly service: DoctorConsultationsService,
     @InjectDataSource() private readonly db: DataSource,
+    private readonly programmation: ProgrammationTelemedecineService,
   ) {}
 
   /** GET …/appels-entrants → appels de télémédecine lancés par l'autre participant (bandeau « Rejoindre ») */
   @Get('telemedecines/appels-entrants')
   appelsEntrants(@Req() req: Req_) {
     return appelsEntrants(this.db, req.user.sub);
+  }
+
+  /** POST /api/doctor/telemedecines/programmer → programmation directe d'une téléconsultation ou d'une télé-expertise (patient recherché) */
+  @Post('telemedecines/programmer')
+  programmer(@Req() req: Req_, @Body() dto: ProgrammationTelemedecineDto) {
+    return this.programmation.programmer(req.user.sub, 'doctor', dto, contexteAudit(req));
   }
 
   /** POST …/:id/appel → démarrer l'appel vidéo ou rejoindre celui en cours (jeton LiveKit) */
@@ -48,6 +57,35 @@ export class DoctorConsultationsController {
     return terminerAppel(this.db, req.user.sub, id);
   }
 
+
+  // --- Résultats d'expertise : télé-expertises que j'ai demandées, avec le résultat joint par l'expert ---
+  @Get('resultats-expertise')
+  resultatsExpertise(@Req() req: Req_) {
+    return this.service.resultatsExpertise(req.user.sub, 'doctor');
+  }
+
+  /** Badge du menu : résultats reçus non lus */
+  @Get('resultats-expertise/non-lus')
+  resultatsNonLus(@Req() req: Req_) {
+    return this.service.resultatsNonLus(req.user.sub, 'doctor');
+  }
+
+  /** Fiche du résultat (marque le résultat comme lu) */
+  @Get('resultats-expertise/:origineId')
+  resultatExpertise(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number) {
+    return this.service.resultatExpertise(req.user.sub, origineId, 'doctor');
+  }
+
+  /** Téléchargement d'un document joint par l'expert (protégé) */
+  @Get('resultats-expertise/:origineId/documents/:docId')
+  async fichierResultat(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number, @Param('docId') docId: string, @Res() res: Response) {
+    const { doc, contenu } = await this.service.fichierResultat(req.user.sub, origineId, docId, 'doctor');
+    const ext = doc.nom.includes('.') ? doc.nom.slice(doc.nom.lastIndexOf('.')) : '';
+    const nom = `${doc.libelle}${ext}`.replace(/["\\\r\n]/g, '');
+    res.setHeader('Content-Type', doc.type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(nom)}"; filename*=UTF-8''${encodeURIComponent(nom)}`);
+    res.send(contenu);
+  }
 
   /** GET /api/doctor/tableau-de-bord */
   @Get('tableau-de-bord')
@@ -91,10 +129,27 @@ export class DoctorConsultationsController {
     return this.service.documents(req.user.sub, id);
   }
 
+  /** Issue « Télémédecine » : hôpitaux et médecins disponibles */
+  @Get('consultations/teleconsultation-hopitaux')
+  teleHopitaux(@Query('date') date?: string, @Query('heure') heure?: string) {
+    return this.service.teleHopitaux(date, heure);
+  }
+
+  @Get('consultations/teleconsultation-medecins/:hospitalId')
+  teleMedecins(@Param('hospitalId', ParseIntPipe) hospitalId: number, @Query('date') date?: string, @Query('heure') heure?: string) {
+    return this.service.teleMedecins(hospitalId, date, heure);
+  }
+
+  /** Télé-expertise en externe : services des autres établissements de la DMHP */
+  @Get('consultations/services-externes')
+  servicesExternes(@Req() req: Req_) {
+    return this.service.servicesExternes(req.user.sub);
+  }
+
   /** GET /api/doctor/consultations/medecins-reference → médecins de l'hôpital pour une référence interne */
   @Get('consultations/medecins-reference')
-  medecinsReference(@Req() req: Req_) {
-    return this.service.medecinsReference(req.user.sub);
+  medecinsReference(@Req() req: Req_, @Query('date') date?: string, @Query('heure') heure?: string) {
+    return this.service.medecinsReference(req.user.sub, 'doctor', date, heure);
   }
 
   /** GET /api/doctor/consultations/:id/references → documents joints à la référence */
@@ -124,6 +179,12 @@ export class DoctorConsultationsController {
     res.setHeader('Content-Type', doc.type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(nom)}"; filename*=UTF-8''${encodeURIComponent(nom)}`);
     res.send(contenu);
+  }
+
+  /** DELETE /api/doctor/consultations/:id/annuler → consultation ouverte par « Consulter » annulée (quitter sans issue) */
+  @Delete('consultations/:id/annuler')
+  annulerConsultation(@Req() req: Req_, @Param('id', ParseIntPipe) id: number) {
+    return this.service.annulerConsultationOuverte(req.user.sub, id, 'doctor');
   }
 
   /** DELETE /api/doctor/consultations/:id/references/:docId */

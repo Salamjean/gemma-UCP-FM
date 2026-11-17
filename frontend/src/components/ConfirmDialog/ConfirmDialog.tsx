@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { FaExclamationTriangle, FaQuestionCircle } from 'react-icons/fa';
 import styles from './ConfirmDialog.module.css';
 
@@ -12,6 +12,10 @@ interface ConfirmDialogProps {
   /** "danger" = action qui coupe un accès (rouge), "normal" = bleu */
   ton?: 'danger' | 'normal';
   enCours?: boolean;
+  /** Bouton de confirmation inactif (ex. un choix reste à faire) */
+  confirmerDesactive?: boolean;
+  /** Contenu sous le message (ex. une question à trancher avant de confirmer) */
+  children?: ReactNode;
   onConfirmer: () => void;
   onAnnuler: () => void;
 }
@@ -27,6 +31,8 @@ export default function ConfirmDialog({
   confirmer,
   ton = 'normal',
   enCours,
+  confirmerDesactive,
+  children,
   onConfirmer,
   onAnnuler,
 }: ConfirmDialogProps) {
@@ -70,6 +76,7 @@ export default function ConfirmDialog({
             <p id="confirm-message" className={styles.message}>
               {message}
             </p>
+            {children}
             <div className={styles.boutons}>
               <button type="button" className={styles.annuler} onClick={onAnnuler} disabled={enCours}>
                 Annuler
@@ -79,7 +86,7 @@ export default function ConfirmDialog({
                 type="button"
                 className={`${styles.confirmer} ${ton === 'danger' ? styles.confirmerDanger : ''}`}
                 onClick={onConfirmer}
-                disabled={enCours}
+                disabled={enCours || confirmerDesactive}
               >
                 {enCours ? 'Patientez…' : confirmer}
               </button>

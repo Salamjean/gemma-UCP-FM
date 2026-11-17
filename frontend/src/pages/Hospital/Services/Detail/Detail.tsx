@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import { alerte, messageErreur } from '../../../../services/alertes';
 import { api } from '../../../../services/api';
-import { fcfa } from '../../../../services/format';
 import c from '../../../../styles/espace.module.css';
 import type { ServiceDetail } from '../../../../types';
 import EditeurActes, { ligneInvalide, versActe, type LigneActe } from '../EditeurActes';
@@ -19,7 +18,7 @@ type Action = { type: 'statut' } | { type: 'supprimer' } | { type: 'acte'; ligne
  * HÔPITAL > SERVICES > FICHE D'UN SERVICE
  * Équivalent Laravel : hospital.service.show (users/hospital/service/show.blade.php)
  *   - bouton "œil" de la liste    → /hopital/services/:id           (lecture)
- *   - bouton "crayon" de la liste → /hopital/services/:id/modifier  (edition : prix, ajout / retrait d'actes)
+ *   - bouton "crayon" de la liste → /hopital/services/:id/modifier  (edition : description, ajout / retrait d’actes)
  */
 export default function Detail({ edition = false }: { edition?: boolean }) {
   const { id } = useParams();
@@ -64,7 +63,7 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
     e.preventDefault();
     setVerifier(true);
     if (lignes.some(ligneInvalide)) {
-      alerte.echec('Chaque acte doit avoir un intitulé et un prix (en FCFA).');
+      alerte.echec('Chaque acte doit avoir un intitulé.');
       return;
     }
     setEnvoi(true);
@@ -130,7 +129,6 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
   }
 
   const existants = lignes.filter((l) => l.existantId);
-  const prix = existants.map((l) => Number(l.prix)).filter((n) => !Number.isNaN(n));
   const nouveaux = lignes.length - existants.length;
 
   const textes = action && {
@@ -183,8 +181,6 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
       <div className={styles.resume}>
         {[
           { libelle: 'Actes pratiqués', valeur: String(existants.length) },
-          { libelle: 'Prix le plus bas', valeur: prix.length ? fcfa(Math.min(...prix)) : '—' },
-          { libelle: 'Prix le plus haut', valeur: prix.length ? fcfa(Math.max(...prix)) : '—' },
           { libelle: 'Actes du catalogue à ajouter', valeur: String(service.disponibles.filter((d) => !lignes.some((l) => l.prestationServiceId === d.id)).length) },
         ].map((k, i) => (
           <motion.div key={k.libelle} className={styles.resumeCase} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
@@ -198,13 +194,12 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
         /* --- Lecture seule --- */
         <section className={c.bloc}>
           <p className={styles.descriptionLecture}>{service.description || <span className={c.sousTexte}>Aucune description.</span>}</p>
-          <h2 className={`${c.blocTitre} ${styles.espace}`}>Actes médicaux & tarifs</h2>
+          <h2 className={`${c.blocTitre} ${styles.espace}`}>Actes médicaux</h2>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
               <thead>
                 <tr>
                   <th scope="col">Acte médical / prestation</th>
-                  <th scope="col">Prix</th>
                   <th scope="col">Précision</th>
                   <th scope="col">Suppression</th>
                 </tr>
@@ -213,7 +208,6 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
                 {pg.lignes.map((a, i) => (
                   <motion.tr key={a.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04 }}>
                     <td><strong>{a.libelle}</strong></td>
-                    <td className={styles.prixLecture}>{fcfa(a.prix)}</td>
                     <td>{a.description ?? '—'}</td>
                     <td>
                       {a.verrouille ? (
@@ -238,7 +232,7 @@ export default function Detail({ edition = false }: { edition?: boolean }) {
           <input id="description" maxLength={5000} placeholder="Ex. Ouvert 24h/24, au rez-de-chaussée" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
-        <h2 className={`${c.blocTitre} ${styles.espace}`}>Actes médicaux & tarifs</h2>
+        <h2 className={`${c.blocTitre} ${styles.espace}`}>Actes médicaux</h2>
         <EditeurActes
           lignes={lignes}
           onChange={setLignes}

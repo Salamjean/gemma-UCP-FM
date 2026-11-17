@@ -9,7 +9,7 @@ import { api } from '../../../../services/api';
  * (pas de caisse, pharmacie, secrétariat, comptabilité ni montants).
  * `prefixes` : débuts de chemin qui gardent la rubrique active (pages de détail, modification…).
  */
-const RUBRIQUES: { libelle: string; icon: MenuEntry['icon']; prefixes: string[]; pages: [string, string][] }[] = [
+const RUBRIQUES: { libelle: string; icon: MenuEntry['icon']; prefixes: string[]; pages: [string, string][]; masquee?: boolean }[] = [
   {
     libelle: 'Personnel',
     icon: FaUserMd,
@@ -24,11 +24,13 @@ const RUBRIQUES: { libelle: string; icon: MenuEntry['icon']; prefixes: string[];
     ],
   },
   { libelle: 'Services', icon: FaBuilding, prefixes: ['services'], pages: [['Liste', 'services/liste'], ['Ajouter', 'services/ajouter']] },
-  { libelle: 'Assurances', icon: FaShieldAlt, prefixes: ['assurances'], pages: [['Liste', 'assurances/liste'], ['Ajouter', 'assurances/ajouter']] },
+  // Assurances, Hospitalisation, Déclarations : retirées du menu (comme dans l'espace hôpital) ; pages gardées
+  { libelle: 'Assurances', icon: FaShieldAlt, prefixes: ['assurances'], pages: [['Liste', 'assurances/liste'], ['Ajouter', 'assurances/ajouter']], masquee: true },
   {
     libelle: 'Hospitalisation',
     icon: FaBed,
     prefixes: ['hospitalisation'],
+    masquee: true,
     pages: [
       ['Gestion des chambres', 'hospitalisation/chambres'],
       ['Hospitalisations', 'hospitalisation/liste'],
@@ -37,7 +39,7 @@ const RUBRIQUES: { libelle: string; icon: MenuEntry['icon']; prefixes: string[];
   },
   { libelle: 'Patients', icon: FaUsers, prefixes: ['patients'], pages: [['Liste', 'patients/liste']] },
   { libelle: 'Consultations', icon: FaStethoscope, prefixes: ['consultations'], pages: [['Nouvelles', 'consultations/nouvelles'], ['Historique', 'consultations/historique']] },
-  { libelle: 'Déclarations', icon: FaChildren, prefixes: ['declarations'], pages: [['Naissances', 'declarations/naissances'], ['Décès', 'declarations/deces']] },
+  { libelle: 'Déclarations', icon: FaChildren, prefixes: ['declarations'], pages: [['Naissances', 'declarations/naissances'], ['Décès', 'declarations/deces']], masquee: true },
   {
     libelle: 'Permissions',
     icon: FaFileMedical,
@@ -73,9 +75,13 @@ export function menuHopitalOuvert(rel: string, nom: string): MenuEntry[] | null 
       icon: FaChartPie,
       path: base,
       section: nom || 'Hôpital ouvert',
-      hiddenPages: [{ label: 'Modifier', path: `${base}/modifier`, element: null }],
+      hiddenPages: [
+        { label: 'Modifier', path: `${base}/modifier`, element: null },
+        // Rubriques retirées du menu : leurs pages restent ouvrables (liens de la vue d'ensemble)
+        ...RUBRIQUES.filter((r) => r.masquee).flatMap((r) => r.prefixes.map((p) => ({ label: r.libelle, path: `${base}/${p}/*`, element: null }))),
+      ],
     },
-    ...RUBRIQUES.map(
+    ...RUBRIQUES.filter((r) => !r.masquee).map(
       (r): MenuEntry => ({
         label: r.libelle,
         icon: r.icon,

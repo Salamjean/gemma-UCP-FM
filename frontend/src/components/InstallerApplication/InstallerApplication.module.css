@@ -1,0 +1,167 @@
+/* PWA — bandeau « Installer l'application » (bas de l'écran) */
+.bandeau {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(23, 43, 76, 0.22);
+  font-family: 'Poppins', var(--font-body);
+}
+
+.icone {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.texte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.texte strong {
+  font-size: 0.9rem;
+  color: #172b4c;
+}
+
+.texte small {
+  font-size: 0.74rem;
+  color: #6c757d;
+  line-height: 1.35;
+}
+
+.installer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: #1f6fc6;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.installer:hover {
+  background: #185ca6;
+}
+
+.fermer {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f5fb;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.aide {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f3f5fb;
+  font-size: 0.78rem;
+  color: #172b4c;
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .bandeau {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
+
+/* Diagnostic (?diagnostic-pwa) */
+.diagnostic {
+  position: fixed;
+  inset: 16px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(23, 43, 76, 0.3);
+  overflow-y: auto;
+  font-family: 'Poppins', var(--font-body);
+  color: #172b4c;
+}
+
+.diagnostic ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostic li {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f6f8fc;
+}
+
+.diagnostic li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.diagnostic small {
+  font-size: 0.74rem;
+  color: #6c757d;
+  overflow-wrap: anywhere;
+}
+
+.diagnostic button {
+  align-self: flex-end;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1f6fc6;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ok {
+  color: #0b7a54;
+  font-weight: 700;
+}
+
+.ko {
+  color: #c4213f;
+  font-weight: 700;
+}
+
+.neutre {
+  color: #6c757d;
+}

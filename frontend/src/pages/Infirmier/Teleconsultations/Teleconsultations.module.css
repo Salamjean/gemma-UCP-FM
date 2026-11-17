@@ -280,3 +280,60 @@
   }
 }
 
+
+/* Type de télémédecine sous le nom du patient */
+.typeLigne {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.badgeTeleconsultation {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.badgeExpertise {
+  background: #f1ecfd;
+  color: #6b46c1;
+}
+
+.badgeUrgente {
+  background: #fde8ec;
+  color: #c4213f;
+}
+
+/* Tableau comme chez le médecin : cellules empilées, motif sur deux lignes */
+.empile {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.empile strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: #0f172a;
+}
+
+.empile small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.motif {
+  max-width: 260px;
+  font-size: 0.8rem;
+  color: #334155;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

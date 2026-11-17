@@ -26,7 +26,7 @@ import {
 } from 'react-icons/fa';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { alerte, messageErreur } from '../../../../services/alertes';
-import { api, uploadUrl } from '../../../../services/api';
+import { apiAgent, uploadUrl, type EspaceAgent } from '../../../../services/api';
 import c from '../../../../styles/espace.module.css';
 import type { ParcoursIntervention } from '../../../../types';
 import { age, CONSTANTES, dateHeure, initiales } from '../DossierMedical/outils';
@@ -56,7 +56,8 @@ const sansDr = (n: string) => n.replace(/^dr\.?\s*/i, '');
  *   puis : 1. équipe, 2. constantes, 3. examen & diagnostic, 4. prescriptions, 5. issue, 6. registre.
  * Lecture seule.
  */
-export default function Parcours() {
+export default function Parcours({ espace = 'infirmier' }: { espace?: EspaceAgent } = {}) {
+  const base = espace === 'medecin' ? '/medecin' : '/infirmier';
   const { id, consultationId } = useParams();
   const navigate = useNavigate();
   const [parcours, setParcours] = useState<ParcoursIntervention | null>(null);
@@ -64,14 +65,14 @@ export default function Parcours() {
   const [imgErreur, setImgErreur] = useState(false);
 
   useEffect(() => {
-    api.infirmier.patients
-      .parcours(Number(id), Number(consultationId))
+    apiAgent(espace)
+      .patients.parcours(Number(id), Number(consultationId))
       .then(setParcours)
       .catch((e) => {
         setErreur(true);
         alerte.echec(`Impossible d'ouvrir le parcours : ${messageErreur(e)}`);
       });
-  }, [id, consultationId]);
+  }, [id, consultationId, espace]);
 
   const entete = (
     <header className={c.entete}>
@@ -80,9 +81,15 @@ export default function Parcours() {
         <h1 className={c.titre}>Parcours de l'intervention</h1>
       </div>
       <div className={c.boutons}>
-        <Link to={`/infirmier/patients/${id}/dossier`} className={c.secondaire}>
+        <Link to={`${base}/patients/${id}/dossier`} className={c.secondaire}>
           <FaArrowLeft aria-hidden="true" /> Retour au dossier
         </Link>
+        {/* Consultation faite par l'infirmier·ère : formulaire de consultation complet, en lecture */}
+        {parcours?.consultationDirecte && (
+          <Link to={espace === 'medecin' ? `/medecin/consultations/${parcours.id}` : `/infirmier/consultations/medicale/${parcours.id}`} className={c.principal}>
+            <FaStethoscope aria-hidden="true" /> Voir le formulaire de consultation
+          </Link>
+        )}
       </div>
     </header>
   );

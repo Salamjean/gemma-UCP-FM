@@ -3,7 +3,7 @@ import { FaLock, FaPlus, FaTrashAlt } from 'react-icons/fa';
 import type { ActeSaisi, ElementCatalogue } from '../../../../types';
 import styles from './EditeurActes.module.css';
 
-/** Une ligne du tableau des actes (prix gardé en texte pendant la saisie) */
+/** Une ligne du tableau des actes (pas de prix saisi : les actes sont enregistrés sans tarif) */
 export interface LigneActe {
   cle: string;
   /** Acte déjà enregistré pour ce service (prestation_hospitals.id) */
@@ -20,13 +20,14 @@ export interface LigneActe {
 let compteur = 0;
 export const nouvelleCle = () => `l${Date.now()}-${compteur++}`;
 
-/** Ligne invalide : intitulé ou prix manquant / incorrect */
-export const ligneInvalide = (l: LigneActe) => !l.libelle.trim() || l.prix.trim() === '' || !/^\d+$/.test(l.prix.trim());
+/** Ligne invalide : intitulé manquant */
+export const ligneInvalide = (l: LigneActe) => !l.libelle.trim();
 
 /** Conversion pour l'API (nouveaux actes uniquement) */
 export const versActe = (l: LigneActe): ActeSaisi => ({
   ...(l.prestationServiceId ? { prestationServiceId: l.prestationServiceId } : { libelle: l.libelle.trim() }),
-  prix: Number(l.prix),
+  // Pas de tarif dans ce projet : prix à 0 (colonne obligatoire de Laravel)
+  prix: Number(l.prix) || 0,
   description: l.description.trim() || undefined,
 });
 
@@ -42,12 +43,12 @@ interface Props {
 }
 
 /**
- * HÔPITAL > SERVICES — tableau des actes médicaux et de leurs prix (FCFA).
+ * HÔPITAL > SERVICES — tableau des actes médicaux (sans prix).
  * Utilisé par "Ajouter un service" et par la fiche d'un service.
  */
 export default function EditeurActes({ lignes, onChange, catalogue, verifier, onRetirerExistant }: Props) {
-  const maj = (cle: string, champ: 'libelle' | 'prix' | 'description', valeur: string) =>
-    onChange(lignes.map((l) => (l.cle === cle ? { ...l, [champ]: champ === 'prix' ? valeur.replace(/[^\d]/g, '') : valeur } : l)));
+  const maj = (cle: string, champ: 'libelle' | 'description', valeur: string) =>
+    onChange(lignes.map((l) => (l.cle === cle ? { ...l, [champ]: valeur } : l)));
 
   const retirer = (l: LigneActe) => {
     if (l.existantId) onRetirerExistant?.(l);
@@ -66,7 +67,6 @@ export default function EditeurActes({ lignes, onChange, catalogue, verifier, on
     <div className={styles.editeur}>
       <div className={styles.entetes} aria-hidden="true">
         <span>Acte médical / prestation</span>
-        <span>Prix</span>
         <span>Précision (facultatif)</span>
         <span />
       </div>
@@ -75,7 +75,6 @@ export default function EditeurActes({ lignes, onChange, catalogue, verifier, on
         <AnimatePresence initial={false}>
           {lignes.map((l, i) => {
             const libreInvalide = verifier && !l.libelle.trim();
-            const prixInvalide = verifier && (l.prix.trim() === '' || !/^\d+$/.test(l.prix));
             const fixe = !!l.existantId || !!l.prestationServiceId;
             return (
               <motion.li
@@ -104,17 +103,6 @@ export default function EditeurActes({ lignes, onChange, catalogue, verifier, on
                       autoFocus={!l.libelle}
                     />
                   )}
-                </div>
-                <div className={`${styles.cellule} ${styles.prix} ${prixInvalide ? styles.invalide : ''}`}>
-                  <input
-                    className={styles.champ}
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={l.prix}
-                    onChange={(e) => maj(l.cle, 'prix', e.target.value)}
-                    aria-label={`Prix de ${l.libelle || `l'acte ${i + 1}`} en FCFA`}
-                  />
-                  <span className={styles.devise}>FCFA</span>
                 </div>
                 <div className={styles.cellule}>
                   <input

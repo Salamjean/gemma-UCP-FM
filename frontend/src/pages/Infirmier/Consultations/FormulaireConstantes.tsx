@@ -31,11 +31,9 @@ import c from '../../../styles/espace.module.css';
 import type { InfirmierConstantesFormulaire, TeleconsultationHospitalItem } from '../../../types';
 import s from './FormulaireConstantes.module.css';
 import { type ChampMasque, masquerConstante } from '../../../services/saisieConstantes';
+import { type Repere, repereImc, reperePouls, repereTemperature, repereTension } from '../../../services/reperesConstantes';
 
 type Orientation = 'sortie' | 'teleconsultation' | 'urgence' | null;
-
-/** Indication affichée sous une constante (repère, pas un diagnostic) */
-type Repere = { libelle: string; ton: 'ok' | 'attention' | 'alerte' } | null;
 
 function calculerAge(dateNaissance: string | null): string {
   if (!dateNaissance) return '—';
@@ -68,50 +66,12 @@ function initiales(nom: string): string {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-// --- Repères de lecture (valeurs adultes usuelles) ---
-const repereTemperature = (v: string): Repere => {
-  const t = parseFloat(v);
-  if (isNaN(t)) return null;
-  if (t < 36) return { libelle: 'Hypothermie', ton: 'alerte' };
-  if (t <= 37.5) return { libelle: 'Normale', ton: 'ok' };
-  if (t < 38.5) return { libelle: 'Fébricule', ton: 'attention' };
-  return { libelle: 'Fièvre', ton: 'alerte' };
-};
-const reperePouls = (v: string): Repere => {
-  const p = parseFloat(v);
-  if (isNaN(p)) return null;
-  if (p < 60) return { libelle: 'Bradycardie', ton: 'attention' };
-  if (p <= 100) return { libelle: 'Normal', ton: 'ok' };
-  return { libelle: 'Tachycardie', ton: 'attention' };
-};
 /** Date du jour au format « AAAA-MM-JJ » (heure locale) */
 const dateLocale = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /** Champs avec masque de saisie (séparateur « / » ou « . » ajouté automatiquement) */
 const MASQUES: Record<string, ChampMasque | undefined> = { tension: 'tension', temperature: 'temperature', poids: 'poids' };
 
-const repereTension = (v: string): Repere => {
-  const m = /^(\d{1,3}(?:[.,]\d)?)\s*\/\s*(\d{1,3}(?:[.,]\d)?)$/.exec(v.trim());
-  if (!m) return null;
-  let sys = parseFloat(m[1].replace(',', '.'));
-  let dia = parseFloat(m[2].replace(',', '.'));
-  // "12/8" (cmHg) ou "120/80" (mmHg)
-  if (sys < 30) {
-    sys *= 10;
-    dia *= 10;
-  }
-  if (sys >= 140 || dia >= 90) return { libelle: 'Élevée', ton: 'alerte' };
-  if (sys < 90 || dia < 60) return { libelle: 'Basse', ton: 'attention' };
-  return { libelle: 'Normale', ton: 'ok' };
-};
-const repereImc = (v: string): Repere => {
-  const i = parseFloat(v);
-  if (isNaN(i)) return null;
-  if (i < 18.5) return { libelle: 'Maigreur', ton: 'attention' };
-  if (i < 25) return { libelle: 'Normal', ton: 'ok' };
-  if (i < 30) return { libelle: 'Surpoids', ton: 'attention' };
-  return { libelle: 'Obésité', ton: 'alerte' };
-};
 
 /** Types de soins : "valeur" est enregistrée en base (inchangée), "court" est affiché pour tenir sur une ligne */
 const TYPES_SOINS = [
@@ -218,6 +178,11 @@ export default function FormulaireConstantes() {
     api.infirmier.consultations
       .formulaire(Number(id))
       .then((res) => {
+        // Consultation faite par l'infirmier·ère lui-même : la fiche est le formulaire de consultation, en lecture
+        if (res.consultation.consultationDirecte) {
+          navigate(`/infirmier/consultations/medicale/${res.consultation.id}`, { replace: true });
+          return;
+        }
         setData(res);
         const cons = res.consultation;
         setPoids(cons.constantes.poids || '');
@@ -243,7 +208,7 @@ export default function FormulaireConstantes() {
       })
       .catch((e) => alerte.echec(`Erreur de chargement du formulaire : ${messageErreur(e)}`))
       .finally(() => setChargement(false));
-  }, [id]);
+  }, [id, navigate]);
 
   // IMC calculé automatiquement (taille en cm ou en m)
   useEffect(() => {

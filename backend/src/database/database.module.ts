@@ -7,9 +7,14 @@ import { PersonnelSupprimeFm1731400000002 } from './migrations/1731400000002-Per
 import { RegulateursFm1731400000003 } from './migrations/1731400000003-RegulateursFm';
 import { PermissionsRegulateursFm1731400000004 } from './migrations/1731400000004-PermissionsRegulateursFm';
 import { ReinitialisationsFm1731400000005 } from './migrations/1731400000005-ReinitialisationsFm';
+import { ServiceReferencesFm1731400000006 } from './migrations/1731400000006-ServiceReferencesFm';
+import { DatePrevueReferencesFm1731400000007 } from './migrations/1731400000007-DatePrevueReferencesFm';
+import { ResultatsExpertiseFm1731400000008 } from './migrations/1731400000008-ResultatsExpertiseFm';
+import { BrouillonsConsultationFm1731400000009 } from './migrations/1731400000009-BrouillonsConsultationFm';
+import { ProgrammationDirecteFm1731400000010 } from './migrations/1731400000010-ProgrammationDirecteFm';
 
 /** Migrations Gemma FM, dans l'ordre (ajouter ici chaque nouvelle migration) */
-const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004, ReinitialisationsFm1731400000005];
+const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004, ReinitialisationsFm1731400000005, ServiceReferencesFm1731400000006, DatePrevueReferencesFm1731400000007, ResultatsExpertiseFm1731400000008, BrouillonsConsultationFm1731400000009, ProgrammationDirecteFm1731400000010];
 
 /**
  * CONNEXION À LA BASE MYSQL PARTAGÉE AVEC LE PROJET LARAVEL "gemma".

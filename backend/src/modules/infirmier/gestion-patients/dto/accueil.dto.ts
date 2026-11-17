@@ -152,7 +152,7 @@ export class InscriptionPatientDto {
   @Type(() => AffectationDto)
   affectation?: AffectationDto;
 
-  /** Inscription d'urgence (formulaire court) : l'affectation devient obligatoire */
+  /** Inscription d'urgence (formulaire court) ; la consultation est ouverte ensuite par « Consulter » */
   @IsOptional()
   @IsBoolean()
   urgence?: boolean;

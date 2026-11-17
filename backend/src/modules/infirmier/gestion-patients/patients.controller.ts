@@ -54,6 +54,12 @@ export class InfirmierPatientsController {
     return this.accueil.affecter(req.user.sub, id, dto, contexteAudit(req));
   }
 
+  /** POST /api/infirmier/patients/:id/consulter → consultation du jour dans le service de l'infirmier connecté */
+  @Post(':id/consulter')
+  consulter(@Req() req: Request & { user: JwtPayload }, @Param('id', ParseIntPipe) id: number) {
+    return this.accueil.consulter(req.user.sub, id, contexteAudit(req));
+  }
+
   /** GET /api/infirmier/patients/:id/identite → informations modifiables (formulaire « Mettre à jour ») */
   @Get(':id/identite')
   identite(@Req() req: Request & { user: JwtPayload }, @Param('id', ParseIntPipe) id: number) {

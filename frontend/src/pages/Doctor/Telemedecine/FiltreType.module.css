@@ -1,0 +1,60 @@
+/* Bascule Toutes / Téléconsultation / Télé-expertise */
+.bascule {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 10px;
+  background: #e9edf4;
+}
+
+.bascule button {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dash-muted, #6c757d);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bascule button.actif {
+  background: #1f6fc6;
+  color: #ffffff;
+}
+
+.bascule button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Nombre de séances du statut */
+.compte {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.72rem;
+  color: #172b4c;
+}
+
+.actif .compte {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .bascule {
+    width: 100%;
+  }
+  .bascule button {
+    flex: 1;
+    padding: 0 8px;
+  }
+}

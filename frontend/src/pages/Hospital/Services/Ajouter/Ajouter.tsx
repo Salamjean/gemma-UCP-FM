@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import SelectRecherche from '../../../../components/SelectRecherche';
 import { alerte, messageErreur } from '../../../../services/alertes';
 import { api } from '../../../../services/api';
-import { fcfa } from '../../../../services/format';
 import c from '../../../../styles/espace.module.css';
 import type { ElementCatalogue } from '../../../../types';
 import EditeurActes, { ligneInvalide, nouvelleCle, versActe, type LigneActe } from '../EditeurActes';
@@ -18,8 +17,8 @@ type Mode = 'catalogue' | 'nouveau';
  * HÔPITAL > SERVICES > AJOUTER
  * Équivalent Laravel : hospital.service.add (users/hospital/service/add.blade.php)
  *   1. un service du catalogue OU un nouveau service
- *   2. les actes médicaux pratiqués et leurs prix (FCFA)
- * Sans acte : Laravel crée une « Consultation <service> » à 0 FCFA.
+ *   2. les actes médicaux pratiqués (sans prix : enregistrés à 0)
+ * Sans acte : Laravel crée une « Consultation <service> ».
  */
 export default function Ajouter() {
   const navigate = useNavigate();
@@ -47,7 +46,7 @@ export default function Ajouter() {
       });
   }, []);
 
-  // Service du catalogue choisi : ses actes sont pré-remplis (il ne reste qu'à saisir les prix)
+  // Service du catalogue choisi : ses actes sont pré-remplis
   useEffect(() => {
     setActesCatalogue([]);
     if (mode !== 'catalogue' || !serviceId) return;
@@ -75,7 +74,6 @@ export default function Ajouter() {
 
   const libelle = mode === 'catalogue' ? catalogue?.find((s) => s.id === serviceId)?.libelle ?? '' : nom.trim();
   const serviceManquant = mode === 'catalogue' ? !serviceId : !nom.trim();
-  const prixSaisis = lignes.filter((l) => /^\d+$/.test(l.prix)).map((l) => Number(l.prix));
 
   const enregistrer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +83,7 @@ export default function Ajouter() {
       return;
     }
     if (lignes.some(ligneInvalide)) {
-      alerte.echec('Chaque acte doit avoir un intitulé et un prix (en FCFA). Retirez les lignes inutiles.');
+      alerte.echec('Chaque acte doit avoir un intitulé. Retirez les lignes inutiles.');
       return;
     }
     setEnvoi(true);
@@ -186,12 +184,12 @@ export default function Ajouter() {
           </div>
 
           {/* --- 2. Les actes --- */}
-          <h2 className={`${c.blocTitre} ${styles.espace}`}>2. Actes médicaux & tarifs</h2>
+          <h2 className={`${c.blocTitre} ${styles.espace}`}>2. Actes médicaux</h2>
           <p className={styles.aide}>
             <FaInfoCircle aria-hidden="true" />
             {mode === 'catalogue' && !serviceId
-              ? 'Choisissez d’abord le service : ses actes habituels s’afficheront ici, il ne restera qu’à saisir les prix.'
-              : 'Indiquez le prix (en FCFA) de chaque acte pratiqué. Sans aucun acte, une consultation standard à 0 FCFA est créée.'}
+              ? 'Choisissez d’abord le service : ses actes habituels s’afficheront ici.'
+              : 'Indiquez les actes pratiqués dans ce service. Sans aucun acte, une consultation standard est créée.'}
           </p>
           <EditeurActes lignes={lignes} onChange={setLignes} catalogue={actesCatalogue} verifier={verifier} />
 
@@ -215,20 +213,11 @@ export default function Ajouter() {
               <dt>Actes</dt>
               <dd>{lignes.length}</dd>
             </div>
-            <div>
-              <dt>Prix le plus bas</dt>
-              <dd>{prixSaisis.length ? fcfa(Math.min(...prixSaisis)) : '—'}</dd>
-            </div>
-            <div>
-              <dt>Prix le plus haut</dt>
-              <dd>{prixSaisis.length ? fcfa(Math.max(...prixSaisis)) : '—'}</dd>
-            </div>
           </dl>
           <ul className={styles.recapActes}>
             {lignes.filter((l) => l.libelle.trim()).map((l) => (
               <li key={l.cle}>
                 <span>{l.libelle}</span>
-                <strong>{/^\d+$/.test(l.prix) ? fcfa(Number(l.prix)) : '…'}</strong>
               </li>
             ))}
           </ul>

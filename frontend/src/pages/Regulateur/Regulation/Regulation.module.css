@@ -287,3 +287,20 @@
   font-weight: 600;
   color: #a15c00;
 }
+
+/* Type de télémédecine */
+.badgeTeleconsultation {
+  background: #eaf3fe;
+  color: #1f6fc6;
+}
+
+.badgeExpertise {
+  background: #f1ecfd;
+  color: #6b46c1;
+}
+
+/* Consultation faite par l'infirmier·ère lui-même */
+.badgeInfirmier {
+  background: #e3f5ee;
+  color: #0b7a54;
+}

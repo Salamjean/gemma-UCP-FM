@@ -10,6 +10,7 @@ import {
 import { FaBuildingUser, FaChildren } from 'react-icons/fa6';
 import { MdDashboard } from 'react-icons/md';
 import type { RoleSpace } from '../../layouts/DashboardLayout/types';
+import { api } from '../../services/api';
 import * as Assurances from './Assurances';
 import * as Consultations from './Consultations';
 import * as Declarations from './Declarations';
@@ -27,6 +28,9 @@ import { TableauDeBord } from './TableauDeBord';
  * ("Grille des prix" est en commentaire dans Laravel → non repris ;
  *  "Personnel administratif", "Pharmacie", "Recette" et "Comptabilité" retirés : ils ne font pas partie de ce projet)
  */
+/** Badge du menu : demandes de permission en attente (fonction stable, définie une seule fois) */
+const compterPermissionsEnAttente = () => api.hospital.permissions.liste('pending').then((r) => r.compteurs.pending ?? r.demandes.length);
+
 export const hospitalSpace: RoleSpace = {
   role: 'hospital',
   basePath: '/hopital',
@@ -45,9 +49,11 @@ export const hospitalSpace: RoleSpace = {
         { label: 'Modifier', path: 'services/:id/modifier', element: <Services.Detail edition /> },
       ],
     },
+    // Assurances : onglet retiré du menu ; pages gardées
     {
       label: 'Assurances',
       icon: FaSuperpowers,
+      visible: () => false,
       children: [
         { label: 'Liste', path: 'assurances/liste', element: <Assurances.Liste /> },
         { label: 'Ajouter', path: 'assurances/ajouter', element: <Assurances.Ajouter /> },
@@ -77,9 +83,11 @@ export const hospitalSpace: RoleSpace = {
       // Modification d'un agent (bouton "crayon" des listes) — :type = medecin | sage-femme | infirmier
       hiddenPages: [{ label: 'Modifier', path: 'personnel-sante/:type/:id/modifier', element: <PersonnelSante.Modifier /> }],
     },
+    // Hospitalisation : onglet retiré du menu ; pages gardées
     {
       label: 'Hospitalisation',
       icon: FaBed,
+      visible: () => false,
       children: [
         { label: 'Gestion des chambres', path: 'hospitalisation/chambres', element: <Hospitalisation.GestionChambres /> },
         { label: 'Hospitalisation', path: 'hospitalisation/liste', element: <Hospitalisation.Hospitalisations /> },
@@ -106,9 +114,11 @@ export const hospitalSpace: RoleSpace = {
       ],
       hiddenPages: [{ label: 'Détail consultation', path: 'consultations/:id', element: <Consultations.Detail /> }],
     },
+    // Déclarations : onglet retiré du menu ; pages gardées
     {
       label: 'Déclarations',
       icon: FaChildren,
+      visible: () => false,
       children: [
         { label: 'Liste des naissances', path: 'declarations/naissances', element: <Declarations.ListeNaissances /> },
         { label: 'Liste des décès', path: 'declarations/deces', element: <Declarations.ListeDeces /> },
@@ -121,6 +131,7 @@ export const hospitalSpace: RoleSpace = {
     {
       label: 'Permission',
       icon: FaShieldAlt,
+      badge: compterPermissionsEnAttente,
       children: [
         { label: 'Permission en attente', path: 'permissions/en-attente', element: <Permissions.ListePermissions statut="pending" /> },
         { label: 'Permission succès', path: 'permissions/accordees', element: <Permissions.ListePermissions statut="agree" /> },

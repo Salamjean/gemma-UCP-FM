@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import type { IconType } from 'react-icons';
-import { FaClock, FaEye, FaPlay, FaSearch, FaStethoscope } from 'react-icons/fa';
+import { FaClock, FaEye, FaPhoneAlt, FaPlay, FaSearch, FaStethoscope } from 'react-icons/fa';
+import { lancerAppelVideo } from '../../../components/AppelVideo';
 import { Link } from 'react-router-dom';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { uploadUrl } from '../../../services/api';
@@ -187,7 +188,14 @@ export default function ListeConsultations({ surtitre, titre, description, charg
                       </span>
                     </td>
                     <td>
-                      <Link to={`/medecin/consultations/${x.id}`} className={`${x.terminee ? c.secondaire : c.principal} ${s.action}`}>
+                      <div className={c.actions} style={{ justifyContent: 'center' }}>
+                        {/* Téléconsultation pas encore terminée : appel vidéo avec le patient / l'infirmier·ère */}
+                        {x.teleconsultation && !x.terminee && (
+                          <button type="button" className={`${c.secondaire} ${s.action}`} onClick={() => lancerAppelVideo(x.id)}>
+                            <FaPhoneAlt aria-hidden="true" /> {x.appelEnCours ? 'Rejoindre' : 'Appeler'}
+                          </button>
+                        )}
+                        <Link to={`/medecin/consultations/${x.id}`} className={`${x.terminee ? c.secondaire : c.principal} ${s.action}`}>
                         {x.terminee ? (
                           <>
                             <FaEye aria-hidden="true" /> Voir
@@ -197,7 +205,8 @@ export default function ListeConsultations({ surtitre, titre, description, charg
                             <FaPlay aria-hidden="true" /> Consulter
                           </>
                         )}
-                      </Link>
+                        </Link>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
