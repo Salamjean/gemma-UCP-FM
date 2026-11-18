@@ -100,6 +100,88 @@
   cursor: pointer;
 }
 
+/* Réattribution : en interne / en externe, puis service (et hôpital en externe) sur une ligne */
+.porteeLigne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.porteeLigne em,
+.choixChamp em {
+  font-style: normal;
+  color: #c4213f;
+}
+
+.choixUn,
+.choixDeux {
+  display: grid;
+  gap: 10px;
+}
+
+.choixDeux {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.choixTrois {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.choixChamp .facultatif {
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--dash-muted);
+}
+
+.choixChamp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.champFixe {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  background: #f6f8fc;
+  color: var(--dash-text);
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.champBloque {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px dashed #dfe4ee;
+  border-radius: 10px;
+  color: var(--dash-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+@media (max-width: 560px) {
+  .choixDeux,
+  .choixTrois {
+    grid-template-columns: 1fr;
+  }
+}
+
 .listeEntete {
   display: flex;
   align-items: center;

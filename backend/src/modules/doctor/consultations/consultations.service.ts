@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ajouterDocuments, listerDocuments, lireDocument, supprimerDocument, type DocumentPrive } from '../../../common/documents-prives';
@@ -581,7 +581,28 @@ export class DoctorConsultationsService {
             d.id,
           ])
         : [];
+    // Télé-expertise issue d'une vraie consultation : la saisie du demandeur pré-remplit le formulaire de l'expert
+    // (tant qu'il n'a rien enregistré ; il peut tout modifier)
+    const avecConsultationRecue = !!recue && (Number(recue.urgence) === 1 || Number(recue.programmation_directe) !== 1);
+    const reprise = avecConsultationRecue && !c.registre_id && Number(c.status) !== 1 ? await this.repriseOrigine(Number(recue.consultation_origine_id)) : null;
+    const [demandeur] = reprise
+      ? await this.db.query(
+          `SELECT du.name AS d_nom, du.prenom AS d_prenom, iu.name AS i_nom, iu.prenom AS i_prenom
+             FROM consultations o
+             LEFT JOIN doctors od ON od.id = o.doctor_id LEFT JOIN users du ON du.id = od.user_id
+             LEFT JOIN infirmiers oi ON oi.id = o.infirmier_id LEFT JOIN users iu ON iu.id = oi.user_id
+            WHERE o.id = ? LIMIT 1`,
+          [recue.consultation_origine_id],
+        )
+      : [];
+    const nomDemandeur = demandeur
+      ? nom(demandeur.d_nom, demandeur.d_prenom)
+        ? `Dr ${String(nom(demandeur.d_nom, demandeur.d_prenom)).replace(/^dr\.?\s*/i, '')}`
+        : nom(demandeur.i_nom, demandeur.i_prenom)
+      : null;
     return {
+      /** Télé-expertise reçue : saisie de la consultation du demandeur reprise dans le formulaire */
+      repriseExpertise: reprise ? { par: nomDemandeur } : null,
       /** Télé-expertise reçue : consultation d'origine et résultat déjà envoyé ou non */
       expertiseRecue: recue
         ? {
@@ -690,6 +711,8 @@ export class DoctorConsultationsService {
         arret: arret ? { dateDebut: dateIso(arret.date_debut), dateFin: dateIso(arret.date_fin), nbJour: Number(arret.nb_jour) } : null,
         modeSortie: issue && LIBELLES_ISSUE[issue] ? issue : null,
         justification: texte(c.issue_consultation_justification),
+        // Télé-expertise reçue : saisie de la consultation du demandeur (modifiable par l'expert)
+        ...(reprise ?? {}),
         // Saisie de l'infirmier·ère (envoi au médecin) : reprise telle quelle, sauf l'issue
         ...(brouillon ?? {}),
       },
@@ -731,6 +754,92 @@ export class DoctorConsultationsService {
     );
     await this.db.query('DELETE FROM consultations WHERE id = ? AND status = 0 LIMIT 1', [c.id]);
     return { success: true, message: 'Consultation annulée.' };
+  }
+
+  /** Champs du formulaire curatif ↔ colonnes de registre_consultation_curatives */
+  private static readonly CHAMPS_CURATIFS: [string, string][] = [
+    ['motif', 'motif_consultation'],
+    ['hta', 'hta'],
+    ['alcool', 'alcool'],
+    ['tabac', 'tabac'],
+    ['drepanocytaire', 'drepanocytaire'],
+    ['traitementMedicamenteux', 'traitement_medicamenteux'],
+    ['traitementAnterieur', 'traitement_medicamenteux_anterieur'],
+    ['antecedentMedical', 'antecedent_medical'],
+    ['autreAntecedentMedical', 'autre_antecedent_medical'],
+    ['antecedentChirurgical', 'antecedent_chirurgical'],
+    ['nomOperation', 'nom_operation'],
+    ['autreAntecedentChirurgical', 'autre_antecedent_chirurgical'],
+    ['grossesse', 'en_cours_de_grossesse'],
+    ['ddr', 'ddr'],
+    ['descriptionGrossesse', 'description_grossesse'],
+    ['poids', 'poids'],
+    ['taille', 'taille'],
+    ['imc', 'imc'],
+    ['temperature', 'temperature'],
+    ['tension', 'ta'],
+    ['pouls', 'pouls'],
+    ['saturation', 'saturation_oxygene'],
+    ['glycemieAJeun', 'glycemie_a_jeun'],
+    ['glycemieNonAJeun', 'glycemie_non_a_jeun'],
+    ['frequenceRespiratoire', 'frequence_respiratoire'],
+    ['perimetreBrachial', 'perimetre_brachial'],
+    ['perimetreCranien', 'perimetre_cranien'],
+    ['zscore', 'zcore'],
+    ['tuberculose', 'tuberculose'],
+    ['examenPhysique', 'examen_physique'],
+    ['diagnostic', 'diagnostic_retenu'],
+    ['autresPathologies', 'autre_pathologie_associee'],
+    ['tdrPaludisme', 'tdr_paludisme'],
+    ['goutteEpaisse', 'goutte_epaise'],
+    ['mildaEligible', 'milda_enfant_eligible'],
+    ['mildaRemise', 'remise_milda_enfant'],
+    ['cdipPropose', 'cdip_propose'],
+    ['cdipRealise', 'cdip_realise'],
+    ['codeDepistage', 'code_depistage_client'],
+  ];
+
+  /**
+   * Télé-expertise reçue : saisie de la consultation d'ORIGINE (médecin ou infirmier·ère demandeur) —
+   * anamnèse, constantes, examen, diagnostic, prescriptions et examens demandés — reprise dans le formulaire
+   * de l'expert, qui peut la modifier. Valeurs vides ignorées. L'issue, la justification et l'arrêt de travail ne sont pas repris.
+   */
+  private async repriseOrigine(origineId: number): Promise<Record<string, unknown> | null> {
+    const [[cur], prescriptions, examens] = await Promise.all([
+      this.db.query(
+        `SELECT rc.* FROM registres r
+           JOIN registre_consultation_curatives rc ON rc.id = (SELECT MAX(id) FROM registre_consultation_curatives WHERE registre_id = r.id)
+          WHERE r.id = (SELECT MAX(id) FROM registres WHERE consultation_id = ?) LIMIT 1`,
+        [origineId],
+      ),
+      this.db.query(
+        `SELECT pr.drug_id, dr.name, dr.unite, pr.quantity, pr.dosage, pr.duration, pr.route_administration, pr.health_dietetic_advice
+           FROM ordonnances o JOIN prescriptions pr ON pr.ordonnance_id = o.id LEFT JOIN drugs dr ON dr.id = pr.drug_id
+          WHERE o.consultation_id = ? AND o.type = 'externe' AND o.deleted_at IS NULL ORDER BY pr.id`,
+        [origineId],
+      ),
+      this.db.query('SELECT e.nature_examen FROM bulletin_examens b JOIN examens e ON e.bulletin_examen_id = b.id WHERE b.consultation_id = ? ORDER BY e.id', [origineId]),
+    ]);
+    const reprise: Record<string, unknown> = {};
+    if (cur) for (const [cle, colonne] of DoctorConsultationsService.CHAMPS_CURATIFS) {
+      const x = texte(cur[colonne]);
+      if (x) reprise[cle] = x;
+    }
+    if (prescriptions.length) {
+      reprise.medicaments = prescriptions.map((p: Ligne) => ({
+        drugId: Number(p.drug_id),
+        nom: texte(p.name) ?? `Médicament #${p.drug_id}`,
+        unite: texte(p.unite),
+        quantite: p.quantity !== null ? Number(p.quantity) : 1,
+        posologie: texte(p.dosage),
+        duree: texte(p.duration),
+        voie: texte(p.route_administration),
+        conseil: texte(p.health_dietetic_advice),
+      }));
+    }
+    const ex = examens.map((e: Ligne) => String(e.nature_examen ?? '')).filter(Boolean);
+    if (ex.length) reprise.examens = ex;
+    return Object.keys(reprise).length ? reprise : null;
   }
 
   /** Saisie enregistrée par « Envoyer au médecin » (sans l'issue ni la justification) */
@@ -823,10 +932,11 @@ export class DoctorConsultationsService {
         `SELECT fr.type, DATE_FORMAT(fr.date_prevue, '%Y-%m-%d') AS date_prevue, TIME_FORMAT(fr.heure_prevue, '%H:%i') AS heure_prevue,
                 fr.urgence, DATE_FORMAT(fr.resultat_le, '%Y-%m-%dT%H:%i:%sZ') AS resultat_le,
                 rs.libelle AS service_externe, ds.libelle AS service_destinataire,
-                du.name, du.prenom, dh.label AS hopital, dest.status, dest.is_call_active,
+                du.name, du.prenom, COALESCE(dh.label, th.label) AS hopital, fr.diffusee, dest.status, dest.is_call_active,
                 DATE_FORMAT(dest.date_consultation, '%Y-%m-%d') AS date_destination
            FROM fm_references fr
            LEFT JOIN services rs ON rs.id = fr.service_id
+           LEFT JOIN hospitals th ON th.id = fr.hospital_destination_id
            LEFT JOIN doctors dd ON dd.id = fr.doctor_destination_id
            LEFT JOIN users du ON du.id = dd.user_id
            LEFT JOIN hospitals dh ON dh.id = dd.hospital_id
@@ -844,21 +954,27 @@ export class DoctorConsultationsService {
         urgente: Number(r.urgence) === 1,
         /** Résultat de l'expert reçu (onglet « Résultats d'expertise ») */
         resultatLe: texte(r.resultat_le),
-        service: texte(externe ? r.service_externe : r.service_destinataire),
+        service: texte(r.service_externe) ?? texte(r.service_destinataire),
         date: texte(r.date_prevue) ?? texte(r.date_destination),
         heure: texte(r.heure_prevue),
-        medecin: dr(r.name, r.prenom),
-        hopital: texte(r.hopital),
-        // Externe pas encore prise : en attente qu'un médecin du service la prenne en charge
-        etat: r.resultat_le ? 'Résultat reçu' : externe && !r.name ? 'En attente de prise en charge' : etat(r),
+        // Envoyée au service, pas encore prise : tous les médecins du service
+        medecin: dr(r.name, r.prenom) ?? (Number(r.diffusee) === 1 ? 'Tous les médecins du service' : null),
+        hopital: texte(r.hopital) ?? (externe && Number(r.diffusee) === 1 ? 'Hôpitaux de la DMHP' : null),
+        // Envoyée au service, pas encore prise : en attente qu'un médecin du service la prenne en charge
+        etat: r.resultat_le ? 'Réponse reçue' : !r.name ? 'En attente de prise en charge' : etat(r),
       };
     }
     if (issue === 'teleconsultation' || issue === 'urgence') {
       // Consultation créée au même enregistrement (même patient, juste après, motif posé par l'enregistrement)
       const [x] = await this.db.query(
         `SELECT n.status, n.is_call_active, n.doctor_id, DATE_FORMAT(n.desired_date, '%Y-%m-%d') AS desired_date, n.desired_time,
-                du.name, du.prenom, dh.label AS hopital, ds.libelle AS service
+                du.name, du.prenom, COALESCE(dh.label, th.label) AS hopital, COALESCE(ds.libelle, ts.libelle) AS service,
+                td.consultation_id AS diffusee, td.type AS portee
            FROM consultations n
+           -- Téléconsultation envoyée au service (sans médecin choisi)
+           LEFT JOIN fm_teleconsultations_diffusees td ON td.consultation_id = n.id
+           LEFT JOIN services ts ON ts.id = td.service_id
+           LEFT JOIN hospitals th ON th.id = td.hospital_destination_id
            LEFT JOIN doctors dd ON dd.id = n.doctor_id
            LEFT JOIN users du ON du.id = dd.user_id
            LEFT JOIN hospitals dh ON dh.id = dd.hospital_id
@@ -877,10 +993,10 @@ export class DoctorConsultationsService {
         service: texte(x?.service),
         date: texte(x?.desired_date),
         heure: texte(x?.desired_time)?.slice(0, 5) ?? null,
-        // Urgence pas encore décrochée : pas de médecin
-        medecin: x ? (dr(x.name, x.prenom) ?? (issue === 'urgence' ? 'Pas encore décroché' : null)) : null,
-        hopital: texte(x?.hopital),
-        etat: etat(x),
+        // Urgence pas encore décrochée : pas de médecin ; téléconsultation envoyée au service : pas encore prise
+        medecin: x ? (dr(x.name, x.prenom) ?? (issue === 'urgence' ? 'Pas encore décroché' : x.diffusee ? 'Tous les médecins du service' : null)) : null,
+        hopital: texte(x?.hopital) ?? (x?.diffusee && x.portee === 'externe' ? 'Hôpitaux de la DMHP' : null),
+        etat: x?.diffusee && !x.doctor_id && Number(x.status) !== 1 ? 'En attente de prise en charge' : etat(x),
       };
     }
     return null;
@@ -927,8 +1043,9 @@ export class DoctorConsultationsService {
     if (!this.lisible(c, d)) {
       if (d.role === 'infirmier') throw new ForbiddenException("Cette consultation n'est pas attribuée à votre compte.");
       // Patient référé : le médecin destinataire (interne) ou tout médecin (externe) voit les documents prescrits
-      const [ref] = await this.db.query('SELECT type, doctor_destination_id FROM fm_references WHERE consultation_origine_id = ? LIMIT 1', [consultationId]);
-      const autorise = ref && (ref.type === 'externe' || Number(ref.doctor_destination_id) === Number(d.id));
+      const [ref] = await this.db.query('SELECT type, diffusee, doctor_destination_id FROM fm_references WHERE consultation_origine_id = ? LIMIT 1', [consultationId]);
+      // Envoyée au service (interne ou externe) : visible par les médecins sollicités ; sinon seulement le destinataire
+      const autorise = ref && (Number(ref.diffusee) === 1 || Number(ref.doctor_destination_id) === Number(d.id));
       if (!autorise) throw new ForbiddenException("Cette consultation n'est pas attribuée à votre compte.");
     }
 
@@ -1080,6 +1197,214 @@ export class DoctorConsultationsService {
     return rows.map((r) => ({ id: Number(r.id), libelle: String(r.libelle), hopitaux: Number(r.nb_hopitaux) }));
   }
 
+  /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service (hôpital facultatif) */
+  async hopitauxService(userId: number, serviceId: number, role: 'doctor' | 'infirmier' = 'doctor') {
+    await this.acteur(userId, role);
+    const rows: Ligne[] = await this.db.query(
+      `SELECT DISTINCT h.id, COALESCE(NULLIF(h.label, ''), h.reference) AS nom
+         FROM service_hospitals sh
+         JOIN hospitals h ON h.id = sh.hospital_id AND h.is_ucp_fm = 1 AND h.deleted_at IS NULL
+        WHERE sh.service_id = ? AND sh.status = 0
+        ORDER BY nom`,
+      [serviceId],
+    );
+    return rows.map((r) => ({ id: Number(r.id), nom: String(r.nom ?? `Hôpital ${r.id}`) }));
+  }
+
+  /**
+   * Télé-expertise en externe : médecins d'un hôpital dans un service (médecin facultatif),
+   * avec leur disponibilité à la date et l'heure de la prise en charge (sinon maintenant).
+   */
+  async medecinsService(userId: number, serviceId: number, hospitalId: number, role: 'doctor' | 'infirmier' = 'doctor', date?: string, heure?: string) {
+    const a = await this.acteur(userId, role);
+    const moi = role === 'doctor' ? Number(a.id) : 0;
+    const rows: Ligne[] = await this.db.query(
+      `SELECT dc.id, u.name, u.prenom, s.libelle AS service, dc.service_hospital_id, dc.type_agent_id
+         FROM doctors dc
+         JOIN users u ON u.id = dc.user_id
+         JOIN service_hospitals sh ON sh.id = dc.service_hospital_id
+         JOIN services s ON s.id = sh.service_id
+        WHERE dc.hospital_id = ? AND sh.service_id = ? AND dc.id <> ? AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL
+        ORDER BY u.name`,
+      [hospitalId, serviceId, moi],
+    );
+    const maintenant = DoctorConsultationsService.maintenantLocal();
+    const moment = this.tele.momentValide(date, heure) ?? { date: maintenant.date, heure: maintenant.heure };
+    const dispos = rows.length ? await this.tele.medecinsDisponibles(hospitalId, moment.date, moment.heure) : [];
+    return rows.map((r) => {
+      const x = dispos.find((m) => m.id === Number(r.id));
+      return {
+        id: Number(r.id),
+        nom: nom(r.name, r.prenom) ?? '—',
+        service: texte(r.service) ?? 'Service non précisé',
+        serviceId: r.service_hospital_id ? Number(r.service_hospital_id) : null,
+        sageFemme: Number(r.type_agent_id) === 2,
+        enService: !!x?.disponible,
+        creneau: x?.disponible ? (x.creneau ?? null) : null,
+      };
+    });
+  }
+
+  /**
+   * Destinataire d'une télé-expertise ou d'une téléconsultation : SERVICE obligatoire, médecin facultatif.
+   *   - interne : service de l'hôpital du demandeur (service_hospitals.id) ;
+   *   - externe : service de la DMHP (services.id), hôpital facultatif, médecin seulement avec un hôpital.
+   * Avec un médecin : actif, du service, dans l'hôpital visé, pas soi-même, disponible à la date et l'heure.
+   * Sans médecin : envoyée à tout le service (au moins un médecin actif doit pouvoir la recevoir).
+   */
+  private async resoudreCible(
+    userId: number,
+    role: 'doctor' | 'infirmier',
+    d: Ligne,
+    infirmier: boolean,
+    o: { externe: boolean; serviceHospitalId?: number; serviceId?: number; hopitalId?: number; medecinId?: number; date: string; heure: string; quoi: string },
+  ) {
+    let serviceId: number;
+    let serviceNom: string | null;
+    let hopitalId: number | null = null;
+    let hopitalNom: string | null = null;
+    if (!o.externe) {
+      if (!o.serviceHospitalId) throw new BadRequestException(`Choisissez le service auquel vous adressez la ${o.quoi}.`);
+      const [sv] = await this.db.query(
+        `SELECT sh.service_id, s.libelle FROM service_hospitals sh JOIN services s ON s.id = sh.service_id
+          WHERE sh.id = ? AND sh.hospital_id = ? LIMIT 1`,
+        [o.serviceHospitalId, d.hospital_id],
+      );
+      if (!sv) throw new BadRequestException('Ce service n’existe pas dans votre hôpital.');
+      serviceId = Number(sv.service_id);
+      serviceNom = texte(sv.libelle);
+      hopitalId = Number(d.hospital_id);
+    } else {
+      if (!o.serviceId) throw new BadRequestException(`Choisissez le service auquel vous adressez la ${o.quoi}.`);
+      const sv = (await this.servicesExternes(userId, role)).find((x) => x.id === Number(o.serviceId));
+      if (!sv) throw new BadRequestException('Ce service n’existe dans aucun hôpital de la DMHP.');
+      serviceId = sv.id;
+      serviceNom = sv.libelle;
+      if (o.hopitalId) {
+        const h = (await this.hopitauxService(userId, sv.id, role)).find((x) => x.id === Number(o.hopitalId));
+        if (!h) throw new BadRequestException(`Cet hôpital de la DMHP n’a pas de service ${sv.libelle}.`);
+        hopitalId = h.id;
+        hopitalNom = h.nom;
+      } else if (o.medecinId) {
+        throw new BadRequestException('Choisissez l’hôpital du médecin.');
+      }
+    }
+
+    let medecin: Ligne | null = null;
+    if (o.medecinId) {
+      const [m] = await this.db.query(
+        `SELECT dc.id, dc.hospital_id, dc.service_hospital_id, u.name, u.prenom,
+                (SELECT ph.id FROM prestation_hospitals ph JOIN prestation_services ps ON ps.id = ph.prestation_service_id
+                  WHERE ph.service_hospital_id = dc.service_hospital_id AND ph.status = 0
+                  ORDER BY (ps.libelle LIKE 'Consultation%') DESC, ph.id LIMIT 1) AS prestation_id
+           FROM doctors dc JOIN users u ON u.id = dc.user_id
+           JOIN service_hospitals sh ON sh.id = dc.service_hospital_id
+          WHERE dc.id = ? AND dc.hospital_id = ? AND sh.service_id = ? AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL LIMIT 1`,
+        [o.medecinId, hopitalId, serviceId],
+      );
+      if (!m) throw new BadRequestException(`Médecin introuvable ou inactif dans le service ${serviceNom ?? 'choisi'}.`);
+      if (!infirmier && Number(m.id) === Number(d.id)) throw new BadRequestException(`Vous ne pouvez pas vous adresser la ${o.quoi} à vous-même.`);
+      const [dispo] = (await this.tele.medecinsDisponibles(Number(m.hospital_id), o.date, o.heure)).filter((x) => x.id === Number(m.id));
+      if (!dispo?.disponible) throw new BadRequestException(`Ce médecin n’est pas disponible à cette date et cette heure${dispo?.raison ? ` (${String(dispo.raison).toLowerCase()})` : ''}.`);
+      medecin = m;
+    } else {
+      const [{ n }] = await this.db.query(
+        `SELECT COUNT(*) AS n FROM doctors dc
+           JOIN service_hospitals sh ON sh.id = dc.service_hospital_id
+           JOIN hospitals h ON h.id = dc.hospital_id AND h.deleted_at IS NULL ${o.externe ? 'AND h.is_ucp_fm = 1' : ''}
+          WHERE sh.service_id = ? AND (? IS NULL OR dc.hospital_id = ?) AND dc.id <> ?
+            AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL`,
+        [serviceId, hopitalId, hopitalId, infirmier ? 0 : d.id],
+      );
+      if (!Number(n)) throw new BadRequestException(`Aucun médecin actif du service ${serviceNom ?? 'choisi'} ne peut recevoir cette ${o.quoi}.`);
+    }
+    return { medecin, serviceId, serviceNom, hopitalId, hopitalNom, externe: o.externe };
+  }
+
+  /** Téléconsultation envoyée au service, visible par un médecin : son service, son hôpital (ou toute la DMHP), pas demandée par lui */
+  private static readonly TELE_POUR_MOI = `td.service_id = ? AND (td.hospital_destination_id IS NULL OR td.hospital_destination_id = ?) AND COALESCE(td.doctor_origine_id, 0) <> ?`;
+
+  private async monServiceGlobal(doctorId: unknown): Promise<number> {
+    const [r] = await this.db.query('SELECT sh.service_id FROM doctors dc LEFT JOIN service_hospitals sh ON sh.id = dc.service_hospital_id WHERE dc.id = ? LIMIT 1', [doctorId]);
+    return Number(r?.service_id ?? 0);
+  }
+
+  /**
+   * MÉDECIN > TÉLÉMÉDECINE : téléconsultations envoyées à mon service (sans médecin choisi), pas encore prises.
+   * Dès qu'un médecin la prend, elle disparaît chez les autres.
+   */
+  async teleconsultationsDisponibles(userId: number) {
+    const d = await this.medecin(userId);
+    const rows: Ligne[] = await this.db.query(
+      `SELECT c.id, c.created_at, c.motif_consultation, td.type,
+              DATE_FORMAT(c.desired_date, '%Y-%m-%d') AS date_prevue, TIME_FORMAT(c.desired_time, '%H:%i') AS heure_prevue,
+              s.libelle AS service, h.label AS hopital,
+              ou.name AS origine_nom, ou.prenom AS origine_prenom, iu.name AS inf_nom, iu.prenom AS inf_prenom,
+              p.id AS patient_id, p.code_patient, p.gender, p.birth_date, p.img_url, pu.name AS patient_nom, pu.prenom AS patient_prenom
+         FROM fm_teleconsultations_diffusees td
+         JOIN consultations c ON c.id = td.consultation_id
+         JOIN patients p ON p.id = c.patient_id JOIN users pu ON pu.id = p.user_id
+         LEFT JOIN services s ON s.id = td.service_id
+         LEFT JOIN hospitals h ON h.id = c.hospital_id
+         LEFT JOIN doctors od ON od.id = td.doctor_origine_id LEFT JOIN users ou ON ou.id = od.user_id
+         LEFT JOIN infirmiers oi ON oi.id = td.infirmier_origine_id LEFT JOIN users iu ON iu.id = oi.user_id
+        WHERE c.doctor_id IS NULL AND c.status = 0 AND c.deleted_at IS NULL AND ${DoctorConsultationsService.TELE_POUR_MOI}
+        ORDER BY c.desired_date ASC, c.desired_time ASC, c.id ASC
+        LIMIT 100`,
+      [await this.monServiceGlobal(d.id), d.hospital_id, d.id],
+    );
+    return rows.map((r) => {
+      const medecin = nom(r.origine_nom, r.origine_prenom);
+      const inf = nom(r.inf_nom, r.inf_prenom);
+      return {
+        consultationId: Number(r.id),
+        externe: r.type === 'externe',
+        recueLe: r.created_at,
+        datePrevue: texte(r.date_prevue),
+        heurePrevue: texte(r.heure_prevue),
+        motif: texte(r.motif_consultation),
+        referePar: medecin ? `Dr ${medecin.replace(/^dr\.?\s*/i, '')}` : inf ? `${inf} (infirmier·ère)` : null,
+        hopital: texte(r.hopital),
+        service: texte(r.service),
+        patient: {
+          id: Number(r.patient_id),
+          code: texte(r.code_patient) ?? '—',
+          nom: nom(r.patient_nom, r.patient_prenom) ?? '—',
+          genre: texte(r.gender),
+          dateNaissance: texte(r.birth_date),
+          imgUrl: texte(r.img_url),
+        },
+      };
+    });
+  }
+
+  /** Prise en charge d'une téléconsultation envoyée au service : le premier qui la prend l'obtient */
+  async prendreTeleconsultation(userId: number, consultationId: number) {
+    const d = await this.medecin(userId);
+    const [t] = await this.db.query(
+      `SELECT td.consultation_id, td.infirmier_origine_id, c.doctor_id FROM fm_teleconsultations_diffusees td
+         JOIN consultations c ON c.id = td.consultation_id AND c.status = 0 AND c.deleted_at IS NULL
+        WHERE td.consultation_id = ? AND ${DoctorConsultationsService.TELE_POUR_MOI} LIMIT 1`,
+      [consultationId, await this.monServiceGlobal(d.id), d.hospital_id, d.id],
+    );
+    if (!t) throw new NotFoundException('Téléconsultation introuvable ou non adressée à votre service.');
+    if (t.doctor_id) throw new ConflictException('Cette téléconsultation a déjà été prise en charge par un autre médecin.');
+    // Attribution : un seul médecin peut la prendre ; l'infirmier·ère demandeur est remis sur la consultation
+    const pris = await this.db.query(
+      'UPDATE consultations SET doctor_id = ?, infirmier_id = COALESCE(infirmier_id, ?), updated_at = ? WHERE id = ? AND doctor_id IS NULL AND status = 0',
+      [d.id, t.infirmier_origine_id ?? null, laravelNow(), consultationId],
+    );
+    if (Number(pris.affectedRows) !== 1) throw new ConflictException('Cette téléconsultation vient d’être prise en charge par un autre médecin.');
+    await this.db.query('UPDATE fm_teleconsultations_diffusees SET pris_par = ?, pris_le = UTC_TIMESTAMP() WHERE consultation_id = ?', [d.id, consultationId]);
+    return { success: true, message: 'Téléconsultation prise en charge : elle est dans vos télémédecines.', consultationId };
+  }
+
+  /** Message « envoyée à tous les médecins du service … » */
+  private static messageDiffusion(quoi: string, c: { externe: boolean; serviceNom: string | null; hopitalNom: string | null }) {
+    const ou = !c.externe ? 'de votre hôpital' : c.hopitalNom ? `de ${c.hopitalNom}` : 'des hôpitaux de la DMHP';
+    return `${quoi} envoyée à tous les médecins du service ${c.serviceNom ?? ''} ${ou} : le premier qui la prend en charge la reçoit.`.replace(/\s+/g, ' ');
+  }
+
   /** Issues qui autorisent des documents joints */
   static readonly ISSUES_REFERENCE = ['refere-interne', 'refere-externe'];
 
@@ -1161,13 +1486,14 @@ export class DoctorConsultationsService {
            (fr.echeance IS NOT NULL AND fr.echeance < UTC_TIMESTAMP()) AS echeance_depassee,
            dest.status AS destination_status,
            o.code_consultation, p.id AS patient_id, p.code_patient, p.gender, p.birth_date, p.img_url, pu.name AS patient_nom, pu.prenom AS patient_prenom,
-           COALESCE(rs.libelle, ds.libelle) AS service, du.name AS expert_nom, du.prenom AS expert_prenom, dh.label AS expert_hopital,
+           COALESCE(rs.libelle, ds.libelle) AS service, du.name AS expert_nom, du.prenom AS expert_prenom, COALESCE(dh.label, th.label) AS expert_hopital,
            (SELECT COUNT(*) FROM fm_documents_references dr WHERE dr.consultation_id = fr.consultation_origine_id AND dr.nature = 'resultat') AS nb_documents
       FROM fm_references fr
       JOIN consultations o ON o.id = fr.consultation_origine_id AND o.deleted_at IS NULL
       JOIN patients p ON p.id = o.patient_id
       JOIN users pu ON pu.id = p.user_id
       LEFT JOIN services rs ON rs.id = fr.service_id
+      LEFT JOIN hospitals th ON th.id = fr.hospital_destination_id
       LEFT JOIN consultations dest ON dest.id = fr.consultation_destination_id
       LEFT JOIN doctors dd ON dd.id = COALESCE(fr.resultat_par, fr.doctor_destination_id)
       LEFT JOIN users du ON du.id = dd.user_id
@@ -1465,44 +1791,48 @@ export class DoctorConsultationsService {
       dto.referenceHeure = maintenant.heure;
     }
 
-    // Référé en interne : le médecin destinataire est obligatoire (même hôpital, actif, pas soi-même)
+    /*
+     * Télé-expertise : SERVICE obligatoire, médecin facultatif.
+     *   - interne : service de l'hôpital ; avec un médecin → adressée à lui ; sans → à tous les médecins du service de l'hôpital ;
+     *   - externe : service de la DMHP, hôpital facultatif, médecin facultatif (seulement avec un hôpital) ;
+     *               sans médecin → tous les médecins du service de l'hôpital choisi, ou de tous les hôpitaux de la DMHP.
+     *   Envoyée au service (diffusee) : le premier médecin qui la prend en charge l'obtient, elle disparaît chez les autres.
+     */
     let destinataire: Ligne | null = null;
-    if (dto.modeSortie === 'refere-interne') {
-      if (!dto.medecinReferenceId) throw new BadRequestException('Veuillez choisir le médecin à qui vous référez le patient.');
-      const [m] = await this.db.query(
-        `SELECT dc.id, dc.service_hospital_id, u.name, u.prenom,
-                (SELECT ph.id FROM prestation_hospitals ph JOIN prestation_services ps ON ps.id = ph.prestation_service_id
-                  WHERE ph.service_hospital_id = dc.service_hospital_id AND ph.status = 0
-                  ORDER BY (ps.libelle LIKE 'Consultation%') DESC, ph.id LIMIT 1) AS prestation_id
-           FROM doctors dc JOIN users u ON u.id = dc.user_id
-          WHERE dc.id = ? AND dc.hospital_id = ? AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL LIMIT 1`,
-        [dto.medecinReferenceId, d.hospital_id],
-      );
-      if (!m) throw new BadRequestException('Médecin introuvable ou inactif dans votre hôpital.');
-      if (!infirmier && Number(m.id) === Number(d.id)) throw new BadRequestException('Vous ne pouvez pas vous référer le patient à vous-même.');
-      // Date et heure de la prise en charge : à venir, et le médecin doit être disponible à ce moment
+    let serviceReference: number | null = null;
+    let serviceReferenceNom: string | null = null;
+    let hopitalReference: number | null = null;
+    let hopitalReferenceNom: string | null = null;
+    const expertise = dto.modeSortie === 'refere-interne' || dto.modeSortie === 'refere-externe';
+    if (expertise) {
+      // Date et heure de la prise en charge : à venir, dans le délai du type de demande
       const moment = this.tele.momentValide(dto.referenceDate, dto.referenceHeure);
       if (!moment?.heure) throw new BadRequestException('Renseignez la date et l’heure de la prise en charge.');
       this.verifierDelaiExpertise(moment.date, moment.heure, !!dto.referenceUrgente);
-      const [dispo] = (await this.tele.medecinsDisponibles(Number(d.hospital_id), moment.date, moment.heure)).filter((x) => x.id === Number(m.id));
-      if (!dispo?.disponible) throw new BadRequestException(`Ce médecin n’est pas disponible à cette date et cette heure${dispo?.raison ? ` (${String(dispo.raison).toLowerCase()})` : ''}.`);
-      destinataire = m;
+      const cible = await this.resoudreCible(userId, role, d, infirmier, {
+        externe: dto.modeSortie === 'refere-externe',
+        serviceHospitalId: dto.referenceServiceHospitalId,
+        serviceId: dto.referenceServiceId,
+        hopitalId: dto.referenceHopitalId,
+        medecinId: dto.medecinReferenceId,
+        date: moment.date,
+        heure: moment.heure,
+        quoi: 'télé-expertise',
+      });
+      destinataire = cible.medecin;
+      serviceReference = cible.serviceId;
+      serviceReferenceNom = cible.serviceNom;
+      hopitalReference = cible.hopitalId;
+      hopitalReferenceNom = cible.hopitalNom;
     }
 
-    // Télé-expertise en externe : service destinataire obligatoire (un des services des hôpitaux de la DMHP)
-    let serviceExterne: number | null = null;
-    if (dto.modeSortie === 'refere-externe') {
-      if (!dto.referenceServiceId) throw new BadRequestException('Choisissez le service auquel vous adressez la télé-expertise.');
-      const proposes = await this.servicesExternes(userId, role);
-      if (!proposes.some((x) => x.id === Number(dto.referenceServiceId))) throw new BadRequestException('Ce service n’existe dans aucun hôpital de la DMHP.');
-      serviceExterne = Number(dto.referenceServiceId);
-      const moment = this.tele.momentValide(dto.referenceDate, dto.referenceHeure);
-      if (!moment?.heure) throw new BadRequestException('Renseignez la date et l’heure de la prise en charge.');
-      this.verifierDelaiExpertise(moment.date, moment.heure, !!dto.referenceUrgente);
-    }
-
-    // Téléconsultation : médecin distant disponible à la date / l'heure choisies (pas dans le passé, pas soi-même)
+    /*
+     * Téléconsultation : même système que la télé-expertise — en interne (service de l'hôpital) ou en externe
+     * (service de la DMHP, hôpital facultatif) ; médecin facultatif : sans médecin, tous les médecins visés la reçoivent
+     * et le premier qui la prend en charge l'obtient. Date et heure à venir.
+     */
     let teleMedecin: { id: number; nom: string } | null = null;
+    let teleCible: Awaited<ReturnType<DoctorConsultationsService['resoudreCible']>> | null = null;
     if (dto.modeSortie === 'teleconsultation') {
       const moment = this.tele.momentValide(dto.teleDate, dto.teleHeure);
       if (!moment?.heure) throw new BadRequestException('Renseignez la date et l’heure de la téléconsultation.');
@@ -1512,17 +1842,24 @@ export class DoctorConsultationsService {
       if (moment.date < jour || (moment.date === jour && moment.heure < `${p2(n.getHours())}:${p2(n.getMinutes())}`)) {
         throw new BadRequestException('La date et l’heure de la téléconsultation ne peuvent pas être dans le passé.');
       }
-      if (!dto.teleMedecinId) throw new BadRequestException('Veuillez choisir le médecin de la téléconsultation.');
-      if (!infirmier && Number(dto.teleMedecinId) === Number(d.id)) throw new BadRequestException('Vous ne pouvez pas programmer une téléconsultation avec vous-même.');
-      const [m] = (await this.tele.medecinsDisponibles(null, moment.date, moment.heure)).filter((x) => x.id === Number(dto.teleMedecinId));
-      if (!m) throw new BadRequestException('Médecin introuvable ou inactif.');
-      if (!m.disponible) throw new BadRequestException(`Ce médecin n’est pas disponible à cette date et cette heure (${String(m.raison ?? '').toLowerCase()}).`);
-      teleMedecin = { id: m.id, nom: m.nom };
+      if (!dto.telePortee) throw new BadRequestException('Précisez si la téléconsultation est en interne ou en externe.');
+      teleCible = await this.resoudreCible(userId, role, d, infirmier, {
+        externe: dto.telePortee === 'externe',
+        serviceHospitalId: dto.teleServiceHospitalId,
+        serviceId: dto.teleServiceId,
+        hopitalId: dto.teleHopitalId,
+        medecinId: dto.teleMedecinId,
+        date: moment.date,
+        heure: moment.heure,
+        quoi: 'téléconsultation',
+      });
+      if (teleCible.medecin) teleMedecin = { id: Number(teleCible.medecin.id), nom: nom(teleCible.medecin.name, teleCible.medecin.prenom) ?? 'Médecin' };
     }
 
-    // Appel d'urgence : réservé à l'infirmier·ère (l'appel vidéo sonne chez les médecins de garde), 5 constantes obligatoires
+    // Appel d'urgence, 5 constantes obligatoires :
+    //   infirmier·ère → médecins de garde (service du patient + généralistes de la DMHP) ;
+    //   médecin → tous les médecins de SON service dans les hôpitaux de la DMHP (lui exclu)
     if (dto.modeSortie === 'urgence') {
-      if (!infirmier) throw new BadRequestException('L’appel d’urgence est lancé par l’infirmier·ère.');
       // Appel vidéo configuré ? Vérifié avant toute écriture (tables MyISAM : pas d'annulation possible)
       configLiveKit();
       const manque = (
@@ -1818,7 +2155,12 @@ export class DoctorConsultationsService {
       const [ra, rm, rj] = dto.referenceDate!.split('-');
       const prevu = `${rj}/${rm}/${ra} à ${dto.referenceHeure}`;
       const delai = dto.referenceUrgente ? 'télé-expertise urgente, réponse en moins de 30 min' : `prévu le ${prevu}`;
-      const motifReference = `Référé par ${auteur} (${delai}) : ${dto.justification ?? dto.motif}`.slice(0, 1000);
+      const externeDirect = dto.modeSortie === 'refere-externe';
+      const [hd] = externeDirect ? await this.db.query('SELECT label FROM hospitals WHERE id = ? LIMIT 1', [c.hospital_id ?? d.hospital_id]) : [undefined];
+      const hopitalAuteur = texte(hd?.label);
+      const motifReference = `${externeDirect ? 'Référé (externe)' : 'Référé'} par ${auteur}${externeDirect && hopitalAuteur ? ` — ${hopitalAuteur}` : ''} (${delai}) : ${dto.justification ?? dto.motif}`.slice(0, 1000);
+      // Hôpital du médecin destinataire (externe : un autre hôpital de la DMHP)
+      const hopitalDestination = Number(destinataire.hospital_id ?? c.hospital_id ?? d.hospital_id);
       // La consultation du destinataire est datée du jour prévu : elle apparaît ce jour-là dans ses patients du jour
       const resDestination = await this.db.query(
         `INSERT INTO consultations (code_consultation, date_consultation, hospital_id, patient_id, infirmier_id, doctor_id, prestation_hospital_id,
@@ -1828,9 +2170,10 @@ export class DoctorConsultationsService {
         [
           code,
           dto.referenceDate,
-          c.hospital_id ?? d.hospital_id,
+          hopitalDestination,
           c.patient_id,
-          c.infirmier_id ?? null,
+          // Infirmier·ère de l'hôpital du demandeur : seulement si le destinataire est dans le même hôpital
+          hopitalDestination === Number(c.hospital_id ?? d.hospital_id) ? (c.infirmier_id ?? null) : null,
           destinataire.id,
           prestationId ?? null,
           motifReference,
@@ -1846,12 +2189,20 @@ export class DoctorConsultationsService {
           now,
         ],
       );
-      await this.db.query(
-        "INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES ('Référence interne', ?, CURDATE(), ?, ?, ?)",
-        [c.hospital_id ?? d.hospital_id, c.patient_id, now, now],
-      );
+      await this.db.query('INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES (?, ?, CURDATE(), ?, ?, ?)', [
+        externeDirect ? 'Référence externe' : 'Référence interne',
+        hopitalDestination,
+        c.patient_id,
+        now,
+        now,
+      ]);
       destinationId = Number(resDestination.insertId);
       messageReference = `Télé-expertise demandée au Dr ${nomDestinataire.replace(/^dr\.?\s*/i, '')} pour le ${prevu} : elle apparaît dans sa Télémédecine.`;
+    } else if (expertise) {
+      // Envoyée au service : visible par tous ses médecins (de l'hôpital choisi, ou de la DMHP) jusqu'à la prise en charge
+      const cible =
+        dto.modeSortie === 'refere-interne' ? 'de votre hôpital' : hopitalReferenceNom ? `de ${hopitalReferenceNom}` : 'des hôpitaux de la DMHP';
+      messageReference = `Télé-expertise envoyée à tous les médecins du service ${serviceReferenceNom ?? ''} ${cible} : le premier qui la prend en charge la reçoit.`.replace(/\s+/g, ' ');
     }
 
     // 8 bis. Téléconsultation / appel d'urgence : nouvelle consultation du jour (comme le référé interne), constantes reprises
@@ -1860,6 +2211,10 @@ export class DoctorConsultationsService {
     let consultationSuivante: number | null = null;
     if (dto.modeSortie === 'teleconsultation' || dto.modeSortie === 'urgence') {
       const urgence = dto.modeSortie === 'urgence';
+      // Téléconsultation envoyée au service (aucun médecin choisi) : sans médecin ni infirmier tant qu'elle n'est pas prise
+      // (l'infirmier·ère demandeur est gardé dans fm_teleconsultations_diffusees et remis à la prise en charge)
+      const diffusee = !urgence && !teleMedecin;
+      const infirmierDemandeur = infirmier ? Number(d.id) : c.infirmier_id ? Number(c.infirmier_id) : null;
       const [[{ n: nb }]] = await Promise.all([this.db.query('SELECT COUNT(*) AS n FROM consultations WHERE patient_id = ?', [c.patient_id])]);
       const code = `CONSULT${String(c.code_patient ?? '').slice(2)}${Number(nb) + 1}`;
       const [presta] = c.prestation_hospital_id ? await this.db.query('SELECT prix FROM prestation_hospitals WHERE id = ?', [c.prestation_hospital_id]) : [undefined];
@@ -1875,8 +2230,8 @@ export class DoctorConsultationsService {
           code,
           c.hospital_id ?? d.hospital_id,
           c.patient_id,
-          infirmier ? d.id : (c.infirmier_id ?? null),
-          urgence ? null : teleMedecin!.id,
+          diffusee ? null : infirmierDemandeur,
+          urgence || diffusee ? null : teleMedecin!.id,
           c.prestation_hospital_id ?? null,
           motif,
           Number(presta?.prix ?? 0),
@@ -1906,7 +2261,17 @@ export class DoctorConsultationsService {
       );
       if (urgence) {
         appelUrgence = await lancerUrgence(this.db, userId, consultationSuivante, { observation: dto.justification });
-        messageTele = `Appel d’urgence lancé : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
+        messageTele = infirmier
+          ? `Appel d’urgence lancé : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`
+          : `Appel d’urgence lancé vers les médecins de votre service dans la DMHP : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
+      } else if (diffusee && teleCible) {
+        await this.db.query(
+          `INSERT INTO fm_teleconsultations_diffusees (consultation_id, type, service_id, hospital_destination_id, doctor_origine_id, infirmier_origine_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())`,
+          [consultationSuivante, teleCible.externe ? 'externe' : 'interne', teleCible.serviceId, teleCible.hopitalId, infirmier ? null : d.id, infirmierDemandeur],
+        );
+        const [a, mo, j] = dto.teleDate!.split('-');
+        messageTele = `${DoctorConsultationsService.messageDiffusion('Téléconsultation', teleCible)} Prévue le ${j}/${mo}/${a} à ${dto.teleHeure}.`;
       } else {
         const [a, mo, j] = dto.teleDate!.split('-');
         messageTele = `Téléconsultation programmée avec ${/^dr\.?\s/i.test(teleMedecin!.nom) ? teleMedecin!.nom : `Dr ${teleMedecin!.nom}`} le ${j}/${mo}/${a} à ${dto.teleHeure}.`;
@@ -1916,15 +2281,19 @@ export class DoctorConsultationsService {
     // 9. Référence (interne / externe) : suivie dans la table Gemma FM « fm_references »
     if (dto.modeSortie === 'refere-interne' || dto.modeSortie === 'refere-externe') {
       await this.db.query(
-        `INSERT INTO fm_references (type, service_id, date_prevue, heure_prevue, urgence, echeance, consultation_origine_id, consultation_destination_id, doctor_origine_id, doctor_destination_id, hospital_id, motif, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
-         ON DUPLICATE KEY UPDATE type = VALUES(type), service_id = VALUES(service_id), date_prevue = VALUES(date_prevue), heure_prevue = VALUES(heure_prevue),
+        `INSERT INTO fm_references (type, service_id, diffusee, hospital_destination_id, date_prevue, heure_prevue, urgence, echeance, consultation_origine_id, consultation_destination_id, doctor_origine_id, doctor_destination_id, hospital_id, motif, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+         ON DUPLICATE KEY UPDATE type = VALUES(type), service_id = VALUES(service_id), diffusee = VALUES(diffusee), hospital_destination_id = VALUES(hospital_destination_id),
+                                 date_prevue = VALUES(date_prevue), heure_prevue = VALUES(heure_prevue),
                                  urgence = VALUES(urgence), echeance = VALUES(echeance),
                                  consultation_destination_id = VALUES(consultation_destination_id),
                                  doctor_destination_id = VALUES(doctor_destination_id), motif = VALUES(motif), updated_at = UTC_TIMESTAMP()`,
         [
           dto.modeSortie === 'refere-externe' ? 'externe' : 'interne',
-          serviceExterne,
+          serviceReference,
+          // Sans médecin choisi : envoyée à tous les médecins du service (hôpital visé, ou toute la DMHP si NULL)
+          destinataire ? 0 : 1,
+          destinataire ? Number(destinataire.hospital_id) : hopitalReference,
           // Date / heure de prise en charge demandées (télé-expertise interne et externe)
           dto.referenceDate ?? null,
           dto.referenceHeure ?? null,

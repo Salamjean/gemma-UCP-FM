@@ -79,12 +79,12 @@ export const doctorSpace: RoleSpace = {
     },
     // Télé-expertises que j'ai demandées : délai et résultat joint par l'expert
     {
-      label: 'Résultats d’expertise',
+      label: 'Réponses d’expertise',
       icon: FaClipboardCheck,
       path: 'resultats-expertise',
       element: <ResultatsExpertiseMedecin />,
       badge: compterResultats,
-      hiddenPages: [{ label: 'Résultat', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseMedecin /> }],
+      hiddenPages: [{ label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseMedecin /> }],
     },
     // Référés : onglet retiré du menu (les télé-expertises sont dans Télémédecine) ; pages gardées pour les liens
     {
@@ -96,7 +96,7 @@ export const doctorSpace: RoleSpace = {
       hiddenPages: [
         { label: 'Référence', path: 'referes/:id', element: <RefereDetail /> },
         // Fin de consultation d'une télé-expertise : l'expert joint son résultat
-        { label: 'Joindre le résultat', path: 'referes/:id/resultat', element: <JoindreResultat /> },
+        { label: 'Joindre la réponse', path: 'referes/:id/resultat', element: <JoindreResultat /> },
       ],
     },
     // Déclarations : onglet retiré du menu ; pages gardées (certificat de naissance ouvert depuis le formulaire)

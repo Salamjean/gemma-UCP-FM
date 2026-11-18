@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { FaBolt, FaHospitalUser, FaRegClock, FaUserMd } from 'react-icons/fa';
+import { FaBolt, FaHospital, FaHospitalUser, FaRegClock, FaUserMd } from 'react-icons/fa';
 import SelectRecherche from '../../../../components/SelectRecherche/SelectRecherche';
 import type { MedecinReference } from '../../../../types';
 import { useEspaceConsultation } from './espace';
@@ -91,18 +91,27 @@ function ChampMoment({ moment, onMoment }: { moment: MomentReference; onMoment: 
 
 const nomAffiche = (m: MedecinReference) => (/^dr\.?\s/i.test(m.nom) || m.sageFemme ? m.nom : `Dr ${m.nom}`);
 
+/** Option « aucun médecin » : la télé-expertise part à tous les médecins du service */
+const TOUS_LES_MEDECINS = 'Tous les médecins du service';
+
 /**
  * CONSULTATION > ISSUE « TÉLÉ-EXPERTISE » EN INTERNE
- * Sur une ligne, dans l'ordre : 1. le service · 2. la date et l'heure de la prise en charge · 3. le médecin,
+ * Sur une ligne, dans l'ordre : 1. le service (obligatoire) · 2. la date et l'heure de la prise en charge · 3. le médecin (FACULTATIF),
  * choisi parmi ceux du service DISPONIBLES à ce moment (planning + permissions) · 4. les documents à partager.
+ * Sans médecin : tous les médecins du service de l'hôpital la reçoivent ; le premier qui la prend en charge l'obtient.
  */
 export default function ChoixMedecinReference({
+  serviceId,
+  onService,
   valeur,
   onChange,
   moment,
   onMoment,
   documents,
 }: {
+  /** Service de l'hôpital (service_hospitals.id) */
+  serviceId: number | null;
+  onService: (id: number | null) => void;
   valeur: number | null;
   onChange: (id: number | null) => void;
   moment: MomentReference;
@@ -115,7 +124,7 @@ export default function ChoixMedecinReference({
   const [tous, setTous] = useState<MedecinReference[] | null>(null);
   // Les mêmes, avec leur disponibilité au moment choisi
   const [aCeMoment, setACeMoment] = useState<MedecinReference[] | null>(null);
-  const [serviceId, setServiceId] = useState<number | null>(null);
+  const setServiceId = onService;
   const momentOk = momentReferenceValide(moment);
   // Urgente : disponibilités de maintenant ; programmée : à la date et l'heure choisies
   const effectif = momentEffectif(moment);
@@ -181,10 +190,10 @@ export default function ChoixMedecinReference({
 
         <ChampMoment moment={moment} onMoment={onMoment} />
 
-        {/* Médecin : ceux du service disponibles maintenant (urgente) ou à la date et l'heure choisies */}
+        {/* Médecin (facultatif) : ceux du service disponibles maintenant (urgente) ou à la date et l'heure choisies */}
         <div>
           <h3 className={s.sousTitre}>
-            <FaUserMd aria-hidden="true" /> Médecin <em className={s.requis}>*</em>
+            <FaUserMd aria-hidden="true" /> Médecin <small className={s.facultatif}>(facultatif)</small>
           </h3>
           {!pret ? (
             <div className={s.champBloqueTele}>{moment.urgente ? 'Service d’abord' : 'Service, date et heure d’abord'}</div>
@@ -195,7 +204,8 @@ export default function ChoixMedecinReference({
               options={disponibles.map((m) => ({ id: m.id, name: nomAffiche(m), detail: m.creneau ?? undefined }))}
               value={valeur}
               onChange={onChange}
-              placeholder={aCeMoment ? (disponibles.length ? '-- Choisir le médecin --' : 'Aucun médecin disponible à ce moment') : 'Chargement…'}
+              optionVide={TOUS_LES_MEDECINS}
+              placeholder={aCeMoment ? TOUS_LES_MEDECINS : 'Chargement…'}
               placeholderRecherche="Rechercher un médecin…"
               aucunResultat="Aucun médecin ne correspond"
             />
@@ -206,9 +216,10 @@ export default function ChoixMedecinReference({
         <div>{documents}</div>
       </div>
       <p className={s.note}>
-        {moment.urgente
-          ? 'Urgente : seuls les médecins du service disponibles maintenant sont proposés. Réponse attendue en moins de 30 minutes.'
-          : 'Seuls les médecins du service disponibles à la date et l’heure choisies sont proposés. Réponse attendue en 24 à 48 heures.'}
+        {valeur
+          ? 'La télé-expertise est adressée à ce médecin, disponible au moment choisi. '
+          : 'Sans médecin choisi, tous les médecins du service dans votre hôpital la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. '}
+        {moment.urgente ? 'Urgente : réponse attendue en moins de 30 minutes.' : 'Réponse attendue en 24 à 48 heures.'}
       </p>
     </div>
   );
@@ -216,24 +227,41 @@ export default function ChoixMedecinReference({
 
 /**
  * CONSULTATION > ISSUE « TÉLÉ-EXPERTISE » EN EXTERNE
- * Service des autres établissements de la DMHP auquel la télé-expertise est adressée, et documents à partager, sur la même ligne.
- * Seuls les médecins de ce service pourront la prendre en charge.
+ * Service (obligatoire) · hôpital de la DMHP (facultatif) · date et heure · médecin (facultatif, après l'hôpital) · documents (facultatifs).
+ *   - service + hôpital + médecin : adressée à ce médecin (disponible au moment choisi) ;
+ *   - service + hôpital           : tous les médecins du service de cet hôpital ;
+ *   - service seul                : tous les médecins du service dans les hôpitaux de la DMHP.
+ * Envoyée au service : le premier qui la prend en charge l'obtient, elle disparaît chez les autres.
  */
 export function ChoixServiceExterne({
   valeur,
   onChange,
+  hopital,
+  onHopital,
+  medecin,
+  onMedecin,
   moment,
   onMoment,
   documents,
 }: {
+  /** Service (services.id) */
   valeur: number | null;
   onChange: (id: number | null) => void;
+  hopital: number | null;
+  onHopital: (id: number | null) => void;
+  medecin: number | null;
+  onMedecin: (id: number | null) => void;
   moment: MomentReference;
   onMoment: (m: MomentReference) => void;
   documents?: ReactNode;
 }) {
   const { api } = useEspaceConsultation();
   const [services, setServices] = useState<{ id: number; libelle: string; hopitaux: number }[] | null>(null);
+  const [hopitaux, setHopitaux] = useState<{ id: number; nom: string }[] | null>(null);
+  const [medecins, setMedecins] = useState<MedecinReference[] | null>(null);
+  const momentOk = momentReferenceValide(moment);
+  const effectif = momentEffectif(moment);
+  const cleMoment = moment.urgente ? 'maintenant' : `${moment.date}-${moment.heure}`;
 
   useEffect(() => {
     api
@@ -241,6 +269,43 @@ export function ChoixServiceExterne({
       .then(setServices)
       .catch(() => setServices([]));
   }, []);
+
+  // Hôpitaux de la DMHP qui ont le service choisi
+  useEffect(() => {
+    setHopitaux(null);
+    if (!valeur) return;
+    let actif = true;
+    api
+      .hopitauxService(valeur)
+      .then((l) => actif && setHopitaux(l))
+      .catch(() => actif && setHopitaux([]));
+    return () => {
+      actif = false;
+    };
+  }, [valeur]);
+
+  // Médecins du service dans l'hôpital choisi, disponibles au moment de la prise en charge
+  useEffect(() => {
+    setMedecins(null);
+    if (!valeur || !hopital || !momentOk) return;
+    let actif = true;
+    api
+      .medecinsService(valeur, hopital, effectif.date, effectif.heure)
+      .then((l) => actif && setMedecins(l))
+      .catch(() => actif && setMedecins([]));
+    return () => {
+      actif = false;
+    };
+  }, [valeur, hopital, cleMoment, momentOk]);
+
+  const disponibles = (medecins ?? []).filter((m) => m.enService);
+
+  // Le médecin choisi n'est plus disponible à ce moment : on le retire
+  useEffect(() => {
+    if (medecin && medecins && !disponibles.some((m) => m.id === medecin)) onMedecin(null);
+  }, [medecins]);
+
+  const nomHopital = hopitaux?.find((h) => h.id === hopital)?.nom;
 
   return (
     <div className={s.hospBloc}>
@@ -253,17 +318,74 @@ export function ChoixServiceExterne({
             id="reference-service-externe"
             options={(services ?? []).map((x) => ({ id: x.id, name: x.libelle, detail: `${x.hopitaux} établissement${x.hopitaux > 1 ? 's' : ''}` }))}
             value={valeur}
-            onChange={onChange}
+            onChange={(id) => {
+              onChange(id);
+              onHopital(null);
+              onMedecin(null);
+            }}
             placeholder={services ? (services.length ? '-- Choisir le service --' : 'Aucun service dans les hôpitaux de la DMHP') : 'Chargement…'}
             placeholderRecherche="Rechercher un service…"
             aucunResultat="Aucun service ne correspond"
           />
         </div>
+
+        {/* Hôpital (facultatif) : sans hôpital, tous les hôpitaux de la DMHP qui ont ce service */}
+        <div>
+          <h3 className={s.sousTitre}>
+            <FaHospital aria-hidden="true" /> Hôpital <small className={s.facultatif}>(facultatif)</small>
+          </h3>
+          {!valeur ? (
+            <div className={s.champBloqueTele}>Service d’abord</div>
+          ) : (
+            <SelectRecherche
+              key={`hopitaux-${valeur}`}
+              id="reference-hopital-externe"
+              options={(hopitaux ?? []).map((h) => ({ id: h.id, name: h.nom }))}
+              value={hopital}
+              onChange={(id) => {
+                onHopital(id);
+                onMedecin(null);
+              }}
+              optionVide="Tous les hôpitaux de la DMHP"
+              placeholder={hopitaux ? 'Tous les hôpitaux de la DMHP' : 'Chargement…'}
+              placeholderRecherche="Rechercher un hôpital…"
+              aucunResultat="Aucun hôpital ne correspond"
+            />
+          )}
+        </div>
+
         <ChampMoment moment={moment} onMoment={onMoment} />
+
+        {/* Médecin (facultatif) : ceux du service dans l'hôpital choisi, disponibles au moment de la prise en charge */}
+        <div>
+          <h3 className={s.sousTitre}>
+            <FaUserMd aria-hidden="true" /> Médecin <small className={s.facultatif}>(facultatif)</small>
+          </h3>
+          {!valeur || !hopital || !momentOk ? (
+            <div className={s.champBloqueTele}>{!valeur || !hopital ? 'Hôpital d’abord' : 'Date et heure d’abord'}</div>
+          ) : (
+            <SelectRecherche
+              key={`medecins-${valeur}-${hopital}-${cleMoment}`}
+              id="reference-medecin-externe"
+              options={disponibles.map((m) => ({ id: m.id, name: nomAffiche(m), detail: m.creneau ?? undefined }))}
+              value={medecin}
+              onChange={onMedecin}
+              optionVide={TOUS_LES_MEDECINS}
+              placeholder={medecins ? TOUS_LES_MEDECINS : 'Chargement…'}
+              placeholderRecherche="Rechercher un médecin…"
+              aucunResultat="Aucun médecin ne correspond"
+            />
+          )}
+        </div>
+
         <div>{documents}</div>
       </div>
       <p className={s.note}>
-        Seuls les médecins de ce service, dans les hôpitaux de la DMHP, verront la télé-expertise et pourront la prendre en charge.{' '}
+        {medecin
+          ? 'La télé-expertise est adressée à ce médecin, disponible au moment choisi. '
+          : hopital
+            ? `Tous les médecins de ce service à ${nomHopital ?? 'l’hôpital choisi'} la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. `
+            : 'Tous les médecins de ce service dans les hôpitaux de la DMHP la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. '}
         {moment.urgente ? 'Urgente : réponse attendue en moins de 30 minutes.' : 'Réponse attendue en 24 à 48 heures.'}
       </p>
     </div>

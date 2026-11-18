@@ -20,6 +20,7 @@ const requerant = (r: Ligne) => {
 /** Colonnes communes : référence (fm_references), consultation d'origine, patient, médecin et hôpital d'origine */
 const SELECT_REFERENCE = `
   SELECT fr.id AS reference_id, fr.type, fr.service_id AS service_reference_id, rs.libelle AS service_reference,
+         fr.diffusee, fr.hospital_destination_id, th.label AS hopital_cible,
          DATE_FORMAT(fr.date_prevue, '%Y-%m-%d') AS date_prevue, TIME_FORMAT(fr.heure_prevue, '%H:%i') AS heure_prevue, fr.consultation_origine_id, fr.consultation_destination_id,
          fr.doctor_origine_id, fr.doctor_destination_id, fr.motif AS justification, fr.created_at,
          fr.urgence, fr.programmation_directe, DATE_FORMAT(fr.echeance, '%Y-%m-%dT%H:%i:%sZ') AS echeance,
@@ -52,7 +53,15 @@ const SELECT_REFERENCE = `
     LEFT JOIN consultations dest ON dest.id = fr.consultation_destination_id
     LEFT JOIN doctors dd ON dd.id = fr.doctor_destination_id
     LEFT JOIN users du ON du.id = dd.user_id
-    LEFT JOIN services rs ON rs.id = fr.service_id`;
+    LEFT JOIN services rs ON rs.id = fr.service_id
+    LEFT JOIN hospitals th ON th.id = fr.hospital_destination_id`;
+
+/**
+ * Télé-expertise ENVOYÉE AU SERVICE (diffusee = 1) visible par un médecin : du service visé
+ * (anciennes externes sans service : tous) et de l'hôpital visé (NULL : tous les hôpitaux de la DMHP).
+ * Paramètres : services.id du médecin, son hôpital.
+ */
+const POUR_MON_SERVICE = `(fr.diffusee = 1 AND (fr.service_id IS NULL OR fr.service_id = ?) AND (fr.hospital_destination_id IS NULL OR fr.hospital_destination_id = ?))`;
 
 /**
  * MÉDECIN > RÉFÉRÉS (table Gemma FM « fm_references »)
@@ -94,11 +103,12 @@ export class DoctorReferesService {
           ORDER BY (dest.status = 1) ASC, fr.created_at DESC`,
         [d.id],
       ),
-      // Télé-expertise externe : visible par les médecins du service choisi (anciennes références sans service : par tous) et par son auteur
+      // Télé-expertise externe : visible par les médecins du service (et de l'hôpital) visés, par son auteur et par son destinataire
       this.db.query(
-        `${SELECT_REFERENCE} WHERE fr.type = 'externe' AND o.deleted_at IS NULL AND (fr.service_id IS NULL OR fr.service_id = ? OR fr.doctor_origine_id = ?)
+        `${SELECT_REFERENCE} WHERE fr.type = 'externe' AND o.deleted_at IS NULL
+            AND (${POUR_MON_SERVICE} OR fr.doctor_origine_id = ? OR fr.doctor_destination_id = ?)
           ORDER BY fr.created_at DESC LIMIT 300`,
-        [service ?? 0, d.id],
+        [service ?? 0, d.hospital_id, d.id, d.id],
       ),
     ]);
     const docs = await compterDocuments(this.db, [...internes, ...externes].map((r) => Number(r.consultation_origine_id)));
@@ -125,6 +135,7 @@ export class DoctorReferesService {
         ...commun(r),
         hopital: texte(r.hopital),
         serviceReference: texte(r.service_reference),
+        hopitalCible: texte(r.hopital_cible),
         datePrevue: texte(r.date_prevue),
         heurePrevue: texte(r.heure_prevue),
         priseEnChargePar: r.doctor_destination_id ? nom(r.destination_nom, r.destination_prenom) : null,
@@ -134,19 +145,20 @@ export class DoctorReferesService {
   }
 
   /**
-   * Télé-expertises EXTERNES à prendre en charge (affichées dans Télémédecine) :
-   * adressées à mon service (ou sans service : anciennes références), pas encore prises, pas faites par moi.
+   * Télé-expertises À PRENDRE EN CHARGE (affichées dans Télémédecine), internes comme externes :
+   * envoyées à mon service (dans mon hôpital, ou dans toute la DMHP), pas encore prises, pas demandées par moi.
+   * Dès qu'un médecin la prend, elle disparaît chez les autres.
    */
   async disponibles(userId: number) {
     const d = await this.consultations.medecin(userId);
     const service = await this.monService(d.id);
     const rows: Ligne[] = await this.db.query(
       `${SELECT_REFERENCE}
-        WHERE fr.type = 'externe' AND fr.doctor_destination_id IS NULL AND o.deleted_at IS NULL
-          AND (fr.service_id IS NULL OR fr.service_id = ?) AND COALESCE(fr.doctor_origine_id, 0) <> ?
+        WHERE ${POUR_MON_SERVICE} AND fr.doctor_destination_id IS NULL AND fr.resultat_le IS NULL AND o.deleted_at IS NULL
+          AND COALESCE(fr.doctor_origine_id, 0) <> ?
         ORDER BY fr.urgence DESC, (fr.date_prevue IS NULL) ASC, fr.date_prevue ASC, fr.heure_prevue ASC, fr.created_at ASC
         LIMIT 100`,
-      [service ?? 0, d.id],
+      [service ?? 0, d.hospital_id, d.id],
     );
     const docs = await compterDocuments(this.db, rows.map((r) => Number(r.consultation_origine_id)));
     return rows.map((r) => ({
@@ -157,6 +169,8 @@ export class DoctorReferesService {
       heurePrevue: texte(r.heure_prevue),
       /** Urgente (< 30 min) ou programmée (24 à 48 h), et heure limite de la réponse (ISO UTC) */
       urgente: Number(r.urgence) === 1,
+      /** Interne (même hôpital) ou externe (autre hôpital de la DMHP) */
+      externe: r.type === 'externe',
       echeance: texte(r.echeance),
       motif: texte(r.justification) ?? texte(r.motif_consultation),
       referePar: requerant(r),
@@ -167,22 +181,23 @@ export class DoctorReferesService {
     }));
   }
 
-  /** Accès : référence externe → tout médecin ; interne → médecin d'origine ou destinataire */
+  /**
+   * Accès : l'auteur et le destinataire ; une télé-expertise envoyée au service (interne ou externe) :
+   * aussi les médecins de ce service dans l'hôpital visé (tous les hôpitaux de la DMHP si aucun).
+   */
   private async referenceAccessible(userId: number, origineId: number) {
     const d = await this.consultations.medecin(userId);
     const [r] = await this.db.query(`${SELECT_REFERENCE} WHERE fr.consultation_origine_id = ? AND o.deleted_at IS NULL LIMIT 1`, [origineId]);
     if (!r) throw new NotFoundException('Référence introuvable.');
-    if (r.type === 'interne' && ![Number(r.doctor_origine_id), Number(r.doctor_destination_id)].includes(Number(d.id))) {
-      throw new ForbiddenException('Cette référence ne vous est pas adressée.');
-    }
-    // Externe adressée à un service : seuls les médecins de ce service (et l'auteur, ou celui qui l'a prise)
-    if (
-      r.type === 'externe' &&
-      r.service_reference_id &&
-      ![Number(r.doctor_origine_id), Number(r.doctor_destination_id)].includes(Number(d.id)) &&
-      Number(r.service_reference_id) !== (await this.monService(d.id))
-    ) {
-      throw new ForbiddenException(`Cette télé-expertise est adressée au service ${texte(r.service_reference) ?? 'choisi'}.`);
+    const auteurOuDestinataire = [Number(r.doctor_origine_id), Number(r.doctor_destination_id)].includes(Number(d.id));
+    if (!auteurOuDestinataire) {
+      if (Number(r.diffusee) !== 1) throw new ForbiddenException('Cette référence ne vous est pas adressée.');
+      if (r.service_reference_id && Number(r.service_reference_id) !== (await this.monService(d.id))) {
+        throw new ForbiddenException(`Cette télé-expertise est adressée au service ${texte(r.service_reference) ?? 'choisi'}.`);
+      }
+      if (r.hospital_destination_id && Number(r.hospital_destination_id) !== Number(d.hospital_id)) {
+        throw new ForbiddenException(`Cette télé-expertise est adressée à ${texte(r.hopital_cible) ?? 'un autre hôpital'}.`);
+      }
     }
     return { ...(r as Ligne), pour_moi: Number(r.doctor_destination_id) === Number(d.id), moi_id: Number(d.id) } as Ligne;
   }
@@ -241,9 +256,11 @@ export class DoctorReferesService {
       estExpert: !!o.pour_moi,
       // Référence interne qui m'est adressée : la consultation à faire (bouton « Consulter » sur la fiche)
       consultationDestinataire: o.pour_moi && o.consultation_destination_id ? { id: Number(o.consultation_destination_id), terminee: Number(o.destination_status) === 1 } : null,
-      // Référence externe : prise en charge par un médecin (le premier qui se l'attribue)
-      priseEnCharge: o.type === 'externe' && o.doctor_destination_id ? { par: nom(o.destination_nom, o.destination_prenom), le: o.pris_le, parMoi: !!o.pour_moi } : null,
-      peutPrendreEnCharge: o.type === 'externe' && !o.doctor_destination_id && Number(o.doctor_origine_id) !== Number(o.moi_id),
+      // Envoyée au service : prise en charge par un médecin (le premier qui se l'attribue)
+      priseEnCharge: Number(o.diffusee) === 1 && o.doctor_destination_id ? { par: nom(o.destination_nom, o.destination_prenom), le: o.pris_le, parMoi: !!o.pour_moi } : null,
+      peutPrendreEnCharge: Number(o.diffusee) === 1 && !o.doctor_destination_id && !o.resultat_le && Number(o.doctor_origine_id) !== Number(o.moi_id),
+      /** Hôpital visé par la demande (envoyée au service) ; null = tous les hôpitaux de la DMHP */
+      hopitalCible: texte(o.hopital_cible),
       date: o.created_at,
       code: texte(o.code_consultation) ?? `CONS-${origineId}`,
       motif: texte(o.motif_consultation),
@@ -276,14 +293,15 @@ export class DoctorReferesService {
   }
 
   /**
-   * Référence externe : un médecin (de n'importe quel établissement) s'attribue le patient.
-   * Le premier qui la prend l'obtient ; une consultation du jour est créée à son nom, dans son hôpital,
-   * avec les constantes de la consultation d'origine. Il la retrouve ensuite dans « Référés à moi ».
+   * Télé-expertise envoyée au service (interne ou externe) : un médecin du service s'attribue le patient.
+   * Le premier qui la prend l'obtient (elle disparaît chez les autres) ; une consultation du jour est créée à son nom,
+   * dans son hôpital, avec les constantes de la consultation d'origine.
    */
   async prendreEnCharge(userId: number, origineId: number) {
     const d = await this.consultations.medecin(userId);
     const o = await this.referenceAccessible(userId, origineId);
-    if (o.type !== 'externe') throw new BadRequestException('Seule une référence externe peut être prise en charge.');
+    if (Number(o.diffusee) !== 1) throw new BadRequestException('Cette télé-expertise est adressée à un médecin précis : elle ne peut pas être prise en charge.');
+    if (o.resultat_le) throw new ConflictException('La réponse de cette télé-expertise a déjà été envoyée.');
     if (Number(o.doctor_origine_id) === Number(d.id)) throw new BadRequestException('Vous avez vous-même référé ce patient.');
     if (o.doctor_destination_id) {
       throw new ConflictException(`Ce patient a déjà été pris en charge par Dr ${String(nom(o.destination_nom, o.destination_prenom) ?? '').replace(/^dr\.?\s*/i, '')}.`);
@@ -310,7 +328,8 @@ export class DoctorReferesService {
       const code = `CONSULT${String(o.code_patient ?? '').slice(2)}${Number(n) + 1}`;
       const [presta] = moi?.prestation_id ? await this.db.query('SELECT prix FROM prestation_hospitals WHERE id = ?', [moi.prestation_id]) : [undefined];
       const prevu = o.date_prevue ? `${String(o.date_prevue).split('-').reverse().join('/')}${o.heure_prevue ? ` à ${o.heure_prevue}` : ''}` : null;
-      const motif = `Référé (externe) par ${requerant(o) ?? 'le requérant'}${o.hopital ? ` — ${o.hopital}` : ''}${prevu ? ` (prévu le ${prevu})` : ''} : ${o.justification ?? o.motif_consultation ?? ''}`.slice(0, 1000);
+      const externe = o.type === 'externe';
+      const motif = `${externe ? 'Référé (externe)' : 'Référé'} par ${requerant(o) ?? 'le requérant'}${externe && o.hopital ? ` — ${o.hopital}` : ''}${prevu ? ` (prévu le ${prevu})` : ''} : ${o.justification ?? o.motif_consultation ?? ''}`.slice(0, 1000);
       const res = await this.db.query(
         `INSERT INTO consultations (code_consultation, date_consultation, hospital_id, patient_id, doctor_id, prestation_hospital_id, motif_consultation, montant,
                                     poids, taille, imc, temperature, tension_arterielle, pouls, saturation_oxygene, status, status_inf, created_at, updated_at)
@@ -337,8 +356,8 @@ export class DoctorReferesService {
         ],
       );
       await this.db.query(
-        "INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES ('Prise en charge (référence externe)', ?, CURDATE(), ?, ?, ?)",
-        [moi?.hospital_id ?? d.hospital_id, o.origine_patient_id, now, now],
+        'INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES (?, ?, CURDATE(), ?, ?, ?)',
+        [externe ? 'Prise en charge (référence externe)' : 'Prise en charge (référence interne)', moi?.hospital_id ?? d.hospital_id, o.origine_patient_id, now, now],
       );
       await this.db.query('UPDATE fm_references SET consultation_destination_id = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?', [res.insertId, o.reference_id]);
       return { success: true, message: 'Patient pris en charge : sa consultation est prête.', consultationId: Number(res.insertId) };
@@ -356,8 +375,8 @@ export class DoctorReferesService {
    */
   async envoyerResultat(userId: number, origineId: number, avis: string, conduite: string | undefined, fichiers: Express.Multer.File[], libelles: string[]) {
     const o = await this.referenceAccessible(userId, origineId);
-    if (!o.pour_moi) throw new ForbiddenException('Seul le médecin sollicité peut joindre le résultat de cette télé-expertise.');
-    if (o.resultat_le) throw new ConflictException('Le résultat de cette télé-expertise a déjà été envoyé.');
+    if (!o.pour_moi) throw new ForbiddenException('Seul le médecin sollicité peut joindre la réponse de cette télé-expertise.');
+    if (o.resultat_le) throw new ConflictException('La réponse de cette télé-expertise a déjà été envoyée.');
     const texteAvis = (avis ?? '').trim();
     if (!texteAvis) throw new BadRequestException('L’avis / la conclusion est obligatoire.');
     if (texteAvis.length > 10000 || (conduite ?? '').length > 10000) throw new BadRequestException('Texte trop long (10 000 caractères maximum).');
@@ -368,25 +387,25 @@ export class DoctorReferesService {
       'UPDATE fm_references SET resultat_avis = ?, resultat_conduite = ?, resultat_le = UTC_TIMESTAMP(), resultat_par = ?, updated_at = UTC_TIMESTAMP() WHERE id = ? AND resultat_le IS NULL',
       [texteAvis, (conduite ?? '').trim() || null, o.moi_id, o.reference_id],
     );
-    if (Number(pose.affectedRows) !== 1) throw new ConflictException('Le résultat de cette télé-expertise a déjà été envoyé.');
+    if (Number(pose.affectedRows) !== 1) throw new ConflictException('La réponse de cette télé-expertise a déjà été envoyée.');
     try {
       if (fichiers.length) await ajouterDocuments(this.db, origineId, fichiers, libelles, userId, 'resultat');
     } catch (e) {
       await this.db.query('UPDATE fm_references SET resultat_avis = NULL, resultat_conduite = NULL, resultat_le = NULL, resultat_par = NULL WHERE id = ?', [o.reference_id]);
       throw e;
     }
-    return { success: true, message: 'Résultat envoyé : le demandeur le retrouve dans « Résultats d’expertise ».' };
+    return { success: true, message: 'Réponse envoyée : le demandeur la retrouve dans « Réponses d’expertise ».' };
   }
 
   /** Résultat déjà envoyé : l'expert ajoute des documents (ex. oublié à l'envoi) — l'avis, lui, ne change plus */
   async ajouterDocumentsResultat(userId: number, origineId: number, fichiers: Express.Multer.File[], libelles: string[]) {
     const o = await this.referenceAccessible(userId, origineId);
-    if (!o.pour_moi) throw new ForbiddenException('Seul le médecin sollicité peut compléter ce résultat.');
-    if (!o.resultat_le) throw new BadRequestException('Envoyez d’abord le résultat (avis) de la télé-expertise.');
+    if (!o.pour_moi) throw new ForbiddenException('Seul le médecin sollicité peut compléter cette réponse.');
+    if (!o.resultat_le) throw new BadRequestException('Envoyez d’abord la réponse (avis) de la télé-expertise.');
     const n = await ajouterDocuments(this.db, origineId, fichiers, libelles, userId, 'resultat');
     return {
       success: true,
-      message: n > 1 ? `${n} documents ajoutés au résultat.` : 'Document ajouté au résultat.',
+      message: n > 1 ? `${n} documents ajoutés à la réponse.` : 'Document ajouté à la réponse.',
       documents: (await listerDocuments(this.db, origineId, 'resultat')).map((x) => this.presenter(x)),
     };
   }

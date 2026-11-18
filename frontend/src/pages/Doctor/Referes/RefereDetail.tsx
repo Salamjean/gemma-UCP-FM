@@ -314,10 +314,10 @@ export default function RefereDetail() {
         <section className={`${c.bloc} ${s.barreConsulter}`}>
           <span>
             <FaCheckCircle aria-hidden="true" />
-            {d.resultat ? 'Vous avez envoyé votre résultat.' : 'Après avoir étudié la demande et les documents, joignez votre résultat.'}
+            {d.resultat ? 'Vous avez envoyé votre réponse.' : 'Après avoir étudié la demande et les documents, joignez votre réponse.'}
           </span>
           <Link to={`/medecin/referes/${d.origineId}/resultat`} className={d.resultat ? c.secondaire : c.principal}>
-            {d.resultat ? <FaEye aria-hidden="true" /> : <FaPlay aria-hidden="true" />} {d.resultat ? 'Voir le résultat' : 'Joindre le résultat'}
+            {d.resultat ? <FaEye aria-hidden="true" /> : <FaPlay aria-hidden="true" />} {d.resultat ? 'Voir la réponse' : 'Joindre la réponse'}
           </Link>
         </section>
       )}

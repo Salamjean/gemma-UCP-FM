@@ -11,6 +11,7 @@ import {
   FaPhoneAlt,
   FaRoute,
   FaPills,
+  FaSearch,
   FaStethoscope,
   FaUserMd,
   FaUserNurse,
@@ -42,6 +43,8 @@ export default function DossierMedical({ espace = 'infirmier' }: { espace?: Espa
   const [imgErreur, setImgErreur] = useState(false);
   const [miseAJour, setMiseAJour] = useState(false);
   const [rechargement, setRechargement] = useState(0);
+  // Recherche dans l'historique : n° de consultation ou nom (médecin, infirmier·ère, hôpital, service, motif, diagnostic)
+  const [recherche, setRecherche] = useState('');
 
   useEffect(() => {
     apiAgent(espace)
@@ -82,6 +85,11 @@ export default function DossierMedical({ espace = 'infirmier' }: { espace?: Espa
   const { patient, interventions } = dossier;
   const feminin = (patient.genre ?? '').toLowerCase().startsWith('f');
   const photo = patient.imgUrl ? (patient.imgUrl.startsWith('http') ? patient.imgUrl : uploadUrl('patient', patient.imgUrl)) : null;
+  const sansAccents = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const q = sansAccents(recherche.trim());
+  const filtrees = q
+    ? interventions.filter((it) => [it.code, it.medecin, it.infirmier, it.hopital, it.service, it.motif, it.diagnostic].some((v) => v && sansAccents(String(v)).includes(q)))
+    : interventions;
 
   return (
     <div className={c.page}>
@@ -162,10 +170,31 @@ export default function DossierMedical({ espace = 'infirmier' }: { espace?: Espa
             <h2>Historique et dossier médical complet</h2>
             <p>Constatations, prises de constantes, diagnostics et soins reçus dans tous les établissements.</p>
           </div>
+          {interventions.length > 0 && (
+            <label className={s.recherche}>
+              <FaSearch aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Nom ou N° de consultation…"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                aria-label="Rechercher une consultation par nom ou numéro"
+              />
+            </label>
+          )}
           <span className={s.compte}>
+            {q ? `${filtrees.length} / ` : ''}
             {interventions.length} consultation{interventions.length > 1 ? 's' : ''}
           </span>
         </div>
+
+        {interventions.length > 0 && filtrees.length === 0 && (
+          <div className={s.vide}>
+            <FaSearch aria-hidden="true" />
+            <strong>Aucune consultation ne correspond</strong>
+            <p>Essayez un autre nom ou numéro de consultation.</p>
+          </div>
+        )}
 
         {interventions.length === 0 ? (
           <div className={s.vide}>
@@ -175,7 +204,7 @@ export default function DossierMedical({ espace = 'infirmier' }: { espace?: Espa
           </div>
         ) : (
           <ol className={s.frise}>
-            {interventions.map((it, i) => {
+            {filtrees.map((it, i) => {
               const ouvert = ouverte === it.id;
               return (
                 <motion.li key={it.id} className={`${s.intervention} ${ouvert ? s.interventionOuverte : ''}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}>

@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gemma — Gestion des patients</title>
     <meta name="description" content="GEMMA : la couverture complète des enjeux de la santé." />
-    <!-- Application installable (PWA) : manifeste, icônes et couleurs (Android, iPhone / iPad, ordinateur) -->
+    <!-- Application installable (PWA) : manifeste, icônes et couleurs (Android, iPhone / iPad, ordinateur).
+         Icônes dans /pwa-icons/ et non /icons/ : sur Apache, /icons/ est réservé au serveur (Alias /icons/) → 404 en production. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#1f6fc6" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/pwa-icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/pwa-icons/favicon-48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/pwa-icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="GEMMA" />

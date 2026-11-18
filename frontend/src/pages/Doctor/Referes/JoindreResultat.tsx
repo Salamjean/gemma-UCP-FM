@@ -37,7 +37,7 @@ export default function JoindreResultat() {
       <header className={c.entete}>
         <div>
           <p className={c.surtitre}>Télé-expertise</p>
-          <h1 className={c.titre}>Joindre le résultat</h1>
+          <h1 className={c.titre}>Joindre la réponse</h1>
         </div>
         <button type="button" className={c.secondaire} onClick={() => navigate('/medecin/telemedecine')}>
           <FaArrowLeft aria-hidden="true" /> Télémédecine

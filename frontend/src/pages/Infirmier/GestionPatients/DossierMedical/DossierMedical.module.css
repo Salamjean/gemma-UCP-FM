@@ -134,6 +134,36 @@
   color: #1f6fc6;
 }
 
+/* Recherche dans l'historique (entre le titre et le nombre de consultations) */
+.recherche {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 280px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--dash-border, #e4e9f2);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--dash-muted);
+}
+
+.recherche:focus-within {
+  border-color: #1f6fc6;
+}
+
+.recherche input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--dash-text);
+}
+
 .compte {
   flex-shrink: 0;
   padding: 5px 12px;
@@ -421,6 +451,13 @@
 }
 
 @media (max-width: 700px) {
+  .historiqueEntete {
+    flex-wrap: wrap;
+  }
+  .recherche {
+    order: 3;
+    flex: 1 1 100%;
+  }
   .patient {
     grid-template-columns: 1fr;
     justify-items: center;

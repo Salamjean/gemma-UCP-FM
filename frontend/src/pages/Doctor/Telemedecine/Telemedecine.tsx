@@ -6,7 +6,7 @@ import { lancerAppelVideo } from '../../../components/AppelVideo';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
-import type { DoctorTelemedecineItem, DoctorTelemedecines, ExpertiseDisponible } from '../../../types';
+import type { DoctorTelemedecineItem, DoctorTelemedecines, ExpertiseDisponible, TeleconsultationDisponible } from '../../../types';
 import Chrono, { delaiExpertise } from './Chrono';
 import FiltreType, { correspondType, FiltreStatut, type TypeTelemedecine } from './FiltreType';
 import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
@@ -66,16 +66,39 @@ export default function Telemedecine() {
   const [data, setData] = useState<DoctorTelemedecines | null>(null);
   const [tick, setTick] = useState(0);
   const navigate = useNavigate();
-  // Télé-expertises externes de mon service, pas encore prises en charge
+  // Télé-expertises (internes et externes) envoyées à mon service, pas encore prises en charge
   const [disponibles, setDisponibles] = useState<ExpertiseDisponible[] | null>(null);
   const [prise, setPrise] = useState<number | null>(null);
+
+  // Téléconsultations envoyées à mon service (aucun médecin choisi), pas encore prises
+  const [teleDisponibles, setTeleDisponibles] = useState<TeleconsultationDisponible[] | null>(null);
 
   useEffect(() => {
     api.doctor.referes
       .disponibles()
       .then(setDisponibles)
       .catch(() => setDisponibles([]));
+    api.doctor
+      .teleconsultationsDisponibles()
+      .then(setTeleDisponibles)
+      .catch(() => setTeleDisponibles([]));
   }, [tick]);
+
+  const prendreTeleconsultation = async (x: TeleconsultationDisponible) => {
+    if (!window.confirm(`Prendre en charge la téléconsultation de ${x.patient.nom} ? Elle vous sera attribuée.`)) return;
+    setPrise(-x.consultationId);
+    try {
+      const r = await api.doctor.prendreTeleconsultation(x.consultationId);
+      alerte.succes(r.message);
+      setTick((t) => t + 1);
+    } catch (e) {
+      alerte.echec(messageErreur(e));
+      setTick((t) => t + 1);
+    } finally {
+      setPrise(null);
+    }
+  };
+  const nbAPrendre = (disponibles?.length ?? 0) + (teleDisponibles?.length ?? 0);
 
   const prendreEnCharge = async (x: ExpertiseDisponible) => {
     if (!window.confirm(`Prendre en charge la télé-expertise de ${x.patient.nom} ? Elle vous sera attribuée.`)) return;
@@ -140,10 +163,10 @@ export default function Telemedecine() {
         </div>
       </header>
 
-      {!!disponibles?.length && (
+      {nbAPrendre > 0 && (
         <section className={c.bloc}>
           <h2 className={s.titreSection}>
-            <FaShareSquare aria-hidden="true" /> Télé-expertises externes à prendre en charge <span>{disponibles.length}</span>
+            <FaShareSquare aria-hidden="true" /> Télémédecines de mon service à prendre en charge <span>{nbAPrendre}</span>
           </h2>
           <div className={c.tableWrap}>
             <table className={`${c.table} ${c.centre}`}>
@@ -158,7 +181,51 @@ export default function Telemedecine() {
                 </tr>
               </thead>
               <tbody>
-                {disponibles.map((x) => (
+                {/* Téléconsultations envoyées au service : le premier médecin qui la prend l'obtient */}
+                {(teleDisponibles ?? []).map((x) => (
+                  <tr key={`tele-${x.consultationId}`}>
+                    <td>
+                      <span className={tab.patient}>
+                        <AvatarPatient patient={x.patient} />
+                        <span>
+                          <strong>{x.patient.nom}</strong>
+                          <small>{x.patient.code}</small>
+                        </span>
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`${c.badge} ${s.badgeType}`}>Téléconsultation {x.externe ? 'externe' : 'interne'}</span>
+                      <span className={tab.empile}>
+                        <strong>
+                          {libelleDate(x.datePrevue)}
+                          {x.heurePrevue ? ` · ${x.heurePrevue}` : ''}
+                        </strong>
+                        <Chrono compact recueLe={x.recueLe} date={x.datePrevue} heure={x.heurePrevue} />
+                      </span>
+                    </td>
+                    <td className={tab.motif}>{x.motif ?? '—'}</td>
+                    <td>
+                      <span className={tab.empile}>
+                        <strong>{x.referePar ?? '—'}</strong>
+                        {x.hopital && <small>{x.hopital}</small>}
+                      </span>
+                    </td>
+                    <td>—</td>
+                    <td>
+                      <span className={s.actionsLigne}>
+                        <button
+                          type="button"
+                          className={`${c.principal} ${tab.action}`}
+                          onClick={() => prendreTeleconsultation(x)}
+                          disabled={prise === -x.consultationId}
+                        >
+                          <FaHandHoldingMedical aria-hidden="true" /> {prise === -x.consultationId ? 'Attribution…' : 'Prendre en charge'}
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {(disponibles ?? []).map((x) => (
                   <tr key={x.origineId}>
                     <td>
                       <span className={tab.patient}>
@@ -170,6 +237,7 @@ export default function Telemedecine() {
                       </span>
                     </td>
                     <td>
+                      <span className={`${c.badge} ${s.badgeExpertise}`}>Télé-expertise {x.externe ? 'externe' : 'interne'}</span>
                       <BadgeDelai urgente={x.urgente} />
                       <Chrono recueLe={x.recueLe} date={x.datePrevue} heure={x.heurePrevue} echeance={x.echeance} delai={delaiExpertise(x)} />
                     </td>
@@ -295,7 +363,7 @@ export default function Telemedecine() {
                             className={`${x.terminee ? c.secondaire : c.principal} ${tab.action}`}
                           >
                             <FaFolderOpen aria-hidden="true" />{' '}
-                            {x.expertise.resultatLe ? 'Voir le résultat' : x.terminee ? 'Voir' : x.expertise.avecConsultation ? 'Consulter les informations' : 'Joindre le résultat'}
+                            {x.expertise.resultatLe ? 'Voir la réponse' : x.terminee ? 'Voir' : x.expertise.avecConsultation ? 'Consulter les informations' : 'Joindre la réponse'}
                           </Link>
                         ) : (
                         <>

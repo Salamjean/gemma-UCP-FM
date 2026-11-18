@@ -8,7 +8,7 @@ import c from '../../../../styles/espace.module.css';
 import type { InfirmierPatientItem, RecherchePatientFilters } from '../../../../types';
 import ChoixMedecinReference, { ChoixServiceExterne, momentReferenceValide, momentReferenceVide, type MomentReference } from '../../Consultations/Formulaire/ChoixMedecinReference';
 import { EspaceConsultationContexte, outilsEspace } from '../../Consultations/Formulaire/espace';
-import IssueTelemedecine, { momentTelemedecineValide, telemedecineVide, type TelemedecineSaisie } from '../../Consultations/Formulaire/IssueTelemedecine';
+import IssueTelemedecine, { telemedecineManque, telemedecinePayload, telemedecineVide, type TelemedecineSaisie } from '../../Consultations/Formulaire/IssueTelemedecine';
 import { envoyerPieces, PiecesAJoindre, type PieceEnAttente } from '../../Consultations/Formulaire/PiecesJointes';
 import f from '../../Consultations/Formulaire/FormulaireConsultation.module.css';
 import s from './ProgrammerTelemedecine.module.css';
@@ -62,8 +62,12 @@ function Programmer({ espace }: { espace: Espace }) {
   const [tele, setTele] = useState<TelemedecineSaisie>(telemedecineVide());
   const [portee, setPortee] = useState<'refere-interne' | 'refere-externe' | null>(null);
   const [moment, setMoment] = useState<MomentReference>(momentReferenceVide());
+  // Interne : service (obligatoire) + médecin (facultatif) ; externe : service (obligatoire) + hôpital et médecin (facultatifs)
+  const [serviceInterne, setServiceInterne] = useState<number | null>(null);
   const [medecin, setMedecin] = useState<number | null>(null);
   const [serviceExterne, setServiceExterne] = useState<number | null>(null);
+  const [hopitalExterne, setHopitalExterne] = useState<number | null>(null);
+  const [medecinExterne, setMedecinExterne] = useState<number | null>(null);
   const [pieces, setPieces] = useState<PieceEnAttente[]>([]);
   const [motif, setMotif] = useState('');
   const [envoi, setEnvoi] = useState(false);
@@ -87,19 +91,28 @@ function Programmer({ espace }: { espace: Espace }) {
     if (!motif.trim()) return void alerte.attention('Le motif de la demande est obligatoire.');
     const payload: Record<string, unknown> = { patientId: patient.id, motif: motif.trim(), justification: motif.trim() };
     if (type === 'teleconsultation') {
-      if (!momentTelemedecineValide(tele) || !tele.medecinId) return void alerte.attention('Téléconsultation : choisissez la date, l’heure, l’hôpital et le médecin.');
-      Object.assign(payload, { modeSortie: 'teleconsultation', teleMedecinId: tele.medecinId, teleDate: tele.date, teleHeure: tele.heure });
+      // Interne / externe, service, date et heure obligatoires ; hôpital (externe) et médecin facultatifs
+      const manque = telemedecineManque(tele);
+      if (manque) return void alerte.attention(manque);
+      Object.assign(payload, { modeSortie: 'teleconsultation', ...telemedecinePayload(tele) });
     } else {
       if (!portee) return void alerte.attention('Télé-expertise : précisez si elle est en interne ou en externe.');
       if (moment.urgente === null) return void alerte.attention('Télé-expertise : choisissez le type de demande (urgente ou programmée).');
       if (!momentReferenceValide(moment)) return void alerte.attention('Télé-expertise programmée : choisissez une date et une heure à venir, dans les 48 heures.');
-      if (portee === 'refere-interne' && !medecin) return void alerte.attention('Choisissez le médecin à qui vous adressez la télé-expertise.');
+      if (portee === 'refere-interne' && !serviceInterne) return void alerte.attention('Choisissez le service auquel vous adressez la télé-expertise.');
       if (portee === 'refere-externe' && !serviceExterne) return void alerte.attention('Choisissez le service auquel vous adressez la télé-expertise.');
-      if (!pieces.length) return void alerte.attention('Télé-expertise : ajoutez au moins un document à partager.');
+      // Documents à partager facultatifs (interne comme externe)
       Object.assign(
         payload,
         { modeSortie: portee },
-        portee === 'refere-interne' ? { medecinReferenceId: medecin } : { referenceServiceId: serviceExterne },
+        // Sans médecin : tous les médecins du service la reçoivent, le premier qui la prend en charge l'obtient
+        portee === 'refere-interne'
+          ? { referenceServiceHospitalId: serviceInterne, ...(medecin ? { medecinReferenceId: medecin } : {}) }
+          : {
+              referenceServiceId: serviceExterne,
+              ...(hopitalExterne ? { referenceHopitalId: hopitalExterne } : {}),
+              ...(hopitalExterne && medecinExterne ? { medecinReferenceId: medecinExterne } : {}),
+            },
         moment.urgente ? { referenceUrgente: true } : { referenceUrgente: false, referenceDate: moment.date, referenceHeure: moment.heure },
       );
     }
@@ -134,7 +147,7 @@ function Programmer({ espace }: { espace: Espace }) {
       <header className={c.entete}>
         <div>
           <p className={c.surtitre}>Télémédecine</p>
-          <h1 className={c.titre}>Programmer une télémédecine</h1>
+          <h1 className={c.titre}>Programmer un acte de télémédecine</h1>
         </div>
         <button type="button" className={c.secondaire} onClick={() => navigate(retour)}>
           <FaArrowLeft aria-hidden="true" /> Télémédecine
@@ -261,9 +274,27 @@ function Programmer({ espace }: { espace: Espace }) {
                 {portee && (
                   <>
                     {portee === 'refere-interne' ? (
-                      <ChoixMedecinReference valeur={medecin} onChange={setMedecin} moment={moment} onMoment={setMoment} documents={<PiecesAJoindre compact pieces={pieces} onChange={setPieces} />} />
+                      <ChoixMedecinReference
+                        serviceId={serviceInterne}
+                        onService={setServiceInterne}
+                        valeur={medecin}
+                        onChange={setMedecin}
+                        moment={moment}
+                        onMoment={setMoment}
+                        documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}
+                      />
                     ) : (
-                      <ChoixServiceExterne valeur={serviceExterne} onChange={setServiceExterne} moment={moment} onMoment={setMoment} documents={<PiecesAJoindre compact pieces={pieces} onChange={setPieces} />} />
+                      <ChoixServiceExterne
+                        valeur={serviceExterne}
+                        onChange={setServiceExterne}
+                        hopital={hopitalExterne}
+                        onHopital={setHopitalExterne}
+                        medecin={medecinExterne}
+                        onMedecin={setMedecinExterne}
+                        moment={moment}
+                        onMoment={setMoment}
+                        documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}
+                      />
                     )}
                   </>
                 )}

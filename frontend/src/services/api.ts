@@ -87,6 +87,7 @@ import type {
   DocumentReference,
   MedecinReference,
   ExpertiseDisponible,
+  TeleconsultationDisponible,
   DoctorReferes,
   AccesAppelVideo,
   DossierSuiviMereEnfant,
@@ -268,6 +269,11 @@ const formulaireConsultation = (racine: string) => ({
   documents: (id: number) => request<DocumentsConsultation>(`${racine}/${id}/documents`),
   /** Télé-expertise en externe : services des autres établissements de la DMHP */
   servicesExternes: () => request<{ id: number; libelle: string; hopitaux: number }[]>(`${racine}/services-externes`),
+  /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service */
+  hopitauxService: (serviceId: number) => request<{ id: number; nom: string }[]>(`${racine}/services-externes/${serviceId}/hopitaux`),
+  /** Télé-expertise en externe : médecins du service dans l'hôpital, disponibilité à la date et l'heure */
+  medecinsService: (serviceId: number, hospitalId: number, date?: string, heure?: string) =>
+    request<MedecinReference[]>(`${racine}/services-externes/${serviceId}/hopitaux/${hospitalId}/medecins${qs({ date, heure })}`),
   /** Avec date et heure : disponibilité des médecins à ce moment (sinon maintenant) */
   medecinsReference: (date?: string, heure?: string) => request<MedecinReference[]>(`${racine}/medecins-reference${qs({ date, heure })}`),
   /** Issue « Télémédecine » : hôpitaux de la DMHP / médecins disponibles à la date et l'heure */
@@ -376,6 +382,10 @@ export const api = {
     appels: appelsVideo('/doctor/telemedecines'),
     tableauDeBord: () => request<DoctorDashboard>('/doctor/tableau-de-bord'),
     telemedecines: (filtre = 'en-attente') => request<DoctorTelemedecines>(`/doctor/telemedecines?filtre=${filtre}`),
+    /** Téléconsultations envoyées à mon service (sans médecin choisi), à prendre en charge */
+    teleconsultationsDisponibles: () => request<TeleconsultationDisponible[]>('/doctor/consultations/teleconsultations-disponibles'),
+    prendreTeleconsultation: (consultationId: number) =>
+      request<{ success: boolean; message: string; consultationId: number }>(`/doctor/consultations/${consultationId}/prendre-teleconsultation`, { method: 'POST' }),
     referes: {
       liste: () => request<DoctorReferes>('/doctor/referes'),
       /** Télé-expertises externes adressées à mon service, à prendre en charge */
@@ -627,8 +637,19 @@ export const api = {
   /** Espace du régulateur (réattribution des patients à un médecin disponible) */
   regulateur: {
     consultations: () => request<TableauRegulation>('/regulateur/consultations'),
-    medecins: (consultationId: number) => request<{ consultationId: number; service: string | null; medecins: MedecinPropose[] }>(`/regulateur/consultations/${consultationId}/medecins`),
-    reattribuer: (consultationId: number, data: { doctorId: number; motif?: string }) =>
+    /** Médecins du service du patient : en interne (hôpital du régulateur) ou en externe (hospitalId, autre hôpital de la DMHP) */
+    medecins: (consultationId: number, choix: { portee?: 'interne' | 'externe'; hospitalId?: number } = {}) =>
+      request<{
+        consultationId: number;
+        service: string | null;
+        /** Choix proposé par défaut dans la fenêtre (le service du patient n'est pas modifiable) */
+        defaut: { portee: 'interne' | 'externe'; serviceId: number | null; hospitalId: number | null };
+        medecins: MedecinPropose[];
+      }>(`/regulateur/consultations/${consultationId}/medecins${qs(choix)}`),
+    /** Autres hôpitaux de la DMHP qui ont ce service */
+    hopitauxService: (serviceId: number) => request<{ id: number; nom: string }[]>(`/regulateur/services-externes/${serviceId}/hopitaux`),
+    /** Externe sans médecin (hospitalId seul) : envoi à tous les médecins du service dans cet hôpital */
+    reattribuer: (consultationId: number, data: { doctorId?: number; hospitalId?: number; motif?: string }) =>
       request<{ message: string }>(`/regulateur/consultations/${consultationId}/reattribuer`, { method: 'POST', body: JSON.stringify(data) }),
     historique: () => request<Reattribution[]>('/regulateur/historique'),
     /** semaine = une date "AAAA-MM-JJ" de la semaine voulue (par défaut : cette semaine) */

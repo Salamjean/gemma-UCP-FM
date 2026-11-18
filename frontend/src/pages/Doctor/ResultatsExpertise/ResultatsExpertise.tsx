@@ -20,8 +20,8 @@ const racine = (espace: Espace) => (espace === 'infirmier' ? '/infirmier/resulta
 /** État d'une télé-expertise demandée */
 function BadgeEtat({ x }: { x: ResultatExpertiseItem }) {
   if (x.etat === 'recu')
-    return <span className={`${c.badge} ${x.lu ? c.badgeOk : s.badgeNouveau}`}>{x.lu ? 'Résultat reçu' : 'Nouveau résultat'}</span>;
-  if (x.etat === 'termine') return <span className={`${c.badge} ${c.badgeNeutre}`}>Terminée sans résultat</span>;
+    return <span className={`${c.badge} ${x.lu ? c.badgeOk : s.badgeNouveau}`}>{x.lu ? 'Réponse reçue' : 'Nouvelle réponse'}</span>;
+  if (x.etat === 'termine') return <span className={`${c.badge} ${c.badgeNeutre}`}>Terminée sans réponse</span>;
   if (x.etat === 'retard') return <span className={`${c.badge} ${s.badgeRetard}`}>En retard</span>;
   return <span className={`${c.badge} ${c.badgeNeutre}`}>En attente</span>;
 }
@@ -45,7 +45,7 @@ export function ResultatsExpertise({ espace }: { espace: Espace }) {
         .catch((e) => {
           if (!actif) return;
           setListe((p) => p ?? []);
-          alerte.echec(`Impossible de charger les résultats : ${messageErreur(e)}`);
+          alerte.echec(`Impossible de charger les réponses : ${messageErreur(e)}`);
         });
     lire();
     const t = setInterval(lire, 30000);
@@ -68,16 +68,16 @@ export function ResultatsExpertise({ espace }: { espace: Espace }) {
       <header className={c.entete}>
         <div>
           <p className={c.surtitre}>Télé-expertise</p>
-          <h1 className={c.titre}>Résultats d’expertise</h1>
+          <h1 className={c.titre}>Réponses d’expertise</h1>
         </div>
       </header>
 
       <div className={s.compteurs}>
         {[
-          { libelle: 'Nouveaux résultats', valeur: (liste ?? []).filter((x) => x.etat === 'recu' && !x.lu).length },
+          { libelle: 'Nouvelles réponses', valeur: (liste ?? []).filter((x) => x.etat === 'recu' && !x.lu).length },
           { libelle: 'En attente', valeur: compte('attente') },
           { libelle: 'En retard', valeur: compte('retard') },
-          { libelle: 'Résultats reçus', valeur: compte('recu') },
+          { libelle: 'Réponses reçues', valeur: compte('recu') },
         ].map((k) => (
           <div key={k.libelle} className={s.compteur}>
             <span>{k.libelle}</span>
@@ -146,7 +146,7 @@ export function ResultatsExpertise({ espace }: { espace: Espace }) {
                   </td>
                   <td>
                     <Link to={`${racine(espace)}/${x.origineId}`} className={x.etat === 'recu' && !x.lu ? c.principal : c.secondaire}>
-                      <FaEye aria-hidden="true" /> {x.etat === 'recu' ? 'Voir le résultat' : 'Voir'}
+                      <FaEye aria-hidden="true" /> {x.etat === 'recu' ? 'Voir la réponse' : 'Voir'}
                     </Link>
                   </td>
                 </motion.tr>
@@ -188,14 +188,14 @@ export function ResultatExpertiseFiche({ espace }: { espace: Espace }) {
       .then(setD)
       .catch((e) => {
         setErreur(true);
-        alerte.echec(`Impossible d’ouvrir le résultat : ${messageErreur(e)}`);
+        alerte.echec(`Impossible d’ouvrir la réponse : ${messageErreur(e)}`);
       });
   }, [origineId, espace]);
 
   const entete = (
     <header className={c.entete}>
       <div>
-        <p className={c.surtitre}>Résultats d’expertise</p>
+        <p className={c.surtitre}>Réponses d’expertise</p>
         <h1 className={c.titre}>{d ? `Télé-expertise ${d.externe ? 'externe' : 'interne'}` : 'Télé-expertise'}</h1>
       </div>
       <button type="button" className={c.secondaire} onClick={() => navigate(racine(espace))}>
@@ -258,7 +258,7 @@ export function ResultatExpertiseFiche({ espace }: { espace: Espace }) {
 
       <section className={c.bloc}>
         <h2 className={s.titreBloc}>
-          <FaClipboardCheck aria-hidden="true" /> Résultat de l’expert
+          <FaClipboardCheck aria-hidden="true" /> Réponse de l’expert
         </h2>
         {d.motif && <p className={s.motif}>Motif de la demande : {d.motif}</p>}
         {d.etat === 'recu' ? (
@@ -272,14 +272,14 @@ export function ResultatExpertiseFiche({ espace }: { espace: Espace }) {
           />
         ) : d.etat === 'termine' ? (
           <div className={s.attente}>
-            <p>L’expert a terminé sa consultation sans joindre de résultat.</p>
+            <p>L’expert a terminé sa consultation sans joindre de réponse.</p>
           </div>
         ) : (
           <div className={s.attente}>
             <p>
               {d.etat === 'retard'
-                ? 'L’heure limite de la réponse est dépassée : le résultat n’est pas encore arrivé.'
-                : 'Le résultat n’est pas encore arrivé. Il apparaîtra ici dès que l’expert l’aura envoyé.'}
+                ? 'L’heure limite de la réponse est dépassée : la réponse n’est pas encore arrivée.'
+                : 'La réponse n’est pas encore arrivée. Elle apparaîtra ici dès que l’expert l’aura envoyé.'}
             </p>
             <Chrono recueLe={d.demandeLe} date={null} heure={null} echeance={d.echeance} delai={delaiExpertise(d)} />
           </div>

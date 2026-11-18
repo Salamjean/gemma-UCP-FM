@@ -49,6 +49,22 @@ export class InfirmierConsultationMedicaleController {
     return this.service.servicesExternes(req.user.sub, 'infirmier');
   }
 
+  @Get('services-externes/:serviceId/hopitaux')
+  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number) {
+    return this.service.hopitauxService(req.user.sub, serviceId, 'infirmier');
+  }
+
+  @Get('services-externes/:serviceId/hopitaux/:hospitalId/medecins')
+  medecinsService(
+    @Req() req: Req_,
+    @Param('serviceId', ParseIntPipe) serviceId: number,
+    @Param('hospitalId', ParseIntPipe) hospitalId: number,
+    @Query('date') date?: string,
+    @Query('heure') heure?: string,
+  ) {
+    return this.service.medecinsService(req.user.sub, serviceId, hospitalId, 'infirmier', date, heure);
+  }
+
   @Get('medecins-reference')
   medecinsReference(@Req() req: Req_, @Query('date') date?: string, @Query('heure') heure?: string) {
     return this.service.medecinsReference(req.user.sub, 'infirmier', date, heure);

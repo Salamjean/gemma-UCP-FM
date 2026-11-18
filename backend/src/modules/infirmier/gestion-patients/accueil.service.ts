@@ -73,23 +73,24 @@ export class InfirmierAccueilService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Patient de l'hôpital (dossier créé ici, consultation ici, ou mère suivie ici) : sinon pas de modification */
+  /**
+   * Patient consultable et modifiable depuis n'importe quel hôpital : un patient peut être pris en charge
+   * ailleurs que dans son hôpital d'origine. patients.hospital_id n'est jamais modifié ici :
+   * il reste compté dans son hôpital d'origine (la modification est tracée au nom de l'hôpital de l'agent).
+   */
   private async patientModifiable(userId: number, patientId: number) {
     const { hospitalId } = await this.getInfirmier(userId);
     const [p] = await this.db.query(
       `SELECT p.*, u.name, u.prenom, mu.name AS mere_nom, mu.prenom AS mere_prenom, m.code_patient AS mere_code,
               -- Lieu de naissance : celui de l'inscription ; nouveau-né sans lieu (ancien dossier) → localité de l'hôpital de naissance
               COALESCE((SELECT sp.name FROM sub_prefectures sp WHERE sp.id = p.lieu_de_naissance_id),
-                       IF(p.mere_id IS NULL, NULL, (SELECT sp2.name FROM hospitals hn JOIN sub_prefectures sp2 ON sp2.id = hn.localite WHERE hn.id = p.hospital_id))) AS lieu_naissance_nom,
-              (p.hospital_id = ? OR m.hospital_id = ?
-               OR EXISTS (SELECT 1 FROM consultations c WHERE c.patient_id = p.id AND c.hospital_id = ?)) AS de_l_hopital
+                       IF(p.mere_id IS NULL, NULL, (SELECT sp2.name FROM hospitals hn JOIN sub_prefectures sp2 ON sp2.id = hn.localite WHERE hn.id = p.hospital_id))) AS lieu_naissance_nom
          FROM patients p JOIN users u ON u.id = p.user_id
          LEFT JOIN patients m ON m.id = p.mere_id LEFT JOIN users mu ON mu.id = m.user_id
         WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1`,
-      [hospitalId, hospitalId, hospitalId, patientId],
+      [patientId],
     );
     if (!p) throw new NotFoundException('Patient introuvable.');
-    if (Number(p.de_l_hopital) !== 1) throw new BadRequestException('Ce patient n’est pas suivi dans votre établissement.');
     return { p, hospitalId };
   }
 

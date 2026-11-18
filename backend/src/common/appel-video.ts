@@ -57,12 +57,18 @@ const ELIGIBLE_URGENCE = `
   -- En permission accordée : hors service, pas appelé
   AND NOT ${SQL_EN_PERMISSION('d.user_id')}
   AND (
-       LOWER(COALESCE(d.type_name, '')) IN ('generaliste', 'généraliste')
-    OR EXISTS (SELECT 1 FROM prestation_hospitals phu
-                 JOIN service_hospitals shp ON shp.id = phu.service_hospital_id
-                 JOIN service_hospitals shd ON shd.id = d.service_hospital_id
-                WHERE phu.id = c.prestation_hospital_id AND shd.service_id = shp.service_id)
-    OR EXISTS (SELECT 1 FROM prestation_doctors pd WHERE pd.doctor_id = d.id AND pd.prestation_hospital_id = c.prestation_hospital_id)
+    -- Lancé par un MÉDECIN : tous les médecins de SON service dans la DMHP, lui exclu
+    EXISTS (SELECT 1 FROM fm_urgences_medecin um JOIN service_hospitals shm ON shm.id = d.service_hospital_id
+             WHERE um.consultation_id = c.id AND shm.service_id = um.service_id AND d.id <> um.doctor_origine_id)
+    -- Lancé par l'infirmier·ère : règle habituelle
+    OR (NOT EXISTS (SELECT 1 FROM fm_urgences_medecin um2 WHERE um2.consultation_id = c.id) AND (
+         LOWER(COALESCE(d.type_name, '')) IN ('generaliste', 'généraliste')
+      OR EXISTS (SELECT 1 FROM prestation_hospitals phu
+                   JOIN service_hospitals shp ON shp.id = phu.service_hospital_id
+                   JOIN service_hospitals shd ON shd.id = d.service_hospital_id
+                  WHERE phu.id = c.prestation_hospital_id AND shd.service_id = shp.service_id)
+      OR EXISTS (SELECT 1 FROM prestation_doctors pd WHERE pd.doctor_id = d.id AND pd.prestation_hospital_id = c.prestation_hospital_id)
+    ))
   )`;
 
 /** Urgence lancée et pas encore décrochée par un médecin */
@@ -79,10 +85,14 @@ async function consultationDeLAppel(db: DataSource, userId: number, consultation
     `SELECT c.id, c.doctor_id, c.infirmier_id, c.hospital_id, c.status, c.call_channel, c.call_status, c.is_call_active, c.code_consultation, c.is_urgence,
             pu.name AS patient_nom, pu.prenom AS patient_prenom,
             du.name AS medecin_nom, du.prenom AS medecin_prenom, iu.name AS inf_nom, iu.prenom AS inf_prenom,
-            me.name AS moi_nom, me.prenom AS moi_prenom
+            me.name AS moi_nom, me.prenom AS moi_prenom,
+            um.doctor_origine_id AS urgence_lancee_par, umu.name AS lanceur_nom, umu.prenom AS lanceur_prenom
        FROM consultations c
        JOIN patients p ON p.id = c.patient_id
        JOIN users pu ON pu.id = p.user_id
+       -- Appel d'urgence lancé par un médecin : il en est l'appelant
+       LEFT JOIN fm_urgences_medecin um ON um.consultation_id = c.id
+       LEFT JOIN doctors umd ON umd.id = um.doctor_origine_id LEFT JOIN users umu ON umu.id = umd.user_id
        LEFT JOIN doctors d ON d.id = c.doctor_id LEFT JOIN users du ON du.id = d.user_id
        LEFT JOIN infirmiers i ON i.id = c.infirmier_id LEFT JOIN users iu ON iu.id = i.user_id
        JOIN users me ON me.id = ?
@@ -92,22 +102,26 @@ async function consultationDeLAppel(db: DataSource, userId: number, consultation
   if (!c) throw new NotFoundException('Consultation introuvable.');
   // Urgence pas encore décrochée : tout médecin alerté peut la prendre (le premier qui décroche)
   const urgenceLibre = agent.role === 'doctor' && !c.doctor_id && (await eligibleUrgence(db, agent.doctorId!, Number(c.id)));
+  // Médecin qui a lancé l'appel d'urgence : il est l'appelant (comme l'infirmier·ère)
+  const lanceur = agent.role === 'doctor' && !!c.urgence_lancee_par && Number(c.urgence_lancee_par) === agent.doctorId;
   const participant =
     agent.role === 'doctor'
-      ? Number(c.doctor_id) === agent.doctorId || urgenceLibre
+      ? Number(c.doctor_id) === agent.doctorId || urgenceLibre || lanceur
       : Number(c.infirmier_id) === agent.infirmierId || (!c.infirmier_id && Number(c.hospital_id) === agent.hospitalId);
   if (!participant) {
     if (agent.role === 'doctor' && Number(c.is_urgence) === 1 && c.doctor_id) throw new ForbiddenException('Un autre médecin a déjà décroché cet appel d’urgence.');
     throw new ForbiddenException('Vous ne participez pas à cette télémédecine.');
   }
-  return { agent, c, urgenceLibre };
+  return { agent, c, urgenceLibre, lanceur };
 }
 
 /** Démarrer l'appel, ou rejoindre celui que l'autre participant a lancé */
 export async function rejoindreAppel(db: DataSource, userId: number, consultationId: number) {
   configLiveKit();
-  const { agent, c, urgenceLibre } = await consultationDeLAppel(db, userId, consultationId);
+  const { agent, c, urgenceLibre, lanceur } = await consultationDeLAppel(db, userId, consultationId);
   if (Number(c.status) === 1) throw new BadRequestException('Cette consultation est terminée : plus d’appel possible.');
+  // Appelant (infirmier·ère, ou médecin qui a lancé l'urgence) : côté « en attente qu'un médecin décroche »
+  const appelant = agent.role === 'infirmier' || lanceur;
   if (urgenceLibre) {
     // Le premier médecin qui décroche prend le patient (mise à jour atomique, comme Laravel)
     const r = await db.query('UPDATE consultations SET doctor_id = ?, updated_at = ? WHERE id = ? AND doctor_id IS NULL', [agent.doctorId, laravelNow(), c.id]);
@@ -118,7 +132,7 @@ export async function rejoindreAppel(db: DataSource, userId: number, consultatio
   }
   const salle = c.call_channel || `teleconsult_${c.code_consultation ?? c.id}_${Math.random().toString(36).slice(2, 10)}`;
   // L'appel est « en cours » quand l'autre participant est déjà là ; une urgence pas encore décrochée sonne toujours
-  const enCours = Number(c.is_call_active) === 1 && !(agent.role === 'infirmier' && !c.doctor_id && Number(c.is_urgence) === 1);
+  const enCours = Number(c.is_call_active) === 1 && !(appelant && !c.doctor_id && Number(c.is_urgence) === 1);
   const now = laravelNow();
   await db.query(
     `UPDATE consultations SET call_channel = ?, is_call_active = 1, call_status = ?,
@@ -133,16 +147,20 @@ export async function rejoindreAppel(db: DataSource, userId: number, consultatio
     salle,
     consultationId: Number(c.id),
     patient: nom(c.patient_nom, c.patient_prenom),
-    interlocuteur:
-      agent.role === 'doctor'
-        ? nom(c.inf_nom, c.inf_prenom)
+    interlocuteur: appelant
+      ? c.doctor_id && nom(c.medecin_nom, c.medecin_prenom)
+        ? `Dr ${nom(c.medecin_nom, c.medecin_prenom).replace(/^dr\.?\s*/i, '')}`
+        : lanceur
+          ? 'Médecins de votre service'
+          : 'Médecins de garde'
+      : // Médecin qui a décroché : l'appelant (médecin qui a lancé l'urgence, sinon l'infirmier·ère)
+        c.urgence_lancee_par && nom(c.lanceur_nom, c.lanceur_prenom)
+        ? `Dr ${sansDr(nom(c.lanceur_nom, c.lanceur_prenom))}`
+        : nom(c.inf_nom, c.inf_prenom)
           ? `Inf. ${nom(c.inf_nom, c.inf_prenom)}`
-          : 'Infirmier·ère'
-        : c.doctor_id && nom(c.medecin_nom, c.medecin_prenom)
-          ? `Dr ${nom(c.medecin_nom, c.medecin_prenom).replace(/^dr\.?\s*/i, '')}`
-          : 'Médecins de garde',
+          : 'Infirmier·ère',
     rejoint: enCours,
-    attente: agent.role === 'infirmier' && !c.doctor_id ? 'Appel d’urgence : en attente qu’un médecin décroche…' : undefined,
+    attente: appelant && !c.doctor_id ? 'Appel d’urgence : en attente qu’un médecin décroche…' : undefined,
   };
 }
 
@@ -176,9 +194,11 @@ export async function appelsEntrants(db: DataSource, userId: number) {
     agent.role === 'doctor'
       ? await db.query(
           `SELECT c.id, c.call_status, c.call_started_at, pu.name AS patient_nom, pu.prenom AS patient_prenom, iu.name AS inf_nom, iu.prenom AS inf_prenom,
-                  IF(c.hospital_id <> d.hospital_id, hc.label, NULL) AS autre_hopital
+                  IF(c.hospital_id <> d.hospital_id, hc.label, NULL) AS autre_hopital, umu.name AS lanceur_nom, umu.prenom AS lanceur_prenom
              FROM consultations c
              LEFT JOIN hospitals hc ON hc.id = c.hospital_id
+             LEFT JOIN fm_urgences_medecin um ON um.consultation_id = c.id
+             LEFT JOIN doctors umd ON umd.id = um.doctor_origine_id LEFT JOIN users umu ON umu.id = umd.user_id
              JOIN doctors d ON d.id = ?
              JOIN patients p ON p.id = c.patient_id JOIN users pu ON pu.id = p.user_id
              LEFT JOIN infirmiers i ON i.id = c.infirmier_id LEFT JOIN users iu ON iu.id = i.user_id
@@ -195,7 +215,8 @@ export async function appelsEntrants(db: DataSource, userId: number) {
       depuis: r.call_started_at,
       patient: nom(r.patient_nom, r.patient_prenom),
       // Urgence d'un autre hôpital DMHP : son nom est ajouté
-      appelant: `Inf. ${nom(r.inf_nom, r.inf_prenom) || '—'}${r.autre_hopital ? ` · ${r.autre_hopital}` : ''}`,
+      // Lancé par un médecin : son nom ; sinon l'infirmier·ère
+      appelant: `${nom(r.lanceur_nom, r.lanceur_prenom) ? `Dr ${sansDr(nom(r.lanceur_nom, r.lanceur_prenom))}` : `Inf. ${nom(r.inf_nom, r.inf_prenom) || '—'}`}${r.autre_hopital ? ` · ${r.autre_hopital}` : ''}`,
       urgence: true,
     })),
     ...rows
@@ -312,7 +333,7 @@ export async function jetonInvite(db: DataSource, consultationId: number, code: 
 }
 
 /* =========================================================
-   APPEL D'URGENCE (infirmier·ère, comme Laravel startEmergencyCall)
+   APPEL D'URGENCE (infirmier·ère, comme Laravel startEmergencyCall ; ou médecin → médecins de son service dans la DMHP)
    Constantes enregistrées → appel vidéo lancé vers tous les médecins alertés (doctor_id remis à NULL) ;
    le premier médecin qui décroche prend le patient.
    ========================================================= */
@@ -329,7 +350,16 @@ export interface ConstantesUrgence {
 export async function lancerUrgence(db: DataSource, userId: number, consultationId: number, k: ConstantesUrgence) {
   configLiveKit();
   const agent = await agentDuCompte(db, userId);
-  if (agent.role !== 'infirmier') throw new ForbiddenException('Réservé à l’infirmier·ère.');
+  // Médecin : l'appel sonne chez les médecins de SON service dans la DMHP (il doit être rattaché à un service)
+  const medecin = agent.role === 'doctor';
+  let serviceMedecin: number | null = null;
+  if (medecin) {
+    const [sv] = await db.query('SELECT sh.service_id FROM doctors dc JOIN service_hospitals sh ON sh.id = dc.service_hospital_id WHERE dc.id = ? LIMIT 1', [agent.doctorId]);
+    serviceMedecin = sv?.service_id ? Number(sv.service_id) : null;
+    if (!serviceMedecin) throw new BadRequestException("Vous n'êtes rattaché·e à aucun service : l'appel d'urgence ne peut pas être lancé.");
+  } else if (agent.role !== 'infirmier') {
+    throw new ForbiddenException('Réservé au personnel soignant.');
+  }
   const [c] = await db.query(
     `SELECT id, status, status_inf, orientation_infirmier, is_call_active, doctor_id, call_channel, code_consultation,
             tension_arterielle, temperature, taille, poids, pouls
@@ -365,12 +395,20 @@ export async function lancerUrgence(db: DataSource, userId: number, consultation
   await db.query(
     `UPDATE consultations
         SET orientation_infirmier = 'urgence', is_urgence = 1, is_call_active = 1, call_status = 'calling', call_channel = ?,
-            call_started_at = ?, call_ended_at = NULL, infirmier_id = ?, doctor_id = NULL, status = 0, status_inf = 1,
+            call_started_at = ?, call_ended_at = NULL, infirmier_id = COALESCE(?, infirmier_id), doctor_id = NULL, status = 0, status_inf = 1,
             tension_arterielle = ?, temperature = ?, taille = ?, poids = ?, pouls = ?, imc = COALESCE(?, imc),
             observation_infirmiere = COALESCE(?, observation_infirmiere), updated_at = ?
       WHERE id = ?`,
-    [salle, now, agent.infirmierId, constantes.tension, constantes.temperature, constantes.taille, constantes.poids, constantes.pouls, texteOuNull(k.imc), texteOuNull(k.observation), now, c.id],
+    [salle, now, medecin ? null : agent.infirmierId, constantes.tension, constantes.temperature, constantes.taille, constantes.poids, constantes.pouls, texteOuNull(k.imc), texteOuNull(k.observation), now, c.id],
   );
+  // Lancé par un médecin : appelant et service visé (tous les médecins de ce service dans la DMHP, lui exclu)
+  if (medecin) {
+    await db.query(
+      `INSERT INTO fm_urgences_medecin (consultation_id, doctor_origine_id, service_id, created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())
+       ON DUPLICATE KEY UPDATE doctor_origine_id = VALUES(doctor_origine_id), service_id = VALUES(service_id)`,
+      [c.id, agent.doctorId, serviceMedecin],
+    );
+  }
   const [{ n }] = await db.query(`SELECT COUNT(*) AS n FROM consultations c JOIN doctors d ON 1 = 1 WHERE c.id = ? AND ${ELIGIBLE_URGENCE}`, [c.id]);
   return { ...(await rejoindreAppel(db, userId, consultationId)), medecinsAlertes: Number(n) };
 }

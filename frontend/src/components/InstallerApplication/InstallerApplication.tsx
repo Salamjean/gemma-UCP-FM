@@ -47,7 +47,7 @@ export default function InstallerApplication() {
     <AnimatePresence>
       {visible && (
         <motion.div className={s.bandeau} role="region" aria-label="Installer l'application" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-          <img src="/icons/icon-192.png" alt="" className={s.icone} />
+          <img src="/pwa-icons/icon-192.png" alt="" className={s.icone} />
           <span className={s.texte}>
             <strong>Installer GEMMA</strong>
             <small>{ios ? 'Ajoutez l’application à votre écran d’accueil.' : 'Ouvrez GEMMA comme une application, sans la barre du navigateur.'}</small>

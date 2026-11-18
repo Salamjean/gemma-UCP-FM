@@ -146,6 +146,36 @@ export class DoctorConsultationsController {
     return this.service.servicesExternes(req.user.sub);
   }
 
+  /** Téléconsultations envoyées à mon service (sans médecin choisi), à prendre en charge */
+  @Get('consultations/teleconsultations-disponibles')
+  teleconsultationsDisponibles(@Req() req: Req_) {
+    return this.service.teleconsultationsDisponibles(req.user.sub);
+  }
+
+  /** Prise en charge d'une téléconsultation envoyée au service : le premier qui la prend l'obtient */
+  @Post('consultations/:id/prendre-teleconsultation')
+  prendreTeleconsultation(@Req() req: Req_, @Param('id', ParseIntPipe) id: number) {
+    return this.service.prendreTeleconsultation(req.user.sub, id);
+  }
+
+  /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service */
+  @Get('consultations/services-externes/:serviceId/hopitaux')
+  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number) {
+    return this.service.hopitauxService(req.user.sub, serviceId);
+  }
+
+  /** Télé-expertise en externe : médecins de ce service dans cet hôpital, disponibilité à la date / l'heure */
+  @Get('consultations/services-externes/:serviceId/hopitaux/:hospitalId/medecins')
+  medecinsService(
+    @Req() req: Req_,
+    @Param('serviceId', ParseIntPipe) serviceId: number,
+    @Param('hospitalId', ParseIntPipe) hospitalId: number,
+    @Query('date') date?: string,
+    @Query('heure') heure?: string,
+  ) {
+    return this.service.medecinsService(req.user.sub, serviceId, hospitalId, 'doctor', date, heure);
+  }
+
   /** GET /api/doctor/consultations/medecins-reference → médecins de l'hôpital pour une référence interne */
   @Get('consultations/medecins-reference')
   medecinsReference(@Req() req: Req_, @Query('date') date?: string, @Query('heure') heure?: string) {

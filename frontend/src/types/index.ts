@@ -1547,12 +1547,29 @@ export interface DoctorTelemedecineItem {
 }
 
 /** Télé-expertise externe adressée à mon service, à prendre en charge */
+/** Téléconsultation envoyée à mon service (aucun médecin choisi), à prendre en charge */
+export interface TeleconsultationDisponible {
+  consultationId: number;
+  externe: boolean;
+  recueLe: string;
+  datePrevue: string | null;
+  heurePrevue: string | null;
+  motif: string | null;
+  referePar: string | null;
+  /** Hôpital du demandeur */
+  hopital: string | null;
+  service: string | null;
+  patient: DoctorConsultationItem['patient'];
+}
+
 export interface ExpertiseDisponible {
   origineId: number;
   recueLe: string;
   datePrevue: string | null;
   heurePrevue: string | null;
   urgente: boolean;
+  /** Interne (même hôpital) ou externe (autre hôpital de la DMHP) */
+  externe: boolean;
   /** Heure limite de la réponse (ISO UTC) */
   echeance: string | null;
   motif: string | null;
@@ -1679,6 +1696,8 @@ export interface SuiteConsultation {
 export interface DoctorConsultationFormulaire {
   /** Consultation commencée par l'infirmier·ère puis envoyée au médecin : saisie reprise */
   envoiMedecin: { par: string | null } | null;
+  /** Télé-expertise reçue : saisie de la consultation du demandeur (médecin ou infirmier·ère) reprise, modifiable */
+  repriseExpertise: { par: string | null } | null;
   /** Télé-expertise reçue (médecin expert) : consultation d'origine, résultat déjà envoyé ou non */
   /** urgente : consultation (synchrone) ; programmée : pas de consultation, l'expert joint directement son résultat */
   expertiseRecue: { origineId: number; resultatEnvoye: boolean; urgente: boolean; avecConsultation: boolean } | null;
@@ -1733,8 +1752,13 @@ export type ConsultationCurativePayload = Partial<Record<Exclude<keyof Consultat
   medicaments?: { drugId?: number; nom?: string; unite?: string; quantite?: number; posologie?: string; duree?: string; voie?: string; conseil?: string }[];
   examens?: string[];
   arret?: { dateDebut: string; dateFin: string; nbJour: number };
-  /** Référé en interne : médecin destinataire (obligatoire) */
+  /** Télé-expertise : médecin destinataire (facultatif ; sans médecin → tous les médecins du service) */
   medecinReferenceId?: number;
+  /** Télé-expertise interne : service de l'hôpital (service_hospitals.id) */
+  referenceServiceHospitalId?: number;
+  /** Télé-expertise externe : service (services.id) et hôpital facultatif */
+  referenceServiceId?: number;
+  referenceHopitalId?: number;
   /** Issue « hospitalisation » : chambre facultative, dossier, protocole obligatoire */
   hospitalisation?: {
     diagnostic?: string;

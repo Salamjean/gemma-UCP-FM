@@ -291,7 +291,7 @@ export default function Teleconsultations() {
                       {/* Statut */}
                       <td>
                         {item.expertise?.resultatLe ? (
-                          <span className={`${c.badge} ${c.badgeVert}`}>Résultat reçu</span>
+                          <span className={`${c.badge} ${c.badgeVert}`}>Réponse reçue</span>
                         ) : isCompleted ? (
                           <span className={`${c.badge} ${c.badgeVert}`}>Terminée</span>
                         ) : isCallLive ? (
@@ -316,7 +316,7 @@ export default function Teleconsultations() {
                               style={{ height: 34, padding: '0 12px', fontSize: '0.78rem' }}
                               onClick={() => navigate(`/infirmier/resultats-expertise/${item.id}`)}
                             >
-                              <FaClipboardCheck aria-hidden="true" /> {item.expertise.resultatLe ? 'Voir le résultat' : 'Suivre'}
+                              <FaClipboardCheck aria-hidden="true" /> {item.expertise.resultatLe ? 'Voir la réponse' : 'Suivre'}
                             </button>
                           ) : (
                             <>

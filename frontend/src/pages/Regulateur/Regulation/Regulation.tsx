@@ -8,12 +8,15 @@ import c from '../../../styles/espace.module.css';
 import type { ConsultationARegler, MedecinPropose, TableauRegulation } from '../../../types';
 import s from './Regulation.module.css';
 import { PaginationTableau, usePagination } from '../../../components/Pagination';
+import SelectRecherche from '../../../components/SelectRecherche/SelectRecherche';
 
 const heure = (iso: string) => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 /** Rafraîchissement automatique de la liste */
 const INTERVALLE = 30_000;
 /** Au-delà de ce délai sans prise en charge, l'affectation passe « À réguler » (même règle que le backend) */
 const ATTENTE_MAX = 30;
+/** Réattribution externe sans médecin : envoi à tout le service de l'hôpital */
+const TOUS_SERVICE = 'Tous les médecins du service';
 const duree = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`);
 
 /**
@@ -26,7 +29,7 @@ const duree = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60
  */
 export default function Regulation() {
   const [data, setData] = useState<TableauRegulation | null>(null);
-  const [filtre, setFiltre] = useState<'a-reguler' | 'toutes'>('a-reguler');
+  const [filtre, setFiltre] = useState<'a-reguler' | 'toutes'>('toutes');
   const [recherche, setRecherche] = useState('');
   const [choisie, setChoisie] = useState<ConsultationARegler | null>(null);
 
@@ -63,7 +66,7 @@ export default function Regulation() {
       <header className={c.entete}>
         <div>
           <p className={c.surtitre}>Régulation · {data?.hopital ?? '…'}</p>
-          <h1 className={c.titre}>Régulation des patients</h1>
+          <h1 className={c.titre}>Régulation</h1>
         </div>
         <div className={c.boutons}>
           <button type="button" className={c.secondaire} onClick={charger}>
@@ -94,8 +97,9 @@ export default function Regulation() {
           <div className={s.onglets} role="tablist" aria-label="Consultations affichées">
             {(
               [
-                ['a-reguler', 'À réguler'],
+                // « Toutes » en premier, sélectionné par défaut
                 ['toutes', 'Toutes'],
+                ['a-reguler', 'À réguler'],
               ] as const
             ).map(([v, l]) => (
               <button key={v} type="button" role="tab" aria-selected={filtre === v} className={`${s.onglet} ${filtre === v ? s.ongletActif : ''}`} onClick={() => setFiltre(v)}>
@@ -221,21 +225,34 @@ export default function Regulation() {
   );
 }
 
-/** Fenêtre : choix du nouveau médecin parmi ceux du service du patient (disponibles d'abord, moins chargés) + motif facultatif */
+/**
+ * Fenêtre de réattribution, comme la télé-expertise, TOUJOURS dans le service où le patient est affecté (non modifiable) :
+ *   - en interne : médecins de ce service dans l'hôpital ;
+ *   - en externe : hôpital de la DMHP qui a ce service → ses médecins de ce service.
+ * Disponibles d'abord, moins chargés ; motif facultatif.
+ */
 function FenetreReattribution({ consultation, onFermer, onFait }: { consultation: ConsultationARegler; onFermer: () => void; onFait: () => void }) {
   const [medecins, setMedecins] = useState<MedecinPropose[] | null>(null);
   const [service, setService] = useState<string | null>(consultation.service);
   const [choix, setChoix] = useState<number | null>(null);
   const [motif, setMotif] = useState('');
   const [envoi, setEnvoi] = useState(false);
-  const [tous, setTous] = useState(false);
+  // Interne / externe et hôpital (externe) ; le service est celui du patient (non modifiable)
+  const [portee, setPortee] = useState<'interne' | 'externe' | null>(null);
+  const [serviceId, setServiceId] = useState<number | null>(null);
+  const [hopital, setHopital] = useState<number | null>(null);
+  const [hopitaux, setHopitaux] = useState<{ id: number; nom: string }[] | null>(null);
 
+  // Ouverture : choix par défaut et ses médecins
   useEffect(() => {
     api.regulateur
       .medecins(consultation.id)
       .then((r) => {
         setMedecins(r.medecins);
         if (r.service) setService(r.service);
+        setServiceId(r.defaut.serviceId);
+        setPortee(r.defaut.portee);
+        setHopital(r.defaut.hospitalId);
       })
       .catch((e) => {
         alerte.echec(messageErreur(e));
@@ -246,14 +263,57 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
     return () => document.removeEventListener('keydown', echap);
   }, [consultation.id]);
 
+  // Externe : autres hôpitaux de la DMHP qui ont le service du patient
+  useEffect(() => {
+    setHopitaux(null);
+    if (portee !== 'externe' || !serviceId) return;
+    let actif = true;
+    api.regulateur
+      .hopitauxService(serviceId)
+      .then((l) => actif && setHopitaux(l))
+      .catch(() => actif && setHopitaux([]));
+    return () => {
+      actif = false;
+    };
+  }, [portee, serviceId]);
+
+  // Médecins du service du patient : dans l'hôpital (interne) ou l'hôpital choisi (externe)
+  const [premierChargement, setPremierChargement] = useState(true);
+  useEffect(() => {
+    if (!portee) return;
+    // Le choix par défaut est déjà chargé à l'ouverture
+    if (premierChargement) {
+      setPremierChargement(false);
+      return;
+    }
+    setChoix(null);
+    setMedecins(null);
+    if (portee === 'externe' && !hopital) return setMedecins([]);
+    let actif = true;
+    api.regulateur
+      .medecins(consultation.id, portee === 'externe' ? { portee, hospitalId: hopital! } : { portee })
+      .then((r) => actif && setMedecins(r.medecins))
+      .catch((e) => actif && (alerte.echec(messageErreur(e)), setMedecins([])));
+    return () => {
+      actif = false;
+    };
+  }, [portee, hopital]);
+
+  const nomHopital = hopitaux?.find((h) => h.id === hopital)?.nom;
+  const pret = !!serviceId && (portee === 'interne' || !!hopital);
+
   const disponibles = (medecins ?? []).filter((m) => m.disponible && !m.actuel);
-  const affiches = tous ? (medecins ?? []).filter((m) => !m.actuel) : disponibles;
 
   const valider = async () => {
-    if (!choix) return void alerte.echec('Choisissez le nouveau médecin.');
+    if (portee === 'externe' && !hopital) return void alerte.echec('Choisissez l’hôpital.');
+    if (portee !== 'externe' && !choix) return void alerte.echec('Choisissez le nouveau médecin.');
     setEnvoi(true);
     try {
-      const r = await api.regulateur.reattribuer(consultation.id, { doctorId: choix, motif: motif.trim() || undefined });
+      const r = await api.regulateur.reattribuer(consultation.id, {
+        ...(choix ? { doctorId: choix } : {}),
+        ...(portee === 'externe' && hopital ? { hospitalId: hopital } : {}),
+        motif: motif.trim() || undefined,
+      });
       await alerte.succes(r.message);
       onFait();
     } catch (e) {
@@ -283,49 +343,103 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
           </button>
         </div>
 
-        <div className={s.listeEntete}>
-          <strong>Médecins du service {service ?? 'du patient'}</strong>
-          <label className={s.coche}>
-            <input type="checkbox" checked={tous} onChange={(e) => setTous(e.target.checked)} /> Afficher aussi les indisponibles
-          </label>
+        {/* En interne (médecin de l'hôpital) ou en externe (autre hôpital de la DMHP), comme la télé-expertise */}
+        <div className={s.porteeLigne}>
+          <span>
+            Réattribuer <em>*</em>
+          </span>
+          <div className={s.onglets} role="radiogroup" aria-label="Réattribution en interne ou en externe">
+            {(
+              [
+                ['interne', 'En interne'],
+                ['externe', 'En externe'],
+              ] as const
+            ).map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={portee === v}
+                className={`${s.onglet} ${portee === v ? s.ongletActif : ''}`}
+                onClick={() => {
+                  if (portee === v) return;
+                  setPortee(v);
+                  setHopital(null);
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {!medecins ? (
-          <p className={s.aide}>Chargement des médecins…</p>
-        ) : affiches.length === 0 ? (
+        {/* Service du patient (fixe) · hôpital (externe) · médecin — sur la même ligne */}
+        <div className={portee === 'externe' ? s.choixTrois : s.choixDeux}>
+          {/* Service du patient : non modifiable */}
+          <div className={s.choixChamp}>
+            <span>Service</span>
+            <div className={s.champFixe}>{service ?? 'Service du patient'}</div>
+          </div>
+          {portee === 'externe' && (
+            <div className={s.choixChamp}>
+              <span>
+                Hôpital <em>*</em>
+              </span>
+              {!serviceId ? (
+                <div className={s.champBloque}>Service du patient inconnu</div>
+              ) : (
+                <SelectRecherche
+                  key={`hopital-${serviceId}`}
+                  id="reattribution-hopital"
+                  options={(hopitaux ?? []).map((h) => ({ id: h.id, name: h.nom }))}
+                  value={hopital}
+                  onChange={setHopital}
+                  placeholder={hopitaux ? (hopitaux.length ? '-- Choisir l’hôpital --' : 'Aucun autre hôpital avec ce service') : 'Chargement…'}
+                  placeholderRecherche="Rechercher un hôpital…"
+                  aucunResultat="Aucun hôpital ne correspond"
+                />
+              )}
+            </div>
+          )}
+          {/* Médecin du service disponible maintenant : obligatoire en interne, facultatif en externe (sinon tous les médecins du service) */}
+          <div className={s.choixChamp}>
+            <span>
+              Médecin {portee === 'externe' ? <small className={s.facultatif}>(facultatif)</small> : <em>*</em>}
+            </span>
+            {!pret ? (
+              <div className={s.champBloque}>{!serviceId ? 'Service du patient inconnu' : 'Hôpital d’abord'}</div>
+            ) : (
+              <SelectRecherche
+                key={`medecins-${portee}-${hopital ?? 0}`}
+                id="reattribution-medecin"
+                options={disponibles.map((m) => ({
+                  id: m.id,
+                  name: m.nom,
+                  detail: `${m.creneau ?? ''} · ${m.charge} patient${m.charge > 1 ? 's' : ''} aujourd’hui`,
+                }))}
+                value={choix}
+                onChange={setChoix}
+                optionVide={portee === 'externe' ? TOUS_SERVICE : undefined}
+                placeholder={
+                  !medecins
+                    ? 'Chargement…'
+                    : portee === 'externe'
+                      ? TOUS_SERVICE
+                      : disponibles.length
+                        ? '-- Choisir le médecin --'
+                        : 'Aucun médecin disponible maintenant'
+                }
+                placeholderRecherche="Rechercher un médecin…"
+                aucunResultat="Aucun médecin ne correspond"
+              />
+            )}
+          </div>
+        </div>
+        {portee === 'externe' && hopital && !choix && (
           <p className={s.aide}>
-            {tous ? `Aucun autre médecin dans le service ${service ?? 'du patient'}.` : `Aucun autre médecin du service ${service ?? 'du patient'} n'est disponible maintenant.`}
+            Sans médecin choisi, tous les médecins du service {service ?? 'du patient'} à {nomHopital ?? 'l’hôpital choisi'} reçoivent le patient : le premier qui le prend en
+            charge l’obtient, il disparaît alors chez les autres.
           </p>
-        ) : (
-          <ul className={s.medecins} role="radiogroup" aria-label="Nouveau médecin">
-            {affiches.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={choix === m.id}
-                  disabled={!m.disponible}
-                  className={`${s.medecin} ${choix === m.id ? s.medecinChoisi : ''}`}
-                  onClick={() => setChoix(m.id)}
-                >
-                  <span className={s.medecinIcone}>{choix === m.id ? <FaCheck aria-hidden="true" /> : <FaUserMd aria-hidden="true" />}</span>
-                  <span className={s.medecinTexte}>
-                    <strong>{m.nom}</strong>
-                    <small>{m.specialite}</small>
-                  </span>
-                  <span className={s.medecinInfos}>
-                    {m.disponible ? (
-                      <small>
-                        {m.creneau} · {m.charge} patient{m.charge > 1 ? 's' : ''} aujourd'hui
-                      </small>
-                    ) : (
-                      <span className={`${c.badge} ${s.badgeKo}`}>{m.raison}</span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
         )}
 
         <label className={s.motif}>
@@ -334,13 +448,13 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
           </span>
           <textarea rows={2} maxLength={500} placeholder="Ex. médecin absent, au bloc…" value={motif} onChange={(e) => setMotif(e.target.value)} />
         </label>
-        <p className={s.aide}>Le patient recevra un SMS avec le nom de son nouveau médecin.</p>
+        {choix && <p className={s.aide}>Le patient recevra un SMS avec le nom de son nouveau médecin.</p>}
 
         <div className={s.boitePied}>
           <button type="button" className={c.secondaire} onClick={onFermer} disabled={envoi}>
             Annuler
           </button>
-          <button type="button" className={c.principal} onClick={valider} disabled={envoi || !choix || disponibles.length === 0}>
+          <button type="button" className={c.principal} onClick={valider} disabled={envoi || (portee === 'externe' ? !hopital : !choix)}>
             <FaExchangeAlt aria-hidden="true" /> {envoi ? 'Réattribution…' : 'Réattribuer'}
           </button>
         </div>

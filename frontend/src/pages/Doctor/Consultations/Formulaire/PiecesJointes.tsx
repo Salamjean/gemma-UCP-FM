@@ -89,6 +89,7 @@ export function PiecesAJoindre({
     <div className={compact ? s.piecesCompact : s.hospBloc}>
       <h3 className={s.sousTitre}>
         <FaPaperclip aria-hidden="true" /> {compact ? 'Documents' : facultatif ? 'Documents joints' : 'Documents à partager'} {!facultatif && <em className={s.requis}>*</em>}
+        {compact && facultatif && <small className={s.facultatif}>(facultatif)</small>}
         {!compact && <small className={s.facultatif}>PDF, image ou Word, 10 Mo maximum</small>}
       </h3>
       <AjoutPiece compact={compact} onAjout={(p) => onChange([...pieces, p])} />

@@ -229,17 +229,32 @@ export class ConsultationCurativeDto {
 
   @Transform(texte) @IsOptional() @IsString() @MaxLength(5000) justification?: string;
 
-  /** Référé en interne : médecin de l'hôpital à qui le patient est adressé (obligatoire) */
+  /**
+   * Télé-expertise : médecin à qui elle est adressée (FACULTATIF).
+   * Sans médecin, elle est envoyée à tous les médecins du service (et de l'hôpital choisi) : le premier qui la prend en charge l'obtient.
+   */
   @Type(() => Number)
   @IsOptional()
   @IsInt({ message: 'Médecin de la référence invalide.' })
   medecinReferenceId?: number;
 
-  /** Télé-expertise en externe : service (table services) des autres établissements à qui la référence est adressée */
+  /** Télé-expertise en interne : service de l'hôpital (service_hospitals.id) — obligatoire */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Service de la référence invalide.' })
+  referenceServiceHospitalId?: number;
+
+  /** Télé-expertise en externe : service (table services) des hôpitaux de la DMHP — obligatoire */
   @Type(() => Number)
   @IsOptional()
   @IsInt({ message: 'Service de la référence invalide.' })
   referenceServiceId?: number;
+
+  /** Télé-expertise en externe : hôpital de la DMHP (facultatif ; sans hôpital → tous les hôpitaux de la DMHP) */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Hôpital de la référence invalide.' })
+  referenceHopitalId?: number;
 
   /** Télé-expertise urgente (synchrone, réponse < 30 min) ; sinon programmée (asynchrone, 24 à 48 h) */
   @IsOptional()
@@ -251,7 +266,33 @@ export class ConsultationCurativeDto {
 
   @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Heure de la prise en charge invalide.' }) referenceHeure?: string;
 
-  /** Téléconsultation : médecin distant (tous hôpitaux de la DMHP), date AAAA-MM-JJ et heure HH:MM */
+  /**
+   * Téléconsultation, comme la télé-expertise : en interne (service de l'hôpital) ou en externe (service de la DMHP,
+   * hôpital facultatif). Médecin FACULTATIF : sans médecin, tous les médecins visés la reçoivent, le premier qui la prend l'obtient.
+   */
+  @IsOptional()
+  @IsIn(['interne', 'externe'], { message: 'Précisez si la téléconsultation est en interne ou en externe.' })
+  telePortee?: 'interne' | 'externe';
+
+  /** Interne : service de l'hôpital (service_hospitals.id) */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Service de la téléconsultation invalide.' })
+  teleServiceHospitalId?: number;
+
+  /** Externe : service (services.id) */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Service de la téléconsultation invalide.' })
+  teleServiceId?: number;
+
+  /** Externe : hôpital de la DMHP (facultatif) */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Hôpital de la téléconsultation invalide.' })
+  teleHopitalId?: number;
+
+  /** Téléconsultation : médecin (facultatif), date AAAA-MM-JJ et heure HH:MM */
   @Type(() => Number)
   @IsOptional()
   @IsInt({ message: 'Médecin de la téléconsultation invalide.' })

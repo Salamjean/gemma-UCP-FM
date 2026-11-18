@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { FaPaperPlane,
+  FaClipboardCheck,
   FaArrowLeft,
   FaArrowRight,
   FaBed,
@@ -28,6 +29,7 @@ import { FaPaperPlane,
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import { alerte, messageErreur } from '../../../../services/alertes';
+import { api as apiGlobal } from '../../../../services/api';
 import { useEspaceConsultation } from './espace';
 import c from '../../../../styles/espace.module.css';
 import type { ConsultationCurativeValeurs, DoctorConsultationFormulaire, DocumentReference, MedicamentPrescrit } from '../../../../types';
@@ -47,7 +49,7 @@ const momentPayload = (m: MomentReference) =>
 import SuiteDonnee from './SuiteDonnee';
 import EnvoiMedecin from './EnvoiMedecin';
 import { FenetreQuitter, quitter, useGardeSortie } from './GardeSortie';
-import IssueTelemedecine, { momentTelemedecineValide, telemedecineVide, type TelemedecineSaisie } from './IssueTelemedecine';
+import IssueTelemedecine, { telemedecineManque, telemedecinePayload, telemedecineVide, type TelemedecineSaisie } from './IssueTelemedecine';
 import { ouvrirAppelVideo } from '../../../../components/AppelVideo';
 import FormulaireAccouchement, { ETAPES_ACCOUCHEMENT, naissanceVide, preparerNaissance, type NaissanceSaisie } from './FormulaireAccouchement';
 import FormulairePostnatal, { ETAPES_POSTNATALES } from './FormulairePostnatal';
@@ -65,6 +67,9 @@ const ETAPES: { titre: string; detail: string; icone: IconType }[] = [
   { titre: 'Prescriptions', detail: 'Ordonnance, examens, arrêt', icone: FaPills },
   { titre: 'Issue', detail: 'Sortie du patient', icone: FaDoorOpen },
 ];
+
+/** Télé-expertise reçue : étape finale du médecin expert */
+const ETAPE_RESULTAT = { titre: 'Réponse', detail: 'Avis & consignes au requérant', icone: FaClipboardCheck };
 
 /** Issues du formulaire curatif Laravel (mode_sortie) */
 const ISSUES: { id: string; titre: string; detail: string; icone: IconType; ton: string }[] = [
@@ -212,18 +217,20 @@ export default function FormulaireConsultation() {
   const annulable = (location.state as { annulable?: boolean } | null)?.annulable === true;
   const [annulation, setAnnulation] = useState(false);
   // Télé-expertise reçue : l'expert indique, avant de terminer, s'il fournit un résultat au requérant
-  const [fournirResultat, setFournirResultat] = useState<boolean | null>(null);
   // Rechargement de la fiche après enregistrement (pour afficher les documents à télécharger)
   const [rechargement, setRechargement] = useState(0);
   // Référence (interne / externe) : documents à joindre, puis documents déjà joints sur la fiche
   const [pieces, setPieces] = useState<PieceEnAttente[]>([]);
   const [references, setReferences] = useState<DocumentReference[]>([]);
-  // Référé en interne : médecin destinataire (obligatoire)
+  // Télé-expertise en interne : service (obligatoire) et médecin (facultatif : sinon tous les médecins du service)
+  const [serviceInterne, setServiceInterne] = useState<number | null>(null);
   const [medecinReference, setMedecinReference] = useState<number | null>(null);
-  // Télé-expertise en interne : date et heure de la prise en charge (avant le choix du médecin)
+  // Télé-expertise : date et heure de la prise en charge (avant le choix du médecin)
   const [momentReference, setMomentReference] = useState<MomentReference>(momentReferenceVide());
-  // Télé-expertise en externe : service destinataire (autres établissements de la DMHP)
+  // Télé-expertise en externe : service (obligatoire), hôpital et médecin (facultatifs)
   const [serviceExterne, setServiceExterne] = useState<number | null>(null);
+  const [hopitalExterne, setHopitalExterne] = useState<number | null>(null);
+  const [medecinExterne, setMedecinExterne] = useState<number | null>(null);
   // Issue « hospitalisation » : chambre, dossier et protocole (comme Laravel)
   const [hosp, setHosp] = useState<HospitalisationSaisie>(hospitalisationVide(null));
   // Issue « Téléconsultation » : date, heure, hôpital et médecin distant
@@ -244,14 +251,26 @@ export default function FormulaireConsultation() {
   const postnatal = fiche?.type === 'postnatale';
   const accouchement = fiche?.type === 'accouchement';
   const maternite = prenatal || postnatal || accouchement;
-  const etapes = prenatal
+  // Télé-expertise reçue (demandée par un médecin ou un infirmier·ère), résultat pas encore envoyé :
+  // dernière étape « Résultat » (fournir un résultat au requérant ? avis, consignes, documents)
+  const etapeResultat = !!fiche?.expertiseRecue && !fiche.expertiseRecue.resultatEnvoye && !fiche.lecture;
+  const etapesBase = prenatal
     ? [...ETAPES_PRENATALES, ...ETAPES.slice(2)]
     : postnatal
       ? [...ETAPES_POSTNATALES, ...ETAPES.slice(2)]
       : accouchement
         ? [...ETAPES_ACCOUCHEMENT, ...ETAPES.slice(2)]
         : ETAPES;
-  const E_PRESC = accouchement ? 5 : maternite ? 3 : 2;
+  // Étapes propres au type de consultation (anamnèse / examen, ou registre de maternité), avant les Prescriptions
+  const E_CLINIQUE_FIN = accouchement ? 5 : maternite ? 3 : 2;
+  // « Réponse » juste avant « Prescriptions » : … → Réponse → Prescriptions → Issue
+  const etapes = etapeResultat ? [...etapesBase.slice(0, E_CLINIQUE_FIN), ETAPE_RESULTAT, ...etapesBase.slice(E_CLINIQUE_FIN)] : etapesBase;
+  // Étape « Réponse » : avis (obligatoire), consignes au requérant, documents
+  const [avisResultat, setAvisResultat] = useState('');
+  const [consignesResultat, setConsignesResultat] = useState('');
+  const [piecesResultat, setPiecesResultat] = useState<PieceEnAttente[]>([]);
+  const E_RESULTAT = E_CLINIQUE_FIN;
+  const E_PRESC = E_CLINIQUE_FIN + (etapeResultat ? 1 : 0);
   // Accouchement : déclaration de naissance (pré-remplie depuis le nouveau-né en arrivant sur l'étape)
   const [naissance, setNaissance] = useState<NaissanceSaisie>(naissanceVide());
   useEffect(() => {
@@ -481,11 +500,7 @@ export default function FormulaireConsultation() {
       alerte.attention('Télé-expertise : précisez si elle est en interne ou en externe.');
       return;
     }
-    if (expertise && pieces.length === 0) {
-      setEtape(E_ISSUE);
-      alerte.attention('Télé-expertise : ajoutez au moins un document à partager.');
-      return;
-    }
+    // Télé-expertise : documents à partager facultatifs (interne comme externe)
     if (v.modeSortie === 'refere-externe' && !serviceExterne) {
       setEtape(E_ISSUE);
       alerte.attention('Télé-expertise en externe : choisissez le service auquel vous l’adressez.');
@@ -501,14 +516,15 @@ export default function FormulaireConsultation() {
       alerte.attention('Télé-expertise programmée : choisissez une date et une heure à venir, dans les 48 heures.');
       return;
     }
-    if (v.modeSortie === 'refere-interne' && !medecinReference) {
+    if (v.modeSortie === 'refere-interne' && !serviceInterne) {
       setEtape(E_ISSUE);
-      alerte.attention('Choisissez d’abord le médecin à qui vous référez le patient.');
+      alerte.attention('Télé-expertise en interne : choisissez le service auquel vous l’adressez.');
       return;
     }
-    if (v.modeSortie === 'teleconsultation' && (!momentTelemedecineValide(tele) || !tele.medecinId)) {
+    // Téléconsultation : interne / externe, service et moment obligatoires ; médecin facultatif
+    if (v.modeSortie === 'teleconsultation' && telemedecineManque(tele)) {
       setEtape(E_ISSUE);
-      alerte.attention(!momentTelemedecineValide(tele) ? 'Choisissez une date et une heure de téléconsultation à venir.' : 'Choisissez le médecin de la téléconsultation.');
+      alerte.attention(telemedecineManque(tele)!);
       return;
     }
     if (v.modeSortie === 'urgence') {
@@ -523,7 +539,12 @@ export default function FormulaireConsultation() {
       alerte.attention("Veuillez justifier l'issue de la consultation.");
       return;
     }
-    setFournirResultat(null);
+    // Télé-expertise reçue : étape « Résultat » — avis obligatoire (consignes et documents facultatifs)
+    if (etapeResultat && !avisResultat.trim()) {
+      setEtape(E_RESULTAT);
+      alerte.attention('Réponse : l’avis / la conclusion est obligatoire.');
+      return;
+    }
     setConfirmation(true);
   };
 
@@ -542,15 +563,19 @@ export default function FormulaireConsultation() {
     }));
     payload.examens = examens;
     if (arret?.dateDebut && arret.dateFin) payload.arret = { dateDebut: arret.dateDebut, dateFin: arret.dateFin, nbJour: arret.nbJour };
-    if (v.modeSortie === 'refere-interne' && medecinReference) {
-      payload.medecinReferenceId = medecinReference;
+    // Télé-expertise : service obligatoire ; sans médecin, tous les médecins du service la reçoivent
+    if (v.modeSortie === 'refere-interne' && serviceInterne) {
+      payload.referenceServiceHospitalId = serviceInterne;
+      if (medecinReference) payload.medecinReferenceId = medecinReference;
       Object.assign(payload, momentPayload(momentReference));
     }
     if (v.modeSortie === 'refere-externe' && serviceExterne) {
       payload.referenceServiceId = serviceExterne;
+      if (hopitalExterne) payload.referenceHopitalId = hopitalExterne;
+      if (hopitalExterne && medecinExterne) payload.medecinReferenceId = medecinExterne;
       Object.assign(payload, momentPayload(momentReference));
     }
-    if (v.modeSortie === 'teleconsultation') Object.assign(payload, { teleMedecinId: tele.medecinId, teleDate: tele.date, teleHeure: tele.heure });
+    if (v.modeSortie === 'teleconsultation') Object.assign(payload, telemedecinePayload(tele));
     if (maternite) payload.maternite = pn;
     if (accouchement && !fiche.naissance && naissance.declarer && !pn.mort_ne) {
       payload.naissance = {
@@ -592,7 +617,8 @@ export default function FormulaireConsultation() {
       // Appel d'urgence : l'appel vidéo s'ouvre, puis la fiche de l'urgence (rejoindre / relancer l'appel)
       if (res.appel && res.consultationSuivante) {
         ouvrirAppelVideo(res.appel);
-        navigate(`/infirmier/consultations/formulaire/${res.consultationSuivante}`);
+        // Infirmier·ère : fiche de l'urgence ; médecin : sa Télémédecine (le médecin qui décroche reprend la consultation)
+        navigate(infirmier ? `/infirmier/consultations/formulaire/${res.consultationSuivante}` : '/medecin/telemedecine');
         return;
       }
       // Accouchement avec déclaration : le certificat de naissance s'ouvre, prêt à imprimer
@@ -600,10 +626,24 @@ export default function FormulaireConsultation() {
         navigate(`/medecin/declarations/naissances/${res.declarationNaissance.id}?imprimer=1`);
         return;
       }
-      // Télé-expertise reçue, résultat à fournir : page dédiée pour joindre le résultat et les consignes au requérant
-      if (fiche.expertiseRecue && !fiche.expertiseRecue.resultatEnvoye && fournirResultat) {
-        alerte.succes('Consultation terminée. Joignez maintenant le résultat, avec vos consignes au requérant.');
-        navigate(`/medecin/referes/${fiche.expertiseRecue.origineId}/resultat`);
+      // Télé-expertise reçue, résultat à fournir (étape « Résultat ») : envoyé au requérant juste après la consultation
+      if (etapeResultat && fiche.expertiseRecue) {
+        const origineId = fiche.expertiseRecue.origineId;
+        try {
+          const fd = new FormData();
+          fd.append('avis', avisResultat.trim());
+          if (consignesResultat.trim()) fd.append('conduite', consignesResultat.trim());
+          for (const p of piecesResultat) {
+            fd.append('fichiers', p.fichier);
+            fd.append('libelles', p.libelle);
+          }
+          const r = await apiGlobal.doctor.referes.envoyerResultat(origineId, fd);
+          alerte.succes(`Consultation terminée. ${r.message}`);
+        } catch (err) {
+          alerte.echec(`La consultation est terminée, mais la réponse n’a pas pu être envoyée : ${messageErreur(err)}. Joignez-le depuis cette page.`);
+        }
+        // Page du résultat : envoyé (documents complétables), ou à renvoyer en cas d'échec
+        navigate(`/medecin/referes/${origineId}/resultat`);
         return;
       }
       const reference = v.modeSortie === 'refere-interne' || v.modeSortie === 'refere-externe';
@@ -696,7 +736,11 @@ export default function FormulaireConsultation() {
       <div className={s.grille}>
         <div className={s.principal}>
           {/* --- Étapes --- */}
-          <nav className={`${c.bloc} ${s.etapes} ${accouchement ? s.etapesSept : maternite ? s.etapesCinq : ''}`} aria-label="Étapes de la consultation">
+          <nav
+            className={`${c.bloc} ${s.etapes} ${accouchement ? s.etapesSept : maternite ? s.etapesCinq : ''}`}
+            style={{ '--nb-etapes': etapes.length } as React.CSSProperties}
+            aria-label="Étapes de la consultation"
+          >
             {etapes.map((e, i) => (
               <button key={e.titre} type="button" className={`${s.etape} ${i === etape ? s.etapeActive : ''} ${i < etape ? s.etapeFaite : ''}`} onClick={() => allerA(i)} aria-current={i === etape ? 'step' : undefined}>
                 <span className={s.etapeNumero}>{i < etape ? <FaCheck aria-hidden="true" /> : i + 1}</span>
@@ -712,8 +756,8 @@ export default function FormulaireConsultation() {
             <AnimatePresence mode="wait" initial={false}>
               <motion.section key={etape} className={c.bloc} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
                 {/* ================= 1. ANAMNÈSE ================= */}
-                {prenatal && etape < E_PRESC && <FormulairePrenatal partie={etape} v={pn} onChange={majPn} reprise={fiche.materniteReprise} />}
-                {postnatal && etape < E_PRESC && (
+                {prenatal && etape < E_CLINIQUE_FIN && <FormulairePrenatal partie={etape} v={pn} onChange={majPn} reprise={fiche.materniteReprise} />}
+                {postnatal && etape < E_CLINIQUE_FIN && (
                   <FormulairePostnatal
                     partie={etape}
                     v={pn}
@@ -723,7 +767,7 @@ export default function FormulaireConsultation() {
                     onConstante={(k, val) => setV((x) => ({ ...x, [k]: val }))}
                   />
                 )}
-                {accouchement && etape < E_PRESC && (
+                {accouchement && etape < E_CLINIQUE_FIN && (
                   <FormulaireAccouchement
                     partie={etape}
                     v={pn}
@@ -1154,7 +1198,10 @@ export default function FormulaireConsultation() {
                     <div className={s.issues} role="radiogroup" aria-label="Issue de la consultation">
                       {/* « Hospitalisation » retirée des issues (médecin comme infirmier·ère) ; appel d'urgence réservé à l'infirmier·ère */}
                       {/* Fiche en lecture : l'issue choisie reste toujours visible (ex. anciennes consultations avec hospitalisation) */}
-                      {ISSUES.filter((i) => (lecture && v.modeSortie === i.id) || (i.id !== 'hospitalisation' && (infirmier || (i.id !== 'urgence' && i.id !== 'envoi-medecin')))).map((i) => {
+                      {/* Médecin : tout sauf « Envoyer au médecin » (réservé à l'infirmier·ère) ; l'appel d'urgence vise les médecins de son service */}
+                      {ISSUES.filter((i) => (lecture && v.modeSortie === i.id) || (i.id !== 'hospitalisation' && (infirmier || i.id !== 'envoi-medecin')))
+                        .map((i) => (!infirmier && i.id === 'urgence' ? { ...i, detail: 'Les médecins de votre service (DMHP) sont appelés' } : i))
+                        .map((i) => {
                         const actif = i.id === 'teleexpertise' ? expertise : v.modeSortie === i.id;
                         return (
                           <button
@@ -1192,7 +1239,9 @@ export default function FormulaireConsultation() {
                       <p className={s.alerteUrgence}>
                         <FaPhoneVolume aria-hidden="true" />
                         <span>
-                          L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes de tous les hôpitaux de la DMHP : le premier qui décroche prend le patient.
+                          {infirmier
+                            ? 'L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes de tous les hôpitaux de la DMHP : le premier qui décroche prend le patient.'
+                            : 'L’appel vidéo sonne chez tous les médecins de votre service dans les hôpitaux de la DMHP : le premier qui décroche prend le patient.'}
                           {constantesUrgenceManquantes().length > 0 && ` Constantes à renseigner d’abord : ${constantesUrgenceManquantes().join(', ')}.`}
                         </span>
                       </p>
@@ -1240,14 +1289,26 @@ export default function FormulaireConsultation() {
                           <>
                             {v.modeSortie === 'refere-interne' ? (
                               <ChoixMedecinReference
+                                serviceId={serviceInterne}
+                                onService={setServiceInterne}
                                 valeur={medecinReference}
                                 onChange={setMedecinReference}
                                 moment={momentReference}
                                 onMoment={setMomentReference}
-                                documents={<PiecesAJoindre compact pieces={pieces} onChange={setPieces} />}
+                                documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}
                               />
                             ) : (
-                              <ChoixServiceExterne valeur={serviceExterne} onChange={setServiceExterne} moment={momentReference} onMoment={setMomentReference} documents={<PiecesAJoindre compact pieces={pieces} onChange={setPieces} />} />
+                              <ChoixServiceExterne
+                                valeur={serviceExterne}
+                                onChange={setServiceExterne}
+                                hopital={hopitalExterne}
+                                onHopital={setHopitalExterne}
+                                medecin={medecinExterne}
+                                onMedecin={setMedecinExterne}
+                                moment={momentReference}
+                                onMoment={setMomentReference}
+                                documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}
+                              />
                             )}
                           </>
                         )}
@@ -1273,6 +1334,34 @@ export default function FormulaireConsultation() {
                         </div>
                       ))}
                     </dl>
+                  </div>
+                )}
+
+                {/* Télé-expertise reçue : résultat au requérant (médecin ou infirmier·ère demandeur) */}
+                {etapeResultat && etape === E_RESULTAT && (
+                  <div className={s.etapeResultat}>
+                      <motion.div className={s.champsResultat} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                        <label className={s.champ}>
+                          <span>
+                            Avis / conclusion <em className={s.requis}>*</em>
+                          </span>
+                          <textarea rows={4} maxLength={10000} value={avisResultat} onChange={(e) => setAvisResultat(e.target.value)} placeholder="Votre avis d’expert sur le cas présenté…" />
+                        </label>
+                        <label className={s.champ}>
+                          <span>
+                            Consignes au requérant <small className={s.facultatif}>(facultatif)</small>
+                          </span>
+                          <textarea
+                            rows={4}
+                            maxLength={10000}
+                            value={consignesResultat}
+                            onChange={(e) => setConsignesResultat(e.target.value)}
+                            placeholder="Ce que le requérant doit faire : traitement à donner, examens à demander, surveillance, orientation, quand recontacter…"
+                          />
+                        </label>
+                        <PiecesAJoindre pieces={piecesResultat} onChange={setPiecesResultat} facultatif />
+                      </motion.div>
+                    <p className={s.note}>En terminant la consultation, la réponse est envoyée au requérant : il la retrouve dans « Réponses d’expertise ».</p>
                   </div>
                 )}
               </motion.section>
@@ -1373,6 +1462,16 @@ export default function FormulaireConsultation() {
           </div>
 
           {/* Consultation terminée : suite donnée (à qui, quand, état) */}
+          {/* Télé-expertise reçue : la saisie de la consultation du demandeur est reprise, modifiable */}
+          {!lecture && fiche.repriseExpertise && (
+            <div className={s.noteInfirmier}>
+              <span>
+                <FaUserMd aria-hidden="true" /> Télé-expertise demandée par {fiche.repriseExpertise.par ?? 'le demandeur'}
+              </span>
+              <p>Ce qu’il a renseigné lors de sa consultation (anamnèse, constantes, examen, diagnostic, prescriptions…) est repris dans le formulaire : vous pouvez tout modifier.</p>
+            </div>
+          )}
+
           {/* Consultation commencée par l'infirmier·ère puis envoyée au médecin */}
           {!lecture && fiche.envoiMedecin && (
             <div className={s.noteInfirmier}>
@@ -1475,28 +1574,14 @@ export default function FormulaireConsultation() {
       <ConfirmDialog
         ouvert={confirmation}
         titre="Terminer la consultation ?"
-        message={`Issue : ${issueActive?.titre ?? v.modeSortie}. La consultation ne pourra plus être modifiée ensuite.`}
+        message={`Issue : ${issueActive?.titre ?? v.modeSortie}.${
+          etapeResultat ? ' La réponse (avis, consignes, documents) sera envoyée au requérant.' : ''
+        } La consultation ne pourra plus être modifiée ensuite.`}
         confirmer="Terminer"
         enCours={envoi}
-        confirmerDesactive={!!fiche?.expertiseRecue && !fiche.expertiseRecue.resultatEnvoye && fournirResultat === null}
         onConfirmer={terminer}
         onAnnuler={() => setConfirmation(false)}
-      >
-        {/* Télé-expertise reçue : fournir un résultat au requérant ? Oui → page du résultat ; Non → terminer simplement */}
-        {fiche?.expertiseRecue && !fiche.expertiseRecue.resultatEnvoye && (
-          <div className={s.questionResultat} role="radiogroup" aria-label="Fournir un résultat au requérant">
-            <strong>Devez-vous fournir un résultat au requérant ?</strong>
-            <div>
-              <button type="button" role="radio" aria-checked={fournirResultat === true} className={fournirResultat === true ? s.reponseActive : ''} onClick={() => setFournirResultat(true)}>
-                Oui, joindre un résultat
-              </button>
-              <button type="button" role="radio" aria-checked={fournirResultat === false} className={fournirResultat === false ? s.reponseActive : ''} onClick={() => setFournirResultat(false)}>
-                Non, terminer simplement
-              </button>
-            </div>
-          </div>
-        )}
-      </ConfirmDialog>
+      />
     </div>
   );
 }

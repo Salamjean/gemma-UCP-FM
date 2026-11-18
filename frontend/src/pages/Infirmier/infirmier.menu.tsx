@@ -101,12 +101,12 @@ export const infirmierSpace: RoleSpace = {
     },
     // Télé-expertises demandées depuis mes consultations : délai et résultat joint par l'expert
     {
-      label: 'Résultats d’expertise',
+      label: 'Réponses d’expertise',
       icon: FaClipboardCheck,
       path: 'resultats-expertise',
       element: <ResultatsExpertiseInfirmier />,
       badge: compterResultats,
-      hiddenPages: [{ label: 'Résultat', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseInfirmier /> }],
+      hiddenPages: [{ label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseInfirmier /> }],
     },
     // Hospitalisations : onglet retiré du menu ; pages gardées pour les liens du tableau de bord
     {

@@ -24,7 +24,7 @@ const docteur = (nom: string) => (/^dr\.?\s/i.test(nom) ? nom : `Dr ${nom}`);
 export default function TableauDeBord() {
   const [data, setData] = useState<DoctorDashboard | null>(null);
   const [maj, setMaj] = useState<Date | null>(null);
-  // Télé-expertises externes de mon service, à prendre en charge
+  // Télé-expertises (internes et externes) envoyées à mon service, à prendre en charge
   const [disponibles, setDisponibles] = useState<ExpertiseDisponible[]>([]);
 
   const charger = useCallback(() => {
@@ -277,7 +277,7 @@ export default function TableauDeBord() {
                   {teleProchaine.type === 'teleexpertise'
                     ? teleProchaine.expertise?.avecConsultation
                       ? 'Démarrer la télé-expertise'
-                      : 'Joindre le résultat'
+                      : 'Joindre la réponse'
                     : 'Démarrer la téléconsultation'}
                 </Link>
               </>
@@ -345,7 +345,7 @@ export default function TableauDeBord() {
               <>
                 <div className={s.fileEntete}>
                   <div>
-                    <h2>Télé-expertises externes à prendre en charge</h2>
+                    <h2>Télé-expertises à prendre en charge</h2>
                     <p>Adressées à votre service par d'autres établissements de la DMHP</p>
                   </div>
                   <Link to="/medecin/telemedecine" className={s.lien}>

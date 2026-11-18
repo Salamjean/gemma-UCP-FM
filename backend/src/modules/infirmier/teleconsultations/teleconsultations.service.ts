@@ -83,6 +83,7 @@ export class InfirmierTeleconsultationsService {
        LEFT JOIN services s ON s.id = sh.service_id
        LEFT JOIN services rs ON rs.id = fr.service_id
        LEFT JOIN hospitals dh ON dh.id = d.hospital_id
+       LEFT JOIN hospitals th ON th.id = fr.hospital_destination_id
        LEFT JOIN infirmiers i ON i.id = o.infirmier_id
        LEFT JOIN users iu ON iu.id = i.user_id
        LEFT JOIN doctors od ON od.id = o.doctor_id
@@ -106,7 +107,7 @@ export class InfirmierTeleconsultationsService {
               p.img_url AS patient_img, p.gender AS patient_genre, p.telephone AS patient_telephone,
               d.id AS doctor_id, TRIM(CONCAT(du.name, ' ', COALESCE(du.prenom, ''))) AS doctor_nom,
               COALESCE(s.libelle, rs.libelle) AS doctor_specialite, rs.libelle AS service_externe,
-              COALESCE(dh.label, dh.nom_direction_generale, dh.reference) AS doctor_hospital_nom,
+              COALESCE(dh.label, dh.nom_direction_generale, dh.reference) AS doctor_hospital_nom, th.label AS hopital_cible,
               COALESCE(NULLIF(TRIM(CONCAT(iu.name, ' ', COALESCE(iu.prenom, ''))), ''), TRIM(CONCAT('Dr ', odu.name, ' ', COALESCE(odu.prenom, '')))) AS demandeur
          ${base} ${clauses[filter] ?? ''}
         ORDER BY finie ASC, fr.urgence DESC, fr.echeance ASC, fr.id DESC`,
@@ -143,10 +144,12 @@ export class InfirmierTeleconsultationsService {
       },
       doctor: {
         id: r.doctor_id != null ? Number(r.doctor_id) : null,
-        // Externe pas encore prise en charge : le service sollicité
+        // Envoyée au service, pas encore prise en charge : le service sollicité (et l'hôpital visé)
         nom: (r.doctor_nom as string) || (r.service_externe ? `Service ${r.service_externe as string}` : 'Non assigné'),
         specialite: (r.doctor_specialite as string) || '—',
-        hopital: (r.doctor_hospital_nom as string) || (r.type === 'externe' ? 'En attente de prise en charge' : 'Hôpital partenaire'),
+        hopital:
+          (r.doctor_hospital_nom as string) ||
+          `${r.hopital_cible ? `${r.hopital_cible as string} · ` : r.type === 'externe' ? 'Hôpitaux de la DMHP · ' : ''}en attente de prise en charge`,
       },
       infirmierNom: (r.demandeur as string) || 'Demandeur',
       constantes: {
@@ -209,9 +212,16 @@ export class InfirmierTeleconsultationsService {
               TRIM(CONCAT(du.name, ' ', COALESCE(du.prenom, ''))) AS doctor_nom,
               s.libelle AS doctor_specialite,
               COALESCE(dh.label, dh.nom_direction_generale, dh.reference, 'Hôpital partenaire') AS doctor_hospital_nom,
-              TRIM(CONCAT(iu.name, ' ', COALESCE(iu.prenom, ''))) AS infirmier_nom
+              COALESCE(NULLIF(TRIM(CONCAT(iu.name, ' ', COALESCE(iu.prenom, ''))), ''), TRIM(CONCAT(tiu.name, ' ', COALESCE(tiu.prenom, '')))) AS infirmier_nom,
+              td.consultation_id AS diffusee, td.type AS portee, ts.libelle AS service_diffusion, th.label AS hopital_diffusion
          FROM consultations c
          LEFT JOIN admissions a ON a.id = c.admission_id
+         -- Téléconsultation envoyée à un service (aucun médecin choisi)
+         LEFT JOIN fm_teleconsultations_diffusees td ON td.consultation_id = c.id
+         LEFT JOIN services ts ON ts.id = td.service_id
+         LEFT JOIN hospitals th ON th.id = td.hospital_destination_id
+         LEFT JOIN infirmiers ti ON ti.id = td.infirmier_origine_id
+         LEFT JOIN users tiu ON tiu.id = ti.user_id
          LEFT JOIN patients p ON p.id = c.patient_id
          LEFT JOIN users pu ON pu.id = p.user_id
          LEFT JOIN doctors d ON d.id = c.doctor_id
@@ -257,9 +267,14 @@ export class InfirmierTeleconsultationsService {
       },
       doctor: {
         id: r.doctor_id != null ? Number(r.doctor_id) : null,
-        nom: (r.doctor_nom as string) || 'Non assigné',
-        specialite: (r.doctor_specialite as string) || 'Médecine générale',
-        hopital: (r.doctor_hospital_nom as string) || 'Hôpital partenaire',
+        // Envoyée au service, pas encore prise : le service sollicité et l'hôpital visé
+        nom: (r.doctor_nom as string) || (r.service_diffusion ? `Service ${r.service_diffusion as string}` : 'Non assigné'),
+        specialite: (r.doctor_specialite as string) || (r.service_diffusion as string) || 'Médecine générale',
+        hopital:
+          (r.doctor_id ? (r.doctor_hospital_nom as string) : null) ||
+          (r.diffusee
+            ? `${r.hopital_diffusion ? `${r.hopital_diffusion as string} · ` : r.portee === 'externe' ? 'Hôpitaux de la DMHP · ' : ''}en attente de prise en charge`
+            : 'Hôpital partenaire'),
       },
       infirmierNom: (r.infirmier_nom as string) || 'Infirmier référent',
       constantes: {

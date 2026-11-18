@@ -1,13 +1,13 @@
 /* =========================================================
    SERVICE WORKER GEMMA (application installable / PWA)
    - Pages (navigation) : réseau d'abord ; hors connexion → dernière version de l'application en cache.
-   - Fichiers statiques (build /assets, /images, /icons) : servis depuis le cache, mis à jour en arrière-plan.
+   - Fichiers statiques (build /assets, /images, /pwa-icons) : servis depuis le cache, mis à jour en arrière-plan.
    - JAMAIS mis en cache : /api (données des patients, connexion…), ni les fichiers du serveur de développement.
    Changer VERSION pour forcer le renouvellement du cache après un déploiement.
    ========================================================= */
-const VERSION = 'gemma-v2';
+const VERSION = 'gemma-v3';
 const CACHE = `${VERSION}-statique`;
-const COQUILLE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/images/logo.jpg'];
+const COQUILLE = ['/', '/manifest.webmanifest', '/pwa-icons/icon-192.png', '/pwa-icons/icon-512.png', '/images/logo.jpg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,7 +38,7 @@ const ignorer = (url) =>
   url.searchParams.has('import') ||
   url.searchParams.has('t');
 
-const statique = (url) => /^\/(assets|images|icons)\//.test(url.pathname) || url.pathname === '/manifest.webmanifest';
+const statique = (url) => /^\/(assets|images|pwa-icons)\//.test(url.pathname) || url.pathname === '/manifest.webmanifest';
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;

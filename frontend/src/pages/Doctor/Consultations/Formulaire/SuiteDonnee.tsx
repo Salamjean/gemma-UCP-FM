@@ -44,7 +44,7 @@ export default function SuiteDonnee({ suite, consultationId }: { suite: SuiteCon
       {/* Télé-expertise : délai et résultat de l'expert dans « Résultats d'expertise » */}
       {expertise && (
         <Link to={`/${espace}/resultats-expertise/${consultationId}`} className={s.lienResultat}>
-          <FaClipboardCheck aria-hidden="true" /> {suite.resultatLe ? 'Voir le résultat de l’expert' : 'Suivre la demande'}
+          <FaClipboardCheck aria-hidden="true" /> {suite.resultatLe ? 'Voir la réponse de l’expert' : 'Suivre la demande'}
         </Link>
       )}
     </div>

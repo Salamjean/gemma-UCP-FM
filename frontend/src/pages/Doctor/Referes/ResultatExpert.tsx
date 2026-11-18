@@ -66,7 +66,7 @@ export function ContenuResultat({
   return (
     <>
       <p className={s.note}>
-        <FaCheckCircle aria-hidden="true" /> Résultat envoyé {le ? `le ${jour(le)} à ${heure(le)}` : ''}
+        <FaCheckCircle aria-hidden="true" /> Réponse envoyée {le ? `le ${jour(le)} à ${heure(le)}` : ''}
         {dansDelai !== null && (
           <span className={`${c.badge} ${dansDelai ? c.badgeOk : s.badgeRetardResultat}`}>{dansDelai ? 'Dans le délai' : 'En retard'}</span>
         )}
@@ -157,7 +157,7 @@ export default function ResultatExpert({ d, onEnvoye, ouvrir }: { d: RefereDetai
   return (
     <section className={c.bloc}>
       <h2 className={s.titreBloc}>
-        <FaClipboardCheck aria-hidden="true" /> Résultat de la télé-expertise
+        <FaClipboardCheck aria-hidden="true" /> Réponse de la télé-expertise
       </h2>
 
       {/* Délai de réponse */}
@@ -183,12 +183,12 @@ export default function ResultatExpert({ d, onEnvoye, ouvrir }: { d: RefereDetai
           {d.estExpert && <AjoutDocumentsResultat origineId={d.origineId} onAjoute={onEnvoye} />}
         </>
       ) : !d.peutRepondre ? (
-        <p className={s.note}>Le résultat sera joint par le médecin qui traite cette télé-expertise.</p>
+        <p className={s.note}>La réponse sera jointe par le médecin qui traite cette télé-expertise.</p>
       ) : !ouvert ? (
         <div className={s.barreResultat}>
           <span className={s.note}>Une fois la consultation terminée, joignez votre avis et vos consignes : ils seront envoyés au requérant.</span>
           <button type="button" className={c.principal} onClick={() => setOuvert(true)}>
-            <FaPaperPlane aria-hidden="true" /> Joindre le résultat
+            <FaPaperPlane aria-hidden="true" /> Joindre la réponse
           </button>
         </div>
       ) : (
@@ -225,7 +225,7 @@ export default function ResultatExpert({ d, onEnvoye, ouvrir }: { d: RefereDetai
               <FaTimes aria-hidden="true" /> Annuler
             </button>
             <button type="submit" className={c.principal} disabled={envoi}>
-              <FaPaperPlane aria-hidden="true" /> {envoi ? 'Envoi…' : 'Envoyer le résultat'}
+              <FaPaperPlane aria-hidden="true" /> {envoi ? 'Envoi…' : 'Envoyer la réponse'}
             </button>
           </div>
         </motion.form>
@@ -233,8 +233,8 @@ export default function ResultatExpert({ d, onEnvoye, ouvrir }: { d: RefereDetai
 
       <ConfirmDialog
         ouvert={confirmation}
-        titre="Envoyer le résultat ?"
-        message="Le résultat sera envoyé au demandeur et la télé-expertise sera close. Il ne pourra plus être modifié."
+        titre="Envoyer la réponse ?"
+        message="La réponse sera envoyée au demandeur et la télé-expertise sera close. Elle ne pourra plus être modifiée."
         confirmer="Envoyer"
         enCours={envoi}
         onConfirmer={envoyer}
