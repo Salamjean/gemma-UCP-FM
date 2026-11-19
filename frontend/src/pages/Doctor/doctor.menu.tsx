@@ -16,6 +16,7 @@ import { DocumentConsultation, FormulaireConsultation, Historique, Nouvelles, Su
 import { DetailDeces, DetailNaissance, EnregistrerDeces, ListeDeces, ListeNaissances } from './Declarations';
 import * as Hospitalisation from './Hospitalisation';
 import { TableauDeBord } from './TableauDeBord';
+import FicheReference from './Documents/FicheReference';
 import { JoindreResultat, RefereDetail, Referes } from './Referes';
 import { Telemedecine } from './Telemedecine';
 import { ProgrammerTelemedecineMedecin } from './Telemedecine/Programmer';
@@ -75,6 +76,8 @@ export const doctorSpace: RoleSpace = {
         { label: 'Suivi mère-enfant', path: 'consultations/suivi-mere-enfant', element: <SuiviMereEnfant /> },
         { label: 'Consultation', path: 'consultations/:id', element: <FormulaireConsultation /> },
         { label: 'Document', path: 'consultations/:id/document/:type', element: <DocumentConsultation /> },
+        // Patient référé par un·e infirmier·ère : sa fiche de référence
+        { label: 'Fiche de référence', path: 'consultations/reference/:id', element: <FicheReference /> },
       ],
     },
     // Télé-expertises que j'ai demandées : délai et résultat joint par l'expert

@@ -16,9 +16,12 @@ import { DiffusionReferencesFm1731400000011 } from './migrations/1731400000011-D
 import { TeleconsultationsDiffuseesFm1731400000012 } from './migrations/1731400000012-TeleconsultationsDiffuseesFm';
 import { UrgencesMedecinFm1731400000013 } from './migrations/1731400000013-UrgencesMedecinFm';
 import { ReattributionServiceFm1731400000014 } from './migrations/1731400000014-ReattributionServiceFm';
+import { ReferencesPatientFm1731400000015 } from './migrations/1731400000015-ReferencesPatientFm';
+import { DistrictEnvoisFm1731400000016 } from './migrations/1731400000016-DistrictEnvoisFm';
+import { ReferencesPatientMedecinFm1731400000017 } from './migrations/1731400000017-ReferencesPatientMedecinFm';
 
 /** Migrations Gemma FM, dans l'ordre (ajouter ici chaque nouvelle migration) */
-const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004, ReinitialisationsFm1731400000005, ServiceReferencesFm1731400000006, DatePrevueReferencesFm1731400000007, ResultatsExpertiseFm1731400000008, BrouillonsConsultationFm1731400000009, ProgrammationDirecteFm1731400000010, DiffusionReferencesFm1731400000011, TeleconsultationsDiffuseesFm1731400000012, UrgencesMedecinFm1731400000013, ReattributionServiceFm1731400000014];
+const MIGRATIONS_FM = [TablesFm1731400000000, OrdreDocumentsFm1731400000001, PersonnelSupprimeFm1731400000002, RegulateursFm1731400000003, PermissionsRegulateursFm1731400000004, ReinitialisationsFm1731400000005, ServiceReferencesFm1731400000006, DatePrevueReferencesFm1731400000007, ResultatsExpertiseFm1731400000008, BrouillonsConsultationFm1731400000009, ProgrammationDirecteFm1731400000010, DiffusionReferencesFm1731400000011, TeleconsultationsDiffuseesFm1731400000012, UrgencesMedecinFm1731400000013, ReattributionServiceFm1731400000014, ReferencesPatientFm1731400000015, DistrictEnvoisFm1731400000016, ReferencesPatientMedecinFm1731400000017];
 
 /**
  * CONNEXION À LA BASE MYSQL PARTAGÉE AVEC LE PROJET LARAVEL "gemma".

@@ -1,4 +1,5 @@
 import DocumentConsultation from '../../Doctor/Documents/DocumentConsultation';
+import FicheReference from '../../Doctor/Documents/FicheReference';
 import FormulaireConsultation from '../../Doctor/Consultations/Formulaire/FormulaireConsultation';
 import { EspaceConsultationContexte } from '../../Doctor/Consultations/Formulaire/espace';
 
@@ -10,6 +11,15 @@ export function ConsultationMedicale() {
   return (
     <EspaceConsultationContexte.Provider value="infirmier">
       <FormulaireConsultation />
+    </EspaceConsultationContexte.Provider>
+  );
+}
+
+/** Fiche de référence du patient (issue « Référence »), à imprimer et remettre au patient */
+export function FicheReferenceInfirmier() {
+  return (
+    <EspaceConsultationContexte.Provider value="infirmier">
+      <FicheReference />
     </EspaceConsultationContexte.Provider>
   );
 }

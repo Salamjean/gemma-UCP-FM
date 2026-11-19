@@ -1,4 +1,4 @@
-import { FaClipboardCheck, FaShareSquare } from 'react-icons/fa';
+import { FaClipboardCheck, FaFileAlt, FaShareSquare } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { SuiteConsultation } from '../../../../types';
 import { useEspaceConsultation } from './espace';
@@ -8,6 +8,7 @@ const TITRES: Record<SuiteConsultation['type'], string> = {
   teleexpertise: 'Télé-expertise',
   teleconsultation: 'Téléconsultation',
   urgence: 'Appel d’urgence',
+  reference: 'Référence du patient',
 };
 
 /**
@@ -18,10 +19,16 @@ export default function SuiteDonnee({ suite, consultationId }: { suite: SuiteCon
   const { espace } = useEspaceConsultation();
   const date = suite.date ? suite.date.split('-').reverse().join('/') : null;
   const expertise = suite.type === 'teleexpertise';
+  const reference = suite.type === 'reference';
   const lignes: [string, string | null][] = [
-    ['Type', `${TITRES[suite.type]}${expertise ? `${suite.externe ? ' en externe' : ' en interne'} · ${suite.urgente ? 'urgente' : 'programmée'}` : ''}`],
+    [
+      'Type',
+      `${TITRES[suite.type]}${
+        expertise ? `${suite.externe ? ' en externe' : ' en interne'} · ${suite.urgente ? 'urgente' : 'programmée'}` : reference ? (suite.externe ? ' en externe' : ' en interne') : ''
+      }`,
+    ],
     ['Service', suite.service],
-    ['Prévue le', date ? `${date}${suite.heure ? ` à ${suite.heure}` : ''}` : null],
+    [reference ? 'Le' : 'Prévue le', date ? `${date}${suite.heure ? ` à ${suite.heure}` : ''}` : null],
     ['Médecin', suite.medecin],
     ['Établissement', suite.hopital],
     ['État', suite.etat],
@@ -45,6 +52,12 @@ export default function SuiteDonnee({ suite, consultationId }: { suite: SuiteCon
       {expertise && (
         <Link to={`/${espace}/resultats-expertise/${consultationId}`} className={s.lienResultat}>
           <FaClipboardCheck aria-hidden="true" /> {suite.resultatLe ? 'Voir la réponse de l’expert' : 'Suivre la demande'}
+        </Link>
+      )}
+      {/* Référence du patient : fiche de référence à imprimer de nouveau */}
+      {reference && suite.referenceId && (
+        <Link to={`/${espace}/consultations/reference/${suite.referenceId}`} className={s.lienResultat}>
+          <FaFileAlt aria-hidden="true" /> Fiche de référence
         </Link>
       )}
     </div>

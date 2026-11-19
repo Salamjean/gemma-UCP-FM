@@ -13,6 +13,9 @@ import { ConsultationCurativeDto, EnvoiMedecinDto } from './dto/consultation.dto
 
 type Req_ = Request & { user: JwtPayload };
 
+/** ?horsDistrict=1 → hôpitaux hors du district ; 0 → du district ; absent → toute la DMHP */
+const horsDistrict = (x?: string) => (x === '1' ? true : x === '0' ? false : undefined);
+
 /**
  * /api/infirmier/consultations-medicales/... : le MÊME formulaire de consultation que le médecin,
  * pour l'infirmier·ère qui consulte lui-même un patient (bouton « Consulter » de Vérifier / Rechercher).
@@ -45,13 +48,13 @@ export class InfirmierConsultationMedicaleController {
 
   /** Télé-expertise en externe : services des autres établissements de la DMHP */
   @Get('services-externes')
-  servicesExternes(@Req() req: Req_) {
-    return this.service.servicesExternes(req.user.sub, 'infirmier');
+  servicesExternes(@Req() req: Req_, @Query('horsDistrict') hd?: string) {
+    return this.service.servicesExternes(req.user.sub, 'infirmier', horsDistrict(hd));
   }
 
   @Get('services-externes/:serviceId/hopitaux')
-  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number) {
-    return this.service.hopitauxService(req.user.sub, serviceId, 'infirmier');
+  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number, @Query('horsDistrict') hd?: string) {
+    return this.service.hopitauxService(req.user.sub, serviceId, 'infirmier', horsDistrict(hd));
   }
 
   @Get('services-externes/:serviceId/hopitaux/:hospitalId/medecins')
@@ -115,6 +118,12 @@ export class InfirmierConsultationMedicaleController {
   @Delete(':id/annuler')
   annulerConsultation(@Req() req: Req_, @Param('id', ParseIntPipe) id: number) {
     return this.service.annulerConsultationOuverte(req.user.sub, id, 'infirmier');
+  }
+
+  /** GET …/consultations-medicales/references-patient/:refId → fiche de référence du patient (document à imprimer) */
+  @Get('references-patient/:refId')
+  ficheReference(@Req() req: Req_, @Param('refId', ParseIntPipe) refId: number) {
+    return this.service.ficheReference(req.user.sub, refId, 'infirmier');
   }
 
   @Get(':id/documents')

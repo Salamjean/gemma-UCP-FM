@@ -26,6 +26,7 @@ export const LIBELLES_ISSUE: Record<string, string> = {
   'declaration-deces-patient': 'Décédé(e)',
   teleconsultation: 'Téléconsultation',
   urgence: 'Appel d’urgence',
+  reference: 'Référence',
 };
 
 /** Consultations « en attente du médecin » (Laravel : ConsultationRepository@today / allPatients) */
@@ -584,7 +585,11 @@ export class DoctorConsultationsService {
     // Télé-expertise issue d'une vraie consultation : la saisie du demandeur pré-remplit le formulaire de l'expert
     // (tant qu'il n'a rien enregistré ; il peut tout modifier)
     const avecConsultationRecue = !!recue && (Number(recue.urgence) === 1 || Number(recue.programmation_directe) !== 1);
-    const reprise = avecConsultationRecue && !c.registre_id && Number(c.status) !== 1 ? await this.repriseOrigine(Number(recue.consultation_origine_id)) : null;
+    // Patient référé par l'infirmier·ère (issue « Référence ») : sa saisie pré-remplit aussi le formulaire du médecin
+    const [refRecue] =
+      d.role === 'doctor' && !recue ? await this.db.query('SELECT id, consultation_origine_id FROM fm_references_patient WHERE consultation_destination_id = ? LIMIT 1', [consultationId]) : [];
+    const origineReprise = avecConsultationRecue ? Number(recue.consultation_origine_id) : refRecue ? Number(refRecue.consultation_origine_id) : null;
+    const reprise = origineReprise && !c.registre_id && Number(c.status) !== 1 ? await this.repriseOrigine(origineReprise) : null;
     const [demandeur] = reprise
       ? await this.db.query(
           `SELECT du.name AS d_nom, du.prenom AS d_prenom, iu.name AS i_nom, iu.prenom AS i_prenom
@@ -592,7 +597,7 @@ export class DoctorConsultationsService {
              LEFT JOIN doctors od ON od.id = o.doctor_id LEFT JOIN users du ON du.id = od.user_id
              LEFT JOIN infirmiers oi ON oi.id = o.infirmier_id LEFT JOIN users iu ON iu.id = oi.user_id
             WHERE o.id = ? LIMIT 1`,
-          [recue.consultation_origine_id],
+          [origineReprise],
         )
       : [];
     const nomDemandeur = demandeur
@@ -602,7 +607,9 @@ export class DoctorConsultationsService {
       : null;
     return {
       /** Télé-expertise reçue : saisie de la consultation du demandeur reprise dans le formulaire */
-      repriseExpertise: reprise ? { par: nomDemandeur } : null,
+      repriseExpertise: reprise && !refRecue ? { par: nomDemandeur } : null,
+      /** Patient référé (issue « Référence ») : saisie de l'infirmier·ère reprise, et sa fiche de référence */
+      repriseReference: refRecue ? { par: nomDemandeur, referenceId: Number(refRecue.id), saisieReprise: !!reprise } : null,
       /** Télé-expertise reçue : consultation d'origine et résultat déjà envoyé ou non */
       expertiseRecue: recue
         ? {
@@ -880,10 +887,7 @@ export class DoctorConsultationsService {
       [doctorId, c.hospital_id ?? d.hospital_id],
     );
     if (!m) throw new BadRequestException('Médecin introuvable ou inactif dans votre hôpital.');
-    // Consignes : un médecin du SERVICE de la consultation, dans son CRÉNEAU maintenant (planning + permissions)
-    if (c.service_hospital_id && Number(m.service_hospital_id) !== Number(c.service_hospital_id)) {
-      throw new BadRequestException(`Ce médecin n'appartient pas au service de la consultation${c.service ? ` (${c.service})` : ''}.`);
-    }
+    // Consignes : un médecin de l'hôpital (service choisi dans « Référence en interne »), dans son CRÉNEAU maintenant
     const n = DoctorConsultationsService.maintenantLocal();
     const [dispo] = (await this.tele.medecinsDisponibles(Number(c.hospital_id ?? d.hospital_id), n.date, n.heure)).filter((x) => x.id === Number(m.id));
     if (!dispo?.disponible) {
@@ -959,9 +963,40 @@ export class DoctorConsultationsService {
         heure: texte(r.heure_prevue),
         // Envoyée au service, pas encore prise : tous les médecins du service
         medecin: dr(r.name, r.prenom) ?? (Number(r.diffusee) === 1 ? 'Tous les médecins du service' : null),
-        hopital: texte(r.hopital) ?? (externe && Number(r.diffusee) === 1 ? 'Hôpitaux de la DMHP' : null),
+        hopital: texte(r.hopital) ?? (externe && Number(r.diffusee) === 1 ? 'Réseau des hôpitaux utilisant GEMMA' : null),
         // Envoyée au service, pas encore prise : en attente qu'un médecin du service la prenne en charge
         etat: r.resultat_le ? 'Réponse reçue' : !r.name ? 'En attente de prise en charge' : etat(r),
+      };
+    }
+    if (issue === 'reference') {
+      // Référence du patient : où il a été référé, par qui il a été pris en charge, et la fiche de référence
+      const [r] = await this.db.query(
+        `SELECT rp.id, rp.type, rp.diffusee, s.libelle AS service, COALESCE(dh.label, hd.label) AS hopital,
+                du.name, du.prenom, dest.status, DATE_FORMAT(dest.date_consultation, '%Y-%m-%d') AS date_destination
+           FROM fm_references_patient rp
+           LEFT JOIN services s ON s.id = rp.service_id
+           LEFT JOIN hospitals hd ON hd.id = rp.hospital_destination_id
+           LEFT JOIN consultations dest ON dest.id = rp.consultation_destination_id
+           LEFT JOIN doctors dd ON dd.id = dest.doctor_id LEFT JOIN users du ON du.id = dd.user_id
+           LEFT JOIN hospitals dh ON dh.id = dd.hospital_id
+          WHERE rp.consultation_origine_id = ? LIMIT 1`,
+        [c.id],
+      );
+      if (!r) return null;
+      const externe = r.type === 'externe';
+      return {
+        type: 'reference' as const,
+        externe,
+        urgente: false,
+        resultatLe: null,
+        service: texte(r.service),
+        date: texte(r.date_destination),
+        heure: null,
+        medecin: dr(r.name, r.prenom) ?? (Number(r.diffusee) === 1 ? 'Tous les médecins du service' : null),
+        hopital: texte(r.hopital) ?? (externe ? 'Réseau des hôpitaux utilisant GEMMA' : null),
+        etat: Number(r.status) === 1 ? 'Consultation faite' : !r.name ? 'En attente de prise en charge' : 'En attente de la consultation',
+        /** Fiche de référence imprimable */
+        referenceId: Number(r.id),
       };
     }
     if (issue === 'teleconsultation' || issue === 'urgence') {
@@ -995,7 +1030,7 @@ export class DoctorConsultationsService {
         heure: texte(x?.desired_time)?.slice(0, 5) ?? null,
         // Urgence pas encore décrochée : pas de médecin ; téléconsultation envoyée au service : pas encore prise
         medecin: x ? (dr(x.name, x.prenom) ?? (issue === 'urgence' ? 'Pas encore décroché' : x.diffusee ? 'Tous les médecins du service' : null)) : null,
-        hopital: texte(x?.hopital) ?? (x?.diffusee && x.portee === 'externe' ? 'Hôpitaux de la DMHP' : null),
+        hopital: texte(x?.hopital) ?? (x?.diffusee && x.portee === 'externe' ? 'Réseau des hôpitaux utilisant GEMMA' : null),
         etat: x?.diffusee && !x.doctor_id && Number(x.status) !== 1 ? 'En attente de prise en charge' : etat(x),
       };
     }
@@ -1180,33 +1215,48 @@ export class DoctorConsultationsService {
     });
   }
 
+  /** District sanitaire d'un hôpital (hospitals.district_sanitaire, en minuscules), '' s'il n'est pas renseigné */
+  async districtDe(hospitalId: unknown): Promise<string> {
+    const [h] = await this.db.query("SELECT LOWER(TRIM(COALESCE(district_sanitaire, ''))) AS d FROM hospitals WHERE id = ? LIMIT 1", [hospitalId]);
+    return String(h?.d ?? '');
+  }
+
+  /** Filtre SQL (hôpital alias « h ») : dans le district du demandeur (horsDistrict = false) ou dans les autres (true) */
+  private static filtreDistrict(horsDistrict: boolean | undefined) {
+    return horsDistrict === undefined ? '' : `AND LOWER(TRIM(COALESCE(h.district_sanitaire, ''))) ${horsDistrict ? '<>' : '='} ?`;
+  }
+
   /**
-   * Télé-expertise en externe : TOUS les services (actifs) des hôpitaux de la DMHP, par libellé,
-   * avec le nombre d'hôpitaux qui les proposent.
+   * Envoi en externe : services (actifs) des hôpitaux de la DMHP, par libellé, avec le nombre d'hôpitaux qui les proposent.
+   * horsDistrict : false → hôpitaux du MÊME district que le demandeur ; true → hôpitaux des AUTRES districts ; absent → toute la DMHP.
    */
-  async servicesExternes(userId: number, role: 'doctor' | 'infirmier' = 'doctor') {
-    await this.acteur(userId, role);
+  async servicesExternes(userId: number, role: 'doctor' | 'infirmier' = 'doctor', horsDistrict?: boolean) {
+    const a = await this.acteur(userId, role);
+    const district = horsDistrict === undefined ? null : await this.districtDe(a.hospital_id);
     const rows: Ligne[] = await this.db.query(
       `SELECT s.id, s.libelle, COUNT(DISTINCT sh.hospital_id) AS nb_hopitaux
          FROM services s
          JOIN service_hospitals sh ON sh.service_id = s.id AND sh.status = 0
          JOIN hospitals h ON h.id = sh.hospital_id AND h.is_ucp_fm = 1 AND h.deleted_at IS NULL
+        WHERE 1 = 1 ${DoctorConsultationsService.filtreDistrict(horsDistrict)}
         GROUP BY s.id, s.libelle
         ORDER BY s.libelle`,
+      district === null ? [] : [district],
     );
     return rows.map((r) => ({ id: Number(r.id), libelle: String(r.libelle), hopitaux: Number(r.nb_hopitaux) }));
   }
 
-  /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service (hôpital facultatif) */
-  async hopitauxService(userId: number, serviceId: number, role: 'doctor' | 'infirmier' = 'doctor') {
-    await this.acteur(userId, role);
+  /** Envoi en externe : hôpitaux de la DMHP qui ont ce service (dans le district, ou hors du district) */
+  async hopitauxService(userId: number, serviceId: number, role: 'doctor' | 'infirmier' = 'doctor', horsDistrict?: boolean) {
+    const a = await this.acteur(userId, role);
+    const district = horsDistrict === undefined ? null : await this.districtDe(a.hospital_id);
     const rows: Ligne[] = await this.db.query(
       `SELECT DISTINCT h.id, COALESCE(NULLIF(h.label, ''), h.reference) AS nom
          FROM service_hospitals sh
          JOIN hospitals h ON h.id = sh.hospital_id AND h.is_ucp_fm = 1 AND h.deleted_at IS NULL
-        WHERE sh.service_id = ? AND sh.status = 0
+        WHERE sh.service_id = ? AND sh.status = 0 ${DoctorConsultationsService.filtreDistrict(horsDistrict)}
         ORDER BY nom`,
-      [serviceId],
+      district === null ? [serviceId] : [serviceId, district],
     );
     return rows.map((r) => ({ id: Number(r.id), nom: String(r.nom ?? `Hôpital ${r.id}`) }));
   }
@@ -1257,8 +1307,21 @@ export class DoctorConsultationsService {
     role: 'doctor' | 'infirmier',
     d: Ligne,
     infirmier: boolean,
-    o: { externe: boolean; serviceHospitalId?: number; serviceId?: number; hopitalId?: number; medecinId?: number; date: string; heure: string; quoi: string },
+    o: {
+      externe: boolean;
+      serviceHospitalId?: number;
+      serviceId?: number;
+      hopitalId?: number;
+      medecinId?: number;
+      date: string;
+      heure: string;
+      quoi: string;
+      /** Externe : false (défaut) → hôpitaux du district du demandeur ; true → hors du district */
+      horsDistrict?: boolean;
+    },
   ) {
+    const horsDistrict = o.externe ? !!o.horsDistrict : false;
+    const district = o.externe ? await this.districtDe(d.hospital_id) : null;
     let serviceId: number;
     let serviceNom: string | null;
     let hopitalId: number | null = null;
@@ -1276,13 +1339,13 @@ export class DoctorConsultationsService {
       hopitalId = Number(d.hospital_id);
     } else {
       if (!o.serviceId) throw new BadRequestException(`Choisissez le service auquel vous adressez la ${o.quoi}.`);
-      const sv = (await this.servicesExternes(userId, role)).find((x) => x.id === Number(o.serviceId));
-      if (!sv) throw new BadRequestException('Ce service n’existe dans aucun hôpital de la DMHP.');
+      const sv = (await this.servicesExternes(userId, role, horsDistrict)).find((x) => x.id === Number(o.serviceId));
+      if (!sv) throw new BadRequestException(`Ce service n’existe dans aucun hôpital ${horsDistrict ? 'hors de votre district' : 'de votre district'}.`);
       serviceId = sv.id;
       serviceNom = sv.libelle;
       if (o.hopitalId) {
-        const h = (await this.hopitauxService(userId, sv.id, role)).find((x) => x.id === Number(o.hopitalId));
-        if (!h) throw new BadRequestException(`Cet hôpital de la DMHP n’a pas de service ${sv.libelle}.`);
+        const h = (await this.hopitauxService(userId, sv.id, role, horsDistrict)).find((x) => x.id === Number(o.hopitalId));
+        if (!h) throw new BadRequestException(`Cet hôpital ${horsDistrict ? 'hors de votre district' : 'de votre district'} n’a pas de service ${sv.libelle}.`);
         hopitalId = h.id;
         hopitalNom = h.nom;
       } else if (o.medecinId) {
@@ -1313,16 +1376,28 @@ export class DoctorConsultationsService {
            JOIN service_hospitals sh ON sh.id = dc.service_hospital_id
            JOIN hospitals h ON h.id = dc.hospital_id AND h.deleted_at IS NULL ${o.externe ? 'AND h.is_ucp_fm = 1' : ''}
           WHERE sh.service_id = ? AND (? IS NULL OR dc.hospital_id = ?) AND dc.id <> ?
-            AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL`,
-        [serviceId, hopitalId, hopitalId, infirmier ? 0 : d.id],
+            AND dc.status = 0 AND dc.\`delete\` = 0 AND dc.deleted_at IS NULL
+            ${o.externe && !hopitalId ? DoctorConsultationsService.filtreDistrict(horsDistrict) : ''}`,
+        o.externe && !hopitalId ? [serviceId, hopitalId, hopitalId, infirmier ? 0 : d.id, district] : [serviceId, hopitalId, hopitalId, infirmier ? 0 : d.id],
       );
       if (!Number(n)) throw new BadRequestException(`Aucun médecin actif du service ${serviceNom ?? 'choisi'} ne peut recevoir cette ${o.quoi}.`);
     }
-    return { medecin, serviceId, serviceNom, hopitalId, hopitalNom, externe: o.externe };
+    return {
+      medecin,
+      serviceId,
+      serviceNom,
+      hopitalId,
+      hopitalNom,
+      externe: o.externe,
+      /** Externe sans hôpital : district du demandeur et sens (dans / hors du district) — sinon null */
+      district: o.externe && !hopitalId ? district : null,
+      horsDistrict,
+    };
   }
 
   /** Téléconsultation envoyée au service, visible par un médecin : son service, son hôpital (ou toute la DMHP), pas demandée par lui */
-  private static readonly TELE_POUR_MOI = `td.service_id = ? AND (td.hospital_destination_id IS NULL OR td.hospital_destination_id = ?) AND COALESCE(td.doctor_origine_id, 0) <> ?`;
+  private static readonly TELE_POUR_MOI = `td.service_id = ? AND (td.hospital_destination_id IS NULL OR td.hospital_destination_id = ?) AND COALESCE(td.doctor_origine_id, 0) <> ?
+    AND (td.hospital_destination_id IS NOT NULL OR td.district_origine IS NULL OR (td.hors_district = 0 AND td.district_origine = ?) OR (td.hors_district = 1 AND td.district_origine <> ?))`;
 
   private async monServiceGlobal(doctorId: unknown): Promise<number> {
     const [r] = await this.db.query('SELECT sh.service_id FROM doctors dc LEFT JOIN service_hospitals sh ON sh.id = dc.service_hospital_id WHERE dc.id = ? LIMIT 1', [doctorId]);
@@ -1351,7 +1426,7 @@ export class DoctorConsultationsService {
         WHERE c.doctor_id IS NULL AND c.status = 0 AND c.deleted_at IS NULL AND ${DoctorConsultationsService.TELE_POUR_MOI}
         ORDER BY c.desired_date ASC, c.desired_time ASC, c.id ASC
         LIMIT 100`,
-      [await this.monServiceGlobal(d.id), d.hospital_id, d.id],
+      [await this.monServiceGlobal(d.id), d.hospital_id, d.id, ...Array(2).fill(await this.districtDe(d.hospital_id))],
     );
     return rows.map((r) => {
       const medecin = nom(r.origine_nom, r.origine_prenom);
@@ -1385,7 +1460,7 @@ export class DoctorConsultationsService {
       `SELECT td.consultation_id, td.infirmier_origine_id, c.doctor_id FROM fm_teleconsultations_diffusees td
          JOIN consultations c ON c.id = td.consultation_id AND c.status = 0 AND c.deleted_at IS NULL
         WHERE td.consultation_id = ? AND ${DoctorConsultationsService.TELE_POUR_MOI} LIMIT 1`,
-      [consultationId, await this.monServiceGlobal(d.id), d.hospital_id, d.id],
+      [consultationId, await this.monServiceGlobal(d.id), d.hospital_id, d.id, ...Array(2).fill(await this.districtDe(d.hospital_id))],
     );
     if (!t) throw new NotFoundException('Téléconsultation introuvable ou non adressée à votre service.');
     if (t.doctor_id) throw new ConflictException('Cette téléconsultation a déjà été prise en charge par un autre médecin.');
@@ -1399,9 +1474,177 @@ export class DoctorConsultationsService {
     return { success: true, message: 'Téléconsultation prise en charge : elle est dans vos télémédecines.', consultationId };
   }
 
+  /* =========================================================
+     RÉFÉRENCE DU PATIENT (issue « Référence » de l'infirmier·ère)
+     ========================================================= */
+
+  /**
+   * Fiche de référence (document remis au patient) : origine, patient, motif, constantes, diagnostic, destination.
+   * Accès : l'infirmier·ère qui a référé, les agents de l'hôpital d'origine, et le médecin destinataire.
+   */
+  async ficheReference(userId: number, referenceId: number, role: 'doctor' | 'infirmier' = 'doctor') {
+    const a = await this.acteur(userId, role);
+    const [r] = await this.db.query(
+      `SELECT rp.*, DATE_FORMAT(rp.created_at, '%Y-%m-%dT%H:%i:%sZ') AS cree_le,
+              o.code_consultation, o.motif_consultation, o.tension_arterielle, o.temperature, o.pouls, o.poids, o.taille, o.imc, o.saturation_oxygene,
+              p.code_patient, p.gender, p.birth_date, p.telephone, pu.name AS patient_nom, pu.prenom AS patient_prenom,
+              ho.label AS hopital_origine, ho.contact AS hopital_origine_contact, ho.img_url AS hopital_origine_logo,
+              iu.name AS inf_nom, iu.prenom AS inf_prenom, ou.name AS medecin_origine_nom, ou.prenom AS medecin_origine_prenom,
+              s.libelle AS service, hd.label AS hopital_destination, hd.contact AS hopital_destination_contact,
+              du.name AS medecin_nom, du.prenom AS medecin_prenom,
+              dest.doctor_id AS dest_doctor_id, pu2.name AS pris_nom, pu2.prenom AS pris_prenom, dh.label AS hopital_prise,
+              rco.diagnostic_retenu, rco.examen_physique
+         FROM fm_references_patient rp
+         JOIN consultations o ON o.id = rp.consultation_origine_id
+         JOIN patients p ON p.id = o.patient_id JOIN users pu ON pu.id = p.user_id
+         LEFT JOIN hospitals ho ON ho.id = rp.hospital_origine_id
+         LEFT JOIN infirmiers i ON i.id = rp.infirmier_origine_id LEFT JOIN users iu ON iu.id = i.user_id
+         LEFT JOIN doctors od ON od.id = rp.doctor_origine_id LEFT JOIN users ou ON ou.id = od.user_id
+         LEFT JOIN services s ON s.id = rp.service_id
+         LEFT JOIN hospitals hd ON hd.id = rp.hospital_destination_id
+         LEFT JOIN doctors dd ON dd.id = rp.doctor_destination_id LEFT JOIN users du ON du.id = dd.user_id
+         LEFT JOIN consultations dest ON dest.id = rp.consultation_destination_id
+         LEFT JOIN doctors pd ON pd.id = dest.doctor_id LEFT JOIN users pu2 ON pu2.id = pd.user_id
+         LEFT JOIN hospitals dh ON dh.id = pd.hospital_id
+         LEFT JOIN registres ro ON ro.id = (SELECT MAX(id) FROM registres WHERE consultation_id = o.id)
+         LEFT JOIN registre_consultation_curatives rco ON rco.id = (SELECT MAX(id) FROM registre_consultation_curatives WHERE registre_id = ro.id)
+        WHERE rp.id = ? LIMIT 1`,
+      [referenceId],
+    );
+    if (!r) throw new NotFoundException('Référence introuvable.');
+    const autorise =
+      (a.role === 'infirmier' && (Number(r.infirmier_origine_id) === Number(a.id) || Number(r.hospital_origine_id) === Number(a.hospital_id))) ||
+      (a.role === 'doctor' &&
+        (Number(r.dest_doctor_id) === Number(a.id) || Number(r.doctor_origine_id) === Number(a.id) || Number(r.hospital_origine_id) === Number(a.hospital_id)));
+    if (!autorise) throw new ForbiddenException('Cette fiche de référence ne vous concerne pas.');
+    const dr = (n: unknown, p: unknown) => (nom(n, p) ? `Dr ${String(nom(n, p)).replace(/^dr\.?\s*/i, '')}` : null);
+    return {
+      id: Number(r.id),
+      code: texte(r.code) ?? `REF-${r.id}`,
+      date: texte(r.cree_le),
+      externe: r.type === 'externe',
+      motif: texte(r.motif) ?? texte(r.motif_consultation),
+      diagnostic: texte(r.diagnostic_retenu),
+      examenPhysique: texte(r.examen_physique),
+      consultation: texte(r.code_consultation),
+      origine: {
+        hopital: texte(r.hopital_origine),
+        contact: texte(r.hopital_origine_contact),
+        logo: texte(r.hopital_origine_logo),
+        infirmier: nom(r.inf_nom, r.inf_prenom),
+        /** Référence faite par un médecin */
+        medecin: nom(r.medecin_origine_nom, r.medecin_origine_prenom)
+          ? `Dr ${String(nom(r.medecin_origine_nom, r.medecin_origine_prenom)).replace(/^dr\.?\s*/i, '')}`
+          : null,
+      },
+      destination: {
+        service: texte(r.service),
+        // Externe sans hôpital : tout hôpital de la DMHP qui a ce service
+        hopital: texte(r.hopital_destination) ?? (r.type === 'externe' ? 'Tout hôpital du réseau utilisant GEMMA (service indiqué)' : null),
+        contact: texte(r.hopital_destination_contact),
+        medecin: dr(r.medecin_nom, r.medecin_prenom) ?? (Number(r.diffusee) === 1 ? 'Tout médecin du service' : null),
+        // Prise en charge (envoyée au service) : par qui, dans quel hôpital
+        prisePar: Number(r.diffusee) === 1 && r.dest_doctor_id ? dr(r.pris_nom, r.pris_prenom) : null,
+        hopitalPrise: Number(r.diffusee) === 1 && r.dest_doctor_id ? texte(r.hopital_prise) : null,
+      },
+      patient: {
+        nom: nom(r.patient_nom, r.patient_prenom) ?? '—',
+        code: texte(r.code_patient),
+        genre: texte(r.gender),
+        dateNaissance: texte(r.birth_date),
+        telephone: texte(r.telephone),
+      },
+      constantes: {
+        tension: texte(r.tension_arterielle),
+        temperature: texte(r.temperature),
+        pouls: texte(r.pouls),
+        poids: texte(r.poids),
+        taille: texte(r.taille),
+        imc: texte(r.imc),
+        saturation: texte(r.saturation_oxygene),
+      },
+    };
+  }
+
+  /** Référence envoyée au service, visible par un médecin : son service, son hôpital (ou toute la DMHP) */
+  private static readonly REF_POUR_MOI = `rp.diffusee = 1 AND rp.service_id = ? AND (rp.hospital_destination_id IS NULL OR rp.hospital_destination_id = ?)
+    AND (rp.hospital_destination_id IS NOT NULL OR rp.district_origine IS NULL OR (rp.hors_district = 0 AND rp.district_origine = ?) OR (rp.hors_district = 1 AND rp.district_origine <> ?))
+    AND COALESCE(rp.doctor_origine_id, 0) <> ?`;
+
+  /** MÉDECIN > TÉLÉMÉDECINE : patients référés à mon service (sans médecin choisi), pas encore pris en charge */
+  async referencesDisponibles(userId: number) {
+    const d = await this.medecin(userId);
+    const rows: Ligne[] = await this.db.query(
+      `SELECT rp.id, rp.type, rp.consultation_destination_id, rp.motif, rp.created_at, s.libelle AS service, ho.label AS hopital,
+              iu.name AS inf_nom, iu.prenom AS inf_prenom, ou.name AS med_nom, ou.prenom AS med_prenom,
+              p.id AS patient_id, p.code_patient, p.gender, p.birth_date, p.img_url, pu.name AS patient_nom, pu.prenom AS patient_prenom
+         FROM fm_references_patient rp
+         JOIN consultations c ON c.id = rp.consultation_destination_id
+         JOIN patients p ON p.id = c.patient_id JOIN users pu ON pu.id = p.user_id
+         LEFT JOIN services s ON s.id = rp.service_id
+         LEFT JOIN hospitals ho ON ho.id = rp.hospital_origine_id
+         LEFT JOIN infirmiers i ON i.id = rp.infirmier_origine_id LEFT JOIN users iu ON iu.id = i.user_id
+         LEFT JOIN doctors od ON od.id = rp.doctor_origine_id LEFT JOIN users ou ON ou.id = od.user_id
+        WHERE c.doctor_id IS NULL AND c.status = 0 AND c.deleted_at IS NULL AND ${DoctorConsultationsService.REF_POUR_MOI}
+        ORDER BY rp.created_at ASC LIMIT 100`,
+      [await this.monServiceGlobal(d.id), d.hospital_id, ...Array(2).fill(await this.districtDe(d.hospital_id)), d.id],
+    );
+    return rows.map((r) => ({
+      referenceId: Number(r.id),
+      consultationId: Number(r.consultation_destination_id),
+      externe: r.type === 'externe',
+      recueLe: r.created_at,
+      motif: texte(r.motif),
+      referePar: nom(r.med_nom, r.med_prenom)
+        ? `Dr ${String(nom(r.med_nom, r.med_prenom)).replace(/^dr\.?\s*/i, '')}`
+        : nom(r.inf_nom, r.inf_prenom)
+          ? `${nom(r.inf_nom, r.inf_prenom)} (infirmier·ère)`
+          : null,
+      hopital: texte(r.hopital),
+      service: texte(r.service),
+      patient: {
+        id: Number(r.patient_id),
+        code: texte(r.code_patient) ?? '—',
+        nom: nom(r.patient_nom, r.patient_prenom) ?? '—',
+        genre: texte(r.gender),
+        dateNaissance: texte(r.birth_date),
+        imgUrl: texte(r.img_url),
+      },
+    }));
+  }
+
+  /** Prise en charge d'un patient référé au service : le premier médecin l'obtient ; la consultation passe dans son hôpital */
+  async prendreReference(userId: number, referenceId: number) {
+    const d = await this.medecin(userId);
+    const [r] = await this.db.query(
+      `SELECT rp.id, rp.consultation_destination_id, rp.service_id, c.doctor_id FROM fm_references_patient rp
+         JOIN consultations c ON c.id = rp.consultation_destination_id AND c.status = 0 AND c.deleted_at IS NULL
+        WHERE rp.id = ? AND ${DoctorConsultationsService.REF_POUR_MOI} LIMIT 1`,
+      [referenceId, await this.monServiceGlobal(d.id), d.hospital_id, ...Array(2).fill(await this.districtDe(d.hospital_id)), d.id],
+    );
+    if (!r) throw new NotFoundException('Référence introuvable ou non adressée à votre service.');
+    if (r.doctor_id) throw new ConflictException('Ce patient a déjà été pris en charge par un autre médecin.');
+    const [moi] = await this.db.query(
+      `SELECT dc.hospital_id,
+              (SELECT ph.id FROM prestation_hospitals ph JOIN prestation_services ps ON ps.id = ph.prestation_service_id
+                WHERE ph.service_hospital_id = dc.service_hospital_id AND ph.status = 0
+                ORDER BY (ps.libelle LIKE 'Consultation%') DESC, ph.id LIMIT 1) AS prestation_id
+         FROM doctors dc WHERE dc.id = ? LIMIT 1`,
+      [d.id],
+    );
+    const pris = await this.db.query(
+      `UPDATE consultations SET doctor_id = ?, hospital_id = ?, prestation_hospital_id = COALESCE(?, prestation_hospital_id), updated_at = ?
+        WHERE id = ? AND doctor_id IS NULL AND status = 0`,
+      [d.id, moi?.hospital_id ?? d.hospital_id, moi?.prestation_id ?? null, laravelNow(), r.consultation_destination_id],
+    );
+    if (Number(pris.affectedRows) !== 1) throw new ConflictException('Ce patient vient d’être pris en charge par un autre médecin.');
+    await this.db.query('UPDATE fm_references_patient SET doctor_destination_id = ?, pris_le = UTC_TIMESTAMP() WHERE id = ?', [d.id, r.id]);
+    return { success: true, message: 'Patient pris en charge : sa consultation est prête.', consultationId: Number(r.consultation_destination_id) };
+  }
+
   /** Message « envoyée à tous les médecins du service … » */
-  private static messageDiffusion(quoi: string, c: { externe: boolean; serviceNom: string | null; hopitalNom: string | null }) {
-    const ou = !c.externe ? 'de votre hôpital' : c.hopitalNom ? `de ${c.hopitalNom}` : 'des hôpitaux de la DMHP';
+  private static messageDiffusion(quoi: string, c: { externe: boolean; serviceNom: string | null; hopitalNom: string | null; horsDistrict?: boolean }) {
+    const ou = !c.externe ? 'de votre hôpital' : c.hopitalNom ? `de ${c.hopitalNom}` : c.horsDistrict ? 'des hôpitaux hors de votre district' : 'des hôpitaux de votre district';
     return `${quoi} envoyée à tous les médecins du service ${c.serviceNom ?? ''} ${ou} : le premier qui la prend en charge la reçoit.`.replace(/\s+/g, ' ');
   }
 
@@ -1803,6 +2046,8 @@ export class DoctorConsultationsService {
     let serviceReferenceNom: string | null = null;
     let hopitalReference: number | null = null;
     let hopitalReferenceNom: string | null = null;
+    let referenceDistrict: string | null = null;
+    let referenceHorsDistrict = false;
     const expertise = dto.modeSortie === 'refere-interne' || dto.modeSortie === 'refere-externe';
     if (expertise) {
       // Date et heure de la prise en charge : à venir, dans le délai du type de demande
@@ -1818,8 +2063,11 @@ export class DoctorConsultationsService {
         date: moment.date,
         heure: moment.heure,
         quoi: 'télé-expertise',
+        horsDistrict: dto.externeHorsDistrict,
       });
       destinataire = cible.medecin;
+      referenceDistrict = cible.district;
+      referenceHorsDistrict = cible.horsDistrict;
       serviceReference = cible.serviceId;
       serviceReferenceNom = cible.serviceNom;
       hopitalReference = cible.hopitalId;
@@ -1852,8 +2100,31 @@ export class DoctorConsultationsService {
         date: moment.date,
         heure: moment.heure,
         quoi: 'téléconsultation',
+        horsDistrict: dto.externeHorsDistrict,
       });
       if (teleCible.medecin) teleMedecin = { id: Number(teleCible.medecin.id), nom: nom(teleCible.medecin.name, teleCible.medecin.prenom) ?? 'Médecin' };
+    }
+
+    /*
+     * RÉFÉRENCE du patient (infirmier·ère ou médecin) : en interne ou en externe, comme la télé-expertise.
+     * Service obligatoire ; médecin facultatif (disponible maintenant) : sans médecin, tous les médecins du service visé.
+     * Le patient se rend chez le médecin / dans l'hôpital avec sa fiche de référence.
+     */
+    let referenceCible: Awaited<ReturnType<DoctorConsultationsService['resoudreCible']>> | null = null;
+    if (dto.modeSortie === 'reference') {
+      if (!dto.referencePortee) throw new BadRequestException('Précisez si la référence est en interne ou en externe.');
+      const maintenant = DoctorConsultationsService.maintenantLocal();
+      referenceCible = await this.resoudreCible(userId, role, d, infirmier, {
+        externe: dto.referencePortee === 'externe',
+        serviceHospitalId: dto.referenceServiceHospitalId,
+        serviceId: dto.referenceServiceId,
+        hopitalId: dto.referenceHopitalId,
+        medecinId: dto.medecinReferenceId,
+        date: maintenant.date,
+        heure: maintenant.heure,
+        quoi: 'référence',
+        horsDistrict: dto.externeHorsDistrict,
+      });
     }
 
     // Appel d'urgence, 5 constantes obligatoires :
@@ -2201,7 +2472,13 @@ export class DoctorConsultationsService {
     } else if (expertise) {
       // Envoyée au service : visible par tous ses médecins (de l'hôpital choisi, ou de la DMHP) jusqu'à la prise en charge
       const cible =
-        dto.modeSortie === 'refere-interne' ? 'de votre hôpital' : hopitalReferenceNom ? `de ${hopitalReferenceNom}` : 'des hôpitaux de la DMHP';
+        dto.modeSortie === 'refere-interne'
+          ? 'de votre hôpital'
+          : hopitalReferenceNom
+            ? `de ${hopitalReferenceNom}`
+            : referenceHorsDistrict
+              ? 'des hôpitaux hors de votre district'
+              : 'des hôpitaux de votre district';
       messageReference = `Télé-expertise envoyée à tous les médecins du service ${serviceReferenceNom ?? ''} ${cible} : le premier qui la prend en charge la reçoit.`.replace(/\s+/g, ' ');
     }
 
@@ -2263,12 +2540,21 @@ export class DoctorConsultationsService {
         appelUrgence = await lancerUrgence(this.db, userId, consultationSuivante, { observation: dto.justification });
         messageTele = infirmier
           ? `Appel d’urgence lancé : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`
-          : `Appel d’urgence lancé vers les médecins de votre service dans la DMHP : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
+          : `Appel d’urgence lancé vers les médecins de votre service dans le réseau des hôpitaux utilisant GEMMA : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
       } else if (diffusee && teleCible) {
         await this.db.query(
-          `INSERT INTO fm_teleconsultations_diffusees (consultation_id, type, service_id, hospital_destination_id, doctor_origine_id, infirmier_origine_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())`,
-          [consultationSuivante, teleCible.externe ? 'externe' : 'interne', teleCible.serviceId, teleCible.hopitalId, infirmier ? null : d.id, infirmierDemandeur],
+          `INSERT INTO fm_teleconsultations_diffusees (consultation_id, type, service_id, hospital_destination_id, district_origine, hors_district, doctor_origine_id, infirmier_origine_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())`,
+          [
+            consultationSuivante,
+            teleCible.externe ? 'externe' : 'interne',
+            teleCible.serviceId,
+            teleCible.hopitalId,
+            teleCible.district,
+            teleCible.horsDistrict ? 1 : 0,
+            infirmier ? null : d.id,
+            infirmierDemandeur,
+          ],
         );
         const [a, mo, j] = dto.teleDate!.split('-');
         messageTele = `${DoctorConsultationsService.messageDiffusion('Téléconsultation', teleCible)} Prévue le ${j}/${mo}/${a} à ${dto.teleHeure}.`;
@@ -2278,12 +2564,101 @@ export class DoctorConsultationsService {
       }
     }
 
+    // 8 ter. RÉFÉRENCE du patient (infirmier·ère) : consultation créée pour le médecin choisi, ou pour le service visé
+    //        (sans médecin : le premier médecin du service qui le prend en charge l'obtient) + fiche de référence imprimable
+    let referencePatient: { id: number; code: string } | null = null;
+    let messageReferencePatient: string | null = null;
+    if (dto.modeSortie === 'reference' && referenceCible) {
+      const m = referenceCible.medecin;
+      const hopitalOrigine = Number(c.hospital_id ?? d.hospital_id);
+      // Hôpital de la consultation créée : celui du médecin, sinon l'hôpital visé (externe sans hôpital : rattachée à la prise en charge)
+      const hopitalDestination = m ? Number(m.hospital_id) : (referenceCible.hopitalId ?? hopitalOrigine);
+      // Acte « consultation » du service visé dans cet hôpital (sinon le premier acte actif)
+      const [presta] = await this.db.query(
+        `SELECT ph.id, ph.prix FROM prestation_hospitals ph
+           JOIN prestation_services ps ON ps.id = ph.prestation_service_id
+           JOIN service_hospitals sh ON sh.id = ph.service_hospital_id
+          WHERE sh.hospital_id = ? AND sh.service_id = ? AND ph.status = 0
+          ORDER BY (ps.libelle LIKE 'Consultation%') DESC, ph.id LIMIT 1`,
+        [hopitalDestination, referenceCible.serviceId],
+      );
+      const [hOrigine] = await this.db.query('SELECT label FROM hospitals WHERE id = ? LIMIT 1', [hopitalOrigine]);
+      const auteur = infirmier ? `l’infirmier·ère ${nom(d.name, d.prenom) ?? ''}`.trim() : `Dr ${String(nom(d.name, d.prenom) ?? '').replace(/^dr\.?\s*/i, '')}`;
+      const motifReference = `Référé par ${auteur}${referenceCible.externe && hOrigine?.label ? ` — ${hOrigine.label}` : ''} : ${dto.justification ?? dto.motif}`.slice(0, 1000);
+      const [[{ n: nb }]] = await Promise.all([this.db.query('SELECT COUNT(*) AS n FROM consultations WHERE patient_id = ?', [c.patient_id])]);
+      const code = `CONSULT${String(c.code_patient ?? '').slice(2)}${Number(nb) + 1}`;
+      // Sans infirmier·ère : la consultation est celle du médecin (l'infirmier·ère est gardé·e comme demandeur)
+      const res = await this.db.query(
+        `INSERT INTO consultations (code_consultation, date_consultation, hospital_id, patient_id, infirmier_id, doctor_id, prestation_hospital_id,
+                                    motif_consultation, montant, poids, taille, imc, temperature, tension_arterielle, pouls, saturation_oxygene,
+                                    status, status_inf, created_at, updated_at)
+         VALUES (?, CURDATE(), ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+        [
+          code,
+          hopitalDestination,
+          c.patient_id,
+          m ? Number(m.id) : null,
+          m?.prestation_id ?? presta?.id ?? null,
+          motifReference,
+          Number(presta?.prix ?? 0),
+          complete('poids', dto.poids),
+          complete('taille', dto.taille),
+          complete('imc', dto.imc),
+          complete('temperature', dto.temperature),
+          complete('tension_arterielle', dto.tension),
+          complete('pouls', dto.pouls),
+          texte(c.saturation_oxygene) ?? dto.saturation ?? null,
+          now,
+          now,
+        ],
+      );
+      const destinationId = Number(res.insertId);
+      await this.db.query("INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES ('Référence', ?, CURDATE(), ?, ?, ?)", [
+        hopitalDestination,
+        c.patient_id,
+        now,
+        now,
+      ]);
+      const ref = await this.db.query(
+        `INSERT INTO fm_references_patient (type, consultation_origine_id, consultation_destination_id, service_id, hospital_origine_id, hospital_destination_id,
+                                            district_origine, hors_district, doctor_destination_id, infirmier_origine_id, doctor_origine_id, diffusee, motif, pris_le, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())
+         ON DUPLICATE KEY UPDATE consultation_destination_id = VALUES(consultation_destination_id)`,
+        [
+          referenceCible.externe ? 'externe' : 'interne',
+          consultationId,
+          destinationId,
+          referenceCible.serviceId,
+          hopitalOrigine,
+          m ? Number(m.hospital_id) : referenceCible.hopitalId,
+          m ? null : referenceCible.district,
+          !m && referenceCible.horsDistrict ? 1 : 0,
+          m ? Number(m.id) : null,
+          infirmier ? Number(d.id) : null,
+          infirmier ? null : Number(d.id),
+          m ? 0 : 1,
+          texte(dto.justification) ?? texte(dto.motif),
+          m ? new Date() : null,
+        ],
+      );
+      const refId = Number(ref.insertId);
+      // N° de la fiche : REF-AAAAMMJJ-<id>
+      const jour = DoctorConsultationsService.maintenantLocal().date.replace(/-/g, '');
+      const codeRef = `REF-${jour}-${String(refId).padStart(5, '0')}`;
+      await this.db.query('UPDATE fm_references_patient SET code = ? WHERE id = ?', [codeRef, refId]);
+      referencePatient = { id: refId, code: codeRef };
+      messageReferencePatient = m
+        ? `Patient référé au Dr ${String(nom(m.name, m.prenom) ?? '').replace(/^dr\.?\s*/i, '')} : remettez-lui la fiche de référence.`
+        : `${DoctorConsultationsService.messageDiffusion('Référence', referenceCible)} Remettez la fiche de référence au patient.`;
+    }
+
     // 9. Référence (interne / externe) : suivie dans la table Gemma FM « fm_references »
     if (dto.modeSortie === 'refere-interne' || dto.modeSortie === 'refere-externe') {
       await this.db.query(
-        `INSERT INTO fm_references (type, service_id, diffusee, hospital_destination_id, date_prevue, heure_prevue, urgence, echeance, consultation_origine_id, consultation_destination_id, doctor_origine_id, doctor_destination_id, hospital_id, motif, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+        `INSERT INTO fm_references (type, service_id, diffusee, hospital_destination_id, district_origine, hors_district, date_prevue, heure_prevue, urgence, echeance, consultation_origine_id, consultation_destination_id, doctor_origine_id, doctor_destination_id, hospital_id, motif, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE), ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
          ON DUPLICATE KEY UPDATE type = VALUES(type), service_id = VALUES(service_id), diffusee = VALUES(diffusee), hospital_destination_id = VALUES(hospital_destination_id),
+                                 district_origine = VALUES(district_origine), hors_district = VALUES(hors_district),
                                  date_prevue = VALUES(date_prevue), heure_prevue = VALUES(heure_prevue),
                                  urgence = VALUES(urgence), echeance = VALUES(echeance),
                                  consultation_destination_id = VALUES(consultation_destination_id),
@@ -2294,6 +2669,9 @@ export class DoctorConsultationsService {
           // Sans médecin choisi : envoyée à tous les médecins du service (hôpital visé, ou toute la DMHP si NULL)
           destinataire ? 0 : 1,
           destinataire ? Number(destinataire.hospital_id) : hopitalReference,
+          // Externe sans hôpital : district du demandeur, et dans / hors du district
+          destinataire ? null : referenceDistrict,
+          destinataire ? 0 : referenceHorsDistrict ? 1 : 0,
           // Date / heure de prise en charge demandées (télé-expertise interne et externe)
           dto.referenceDate ?? null,
           dto.referenceHeure ?? null,
@@ -2320,6 +2698,8 @@ export class DoctorConsultationsService {
         ? `Accouchement enregistré. Naissance déclarée (${declarationNaissance.reference}) : le certificat de naissance est prêt.`
         : messageReference
         ? `Consultation effectuée. ${messageReference}`
+        : messageReferencePatient
+        ? `Consultation effectuée. ${messageReferencePatient}`
         : messageTele
         ? `Consultation effectuée. ${messageTele}`
         : dto.modeSortie === 'hospitalisation'
@@ -2333,6 +2713,8 @@ export class DoctorConsultationsService {
       consultationSuivante,
       /** Urgence : accès à l'appel vidéo (à ouvrir tout de suite) */
       appel: appelUrgence,
+      /** Référence du patient : fiche de référence à imprimer (id, n°) */
+      referencePatient,
     };
   }
 }

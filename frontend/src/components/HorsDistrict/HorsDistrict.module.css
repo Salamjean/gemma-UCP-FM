@@ -1,0 +1,72 @@
+/* Interrupteur « Envoyer hors du district » (couleurs unies) */
+.ligne {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+}
+
+.interrupteur {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.interrupteur input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.piste {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: #d5dbe6;
+  transition: background 0.2s ease;
+}
+
+.bouton {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(23, 43, 76, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.interrupteur input:checked + .piste {
+  background: #1f6fc6;
+}
+
+.interrupteur input:checked + .piste .bouton {
+  transform: translateX(18px);
+}
+
+.interrupteur input:focus-visible + .piste {
+  outline: 2px solid #1f6fc6;
+  outline-offset: 2px;
+}
+
+.libelle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--dash-text, #172b4c);
+}
+
+.aide {
+  font-size: 0.76rem;
+  color: var(--dash-muted, #6c757d);
+}

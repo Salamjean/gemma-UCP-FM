@@ -1686,6 +1686,43 @@
   margin-top: 12px;
 }
 
+/* Référence du patient : interne (service · médecin) / externe (service · hôpital · médecin) sur une ligne */
+.ligneReferenceDeux,
+.ligneReferenceTrois {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.ligneReferenceDeux {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ligneReferenceTrois {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ligneReferenceDeux > div,
+.ligneReferenceTrois > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ligneReferenceDeux .sousTitre,
+.ligneReferenceTrois .sousTitre {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .ligneReferenceDeux,
+  .ligneReferenceTrois {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Téléconsultation en externe : service · hôpital · date · heure · médecin sur la même ligne */
 .ligneTeleCinq {
   display: grid;

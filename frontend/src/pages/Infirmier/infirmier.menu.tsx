@@ -62,6 +62,8 @@ export const infirmierSpace: RoleSpace = {
         // « Consulter » : même formulaire de consultation que le médecin (ici car ce groupe est visible pour tous les infirmiers)
         { label: 'Consultation', path: 'consultations/medicale/:id', element: <Consultations.ConsultationMedicale /> },
         { label: 'Document', path: 'consultations/medicale/:id/document/:type', element: <Consultations.DocumentConsultationMedicale /> },
+        // Issue « Référence » : fiche de référence à imprimer pour le patient
+        { label: 'Fiche de référence', path: 'consultations/reference/:id', element: <Consultations.FicheReferenceInfirmier /> },
       ],
     },
     {

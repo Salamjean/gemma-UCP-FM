@@ -1,0 +1,206 @@
+/* =========================================================
+   FICHE DE RÉFÉRENCE (A4 imprimable) — couleurs unies, pas de dégradé ni de bordure colorée
+   ========================================================= */
+
+.zone {
+  overflow-x: auto;
+  padding: 4px 0 24px;
+}
+
+.feuille {
+  width: min(210mm, 100%);
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 16mm 15mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #1b2333;
+  box-shadow: 0 10px 30px rgba(23, 43, 76, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+.enTete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dfe4ee;
+}
+
+.origine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.origine img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.origine div,
+.numero {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.origine strong {
+  font-size: 1rem;
+}
+
+.origine small,
+.numero small {
+  color: #5d6b82;
+}
+
+.numero {
+  text-align: right;
+}
+
+.titre {
+  margin: 0;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bloc h3 {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eef3fa;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #172b4c;
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
+  margin: 0;
+}
+
+.ligne {
+  display: flex;
+  gap: 8px;
+}
+
+.ligne dt {
+  flex-shrink: 0;
+  color: #5d6b82;
+}
+
+.ligne dt::after {
+  content: ' :';
+}
+
+.ligne dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.texte {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.constantes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.constantes div {
+  padding: 6px 8px;
+  border: 1px solid #dfe4ee;
+  border-radius: 6px;
+}
+
+.constantes dt {
+  font-size: 0.74rem;
+  color: #5d6b82;
+}
+
+.constantes dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+
+.pied {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.pied div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pied small {
+  color: #5d6b82;
+}
+
+.signature {
+  width: 45%;
+  min-height: 70px;
+  border-bottom: 1px solid #1b2333;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #5d6b82;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .grille,
+  .constantes {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  :global(body) * {
+    visibility: hidden;
+  }
+  .feuille,
+  .feuille * {
+    visibility: visible;
+  }
+  .feuille {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    box-shadow: none;
+  }
+  .nonImprime {
+    display: none !important;
+  }
+}

@@ -16,6 +16,9 @@ import { ConsultationCurativeDto } from './dto/consultation.dto';
 
 type Req_ = Request & { user: JwtPayload };
 
+/** ?horsDistrict=1 → hôpitaux hors du district ; 0 → du district ; absent → toute la DMHP */
+const horsDistrict = (x?: string) => (x === '1' ? true : x === '0' ? false : undefined);
+
 /** /api/doctor/... : tableau de bord et consultations du médecin connecté */
 @Controller('doctor')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -142,8 +145,25 @@ export class DoctorConsultationsController {
 
   /** Télé-expertise en externe : services des autres établissements de la DMHP */
   @Get('consultations/services-externes')
-  servicesExternes(@Req() req: Req_) {
-    return this.service.servicesExternes(req.user.sub);
+  servicesExternes(@Req() req: Req_, @Query('horsDistrict') hd?: string) {
+    return this.service.servicesExternes(req.user.sub, 'doctor', horsDistrict(hd));
+  }
+
+  /** Patients référés à mon service par un·e infirmier·ère (sans médecin choisi), à prendre en charge */
+  @Get('consultations/references-patient/disponibles')
+  referencesDisponibles(@Req() req: Req_) {
+    return this.service.referencesDisponibles(req.user.sub);
+  }
+
+  @Post('consultations/references-patient/:refId/prendre')
+  prendreReference(@Req() req: Req_, @Param('refId', ParseIntPipe) refId: number) {
+    return this.service.prendreReference(req.user.sub, refId);
+  }
+
+  /** Fiche de référence du patient (médecin destinataire) */
+  @Get('consultations/references-patient/:refId')
+  ficheReference(@Req() req: Req_, @Param('refId', ParseIntPipe) refId: number) {
+    return this.service.ficheReference(req.user.sub, refId, 'doctor');
   }
 
   /** Téléconsultations envoyées à mon service (sans médecin choisi), à prendre en charge */
@@ -160,8 +180,8 @@ export class DoctorConsultationsController {
 
   /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service */
   @Get('consultations/services-externes/:serviceId/hopitaux')
-  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number) {
-    return this.service.hopitauxService(req.user.sub, serviceId);
+  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number, @Query('horsDistrict') hd?: string) {
+    return this.service.hopitauxService(req.user.sub, serviceId, 'doctor', horsDistrict(hd));
   }
 
   /** Télé-expertise en externe : médecins de ce service dans cet hôpital, disponibilité à la date / l'heure */

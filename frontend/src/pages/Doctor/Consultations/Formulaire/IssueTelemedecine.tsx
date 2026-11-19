@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaHospitalAlt, FaHospitalUser, FaRegCalendarAlt, FaRegClock, FaUserMd, FaVideo } from 'react-icons/fa';
+import HorsDistrict from '../../../../components/HorsDistrict/HorsDistrict';
 import SelectRecherche from '../../../../components/SelectRecherche/SelectRecherche';
 import type { MedecinReference } from '../../../../types';
 import { useEspaceConsultation } from './espace';
@@ -20,6 +21,8 @@ export interface TelemedecineSaisie {
   date: string;
   /** HH:MM */
   heure: string;
+  /** Externe : hôpitaux hors du district (sinon : du district du demandeur) */
+  horsDistrict: boolean;
 }
 
 const dateLocale = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -31,6 +34,7 @@ export const telemedecineVide = (): TelemedecineSaisie => ({
   medecinNom: null,
   date: dateLocale(new Date()),
   heure: '',
+  horsDistrict: false,
 });
 
 /** Date + heure renseignées et pas dans le passé */
@@ -44,6 +48,7 @@ export const telemedecinePayload = (t: TelemedecineSaisie) => ({
   teleHeure: t.heure,
   ...(t.portee === 'interne' ? { teleServiceHospitalId: t.serviceId } : { teleServiceId: t.serviceId }),
   ...(t.portee === 'externe' && t.hopitalId ? { teleHopitalId: t.hopitalId } : {}),
+  ...(t.portee === 'externe' ? { externeHorsDistrict: t.horsDistrict } : {}),
   ...(t.medecinId && (t.portee === 'interne' || t.hopitalId) ? { teleMedecinId: t.medecinId } : {}),
 });
 
@@ -89,25 +94,34 @@ export default function IssueTelemedecine({ valeur, onChange }: { valeur: Teleme
         .medecinsReference()
         .then(setTousInternes)
         .catch(() => setTousInternes([]));
-    if (valeur.portee === 'externe' && !servicesExt)
-      api
-        .servicesExternes()
-        .then(setServicesExt)
-        .catch(() => setServicesExt([]));
   }, [valeur.portee]);
+
+  // Externe : services des hôpitaux du district (ou hors du district)
+  useEffect(() => {
+    setServicesExt(null);
+    if (valeur.portee !== 'externe') return;
+    let actif = true;
+    api
+      .servicesExternes(valeur.horsDistrict)
+      .then((l) => actif && setServicesExt(l))
+      .catch(() => actif && setServicesExt([]));
+    return () => {
+      actif = false;
+    };
+  }, [valeur.portee, valeur.horsDistrict]);
 
   useEffect(() => {
     setHopitaux(null);
     if (!externe || !valeur.serviceId) return;
     let actif = true;
     api
-      .hopitauxService(valeur.serviceId)
+      .hopitauxService(valeur.serviceId, valeur.horsDistrict)
       .then((l) => actif && setHopitaux(l))
       .catch(() => actif && setHopitaux([]));
     return () => {
       actif = false;
     };
-  }, [externe, valeur.serviceId]);
+  }, [externe, valeur.serviceId, valeur.horsDistrict]);
 
   // Médecins disponibles au moment choisi : interne → du service ; externe → du service dans l'hôpital choisi
   useEffect(() => {
@@ -193,8 +207,8 @@ export default function IssueTelemedecine({ valeur, onChange }: { valeur: Teleme
           options={(hopitaux ?? []).map((h) => ({ id: h.id, name: h.nom }))}
           value={valeur.hopitalId}
           onChange={(id) => maj({ hopitalId: id, medecinId: null, medecinNom: null })}
-          optionVide="Tous les hôpitaux de la DMHP"
-          placeholder={hopitaux ? 'Tous les hôpitaux de la DMHP' : 'Chargement…'}
+          optionVide={valeur.horsDistrict ? 'Tous les hôpitaux hors du district' : 'Tous les hôpitaux du district'}
+          placeholder={hopitaux ? (valeur.horsDistrict ? 'Tous les hôpitaux hors du district' : 'Tous les hôpitaux du district') : 'Chargement…'}
           placeholderRecherche="Rechercher un hôpital…"
           aucunResultat="Aucun hôpital ne correspond"
         />
@@ -245,6 +259,14 @@ export default function IssueTelemedecine({ valeur, onChange }: { valeur: Teleme
 
       {valeur.portee && (
         <>
+          {/* Externe : hôpitaux du district (par défaut) ou hors du district */}
+          {externe && (
+            <HorsDistrict
+              id="tele-hors-district"
+              valeur={valeur.horsDistrict}
+              onChange={(v) => maj({ horsDistrict: v, serviceId: null, hopitalId: null, medecinId: null, medecinNom: null })}
+            />
+          )}
           {/* Interne : service · date · heure · médecin — externe : service · hôpital · date · heure · médecin (sur la même ligne) */}
           <div className={externe ? s.ligneTeleCinq : s.ligneTeleQuatre}>
             {champService}
@@ -275,7 +297,7 @@ export default function IssueTelemedecine({ valeur, onChange }: { valeur: Teleme
                 ? 'Sans médecin choisi, tous les médecins du service dans votre hôpital la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres.'
                 : valeur.hopitalId
                   ? `Tous les médecins de ce service à ${nomHopital ?? 'l’hôpital choisi'} la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres.`
-                  : 'Tous les médecins de ce service dans les hôpitaux de la DMHP la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres.'}
+                  : `Tous les médecins de ce service dans les hôpitaux ${valeur.horsDistrict ? 'hors de votre district' : 'de votre district'} la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres.`}
           </p>
         </>
       )}

@@ -49,6 +49,7 @@ const momentPayload = (m: MomentReference) =>
 import SuiteDonnee from './SuiteDonnee';
 import EnvoiMedecin from './EnvoiMedecin';
 import { FenetreQuitter, quitter, useGardeSortie } from './GardeSortie';
+import IssueReference, { referenceEnvoiDirect, referenceManque, referencePayload, referenceVide, type ReferenceSaisie } from './IssueReference';
 import IssueTelemedecine, { telemedecineManque, telemedecinePayload, telemedecineVide, type TelemedecineSaisie } from './IssueTelemedecine';
 import { ouvrirAppelVideo } from '../../../../components/AppelVideo';
 import FormulaireAccouchement, { ETAPES_ACCOUCHEMENT, naissanceVide, preparerNaissance, type NaissanceSaisie } from './FormulaireAccouchement';
@@ -74,8 +75,9 @@ const ETAPE_RESULTAT = { titre: 'Réponse', detail: 'Avis & consignes au requér
 /** Issues du formulaire curatif Laravel (mode_sortie) */
 const ISSUES: { id: string; titre: string; detail: string; icone: IconType; ton: string }[] = [
   { id: 'sortie', titre: 'Sortie', detail: 'Le patient rentre chez lui', icone: FaDoorOpen, ton: 'vert' },
-  // Réservé à l'infirmier·ère : la consultation continue chez un médecin (saisie reprise), elle n'est pas terminée
-  { id: 'envoi-medecin', titre: 'Envoyer au médecin', detail: 'Le médecin poursuit la consultation', icone: FaUserMd, ton: 'bleu' },
+  // RÉFÉRENCE du patient (infirmier·ère et médecin), en interne ou en externe (fiche de référence pour le patient) ;
+  // infirmier·ère, en interne avec un médecin choisi : la consultation continue chez lui (saisie reprise), elle n'est pas terminée
+  { id: 'envoi-medecin', titre: 'Référence', detail: 'Interne ou externe, fiche pour le patient', icone: FaUserMd, ton: 'bleu' },
   { id: 'hospitalisation', titre: 'Hospitalisation', detail: 'Chambre, dossier et protocole', icone: FaBed, ton: 'rouge' },
   // Télé-expertise = référé (en interne ou en externe, choisi dans le bouton) avec partage de documents
   { id: 'teleexpertise', titre: 'Télé-expertise', detail: 'Avis sur documents, interne ou externe', icone: FaShareSquare, ton: 'bleu' },
@@ -231,10 +233,14 @@ export default function FormulaireConsultation() {
   const [serviceExterne, setServiceExterne] = useState<number | null>(null);
   const [hopitalExterne, setHopitalExterne] = useState<number | null>(null);
   const [medecinExterne, setMedecinExterne] = useState<number | null>(null);
+  // Télé-expertise externe : hôpitaux du district (par défaut) ou hors du district
+  const [expertiseHorsDistrict, setExpertiseHorsDistrict] = useState(false);
   // Issue « hospitalisation » : chambre, dossier et protocole (comme Laravel)
   const [hosp, setHosp] = useState<HospitalisationSaisie>(hospitalisationVide(null));
   // Issue « Téléconsultation » : date, heure, hôpital et médecin distant
   const [tele, setTele] = useState<TelemedecineSaisie>(telemedecineVide());
+  // Issue « Référence » (infirmier·ère) : interne / externe, service, hôpital, médecin
+  const [referenceSaisie, setReferenceSaisie] = useState<ReferenceSaisie>(referenceVide());
 
   // Ordonnance : recherche de médicaments
   const [recherche, setRecherche] = useState('');
@@ -288,7 +294,8 @@ export default function FormulaireConsultation() {
         setReferences(f.references ?? []);
         setPn(f.maternite ?? {});
         setNaissance(naissanceVide());
-        setV({ ...VALEURS_VIDES, ...f.valeurs, modeSortie: f.valeurs.modeSortie ?? 'sortie' });
+        // Issue « reference » (référence du patient) : affichée sur la carte « Référence »
+        setV({ ...VALEURS_VIDES, ...f.valeurs, modeSortie: f.valeurs.modeSortie === 'reference' ? 'envoi-medecin' : (f.valeurs.modeSortie ?? 'sortie') });
         // Déjà renseigné → Oui ; fiche terminée sans le document → Non ; sinon à choisir
         const deja = (present: boolean) => (present ? true : f.lecture ? false : null);
         setPrescrire({ ordonnance: deja(f.valeurs.medicaments.length > 0), examens: deja(f.valeurs.examens.length > 0), arret: deja(!!f.valeurs.arret) });
@@ -446,10 +453,19 @@ export default function FormulaireConsultation() {
       alerte.attention('Veuillez renseigner le motif de consultation.');
       return;
     }
-    // Envoyer au médecin : la consultation n'est pas terminée, pas de contrôle des autres étapes
+    // Référence : interne / externe et service obligatoires
     if (v.modeSortie === 'envoi-medecin') {
-      setChoixMedecin(true);
-      return;
+      const manque = referenceManque(referenceSaisie);
+      if (manque) {
+        setEtape(E_ISSUE);
+        alerte.attention(manque);
+        return;
+      }
+      // Infirmier·ère, interne + médecin choisi : la consultation n'est pas terminée (envoyée au médecin), pas de contrôle des autres étapes
+      if (infirmier && referenceEnvoiDirect(referenceSaisie)) {
+        setConfirmation(true);
+        return;
+      }
     }
     if (!v.modeSortie) {
       alerte.attention("Veuillez choisir l'issue de la consultation.");
@@ -550,6 +566,23 @@ export default function FormulaireConsultation() {
 
   const terminer = async () => {
     if (!fiche) return;
+    // Référence en interne avec un médecin choisi : consultation envoyée à ce médecin (non terminée, saisie reprise)
+    if (infirmier && v.modeSortie === 'envoi-medecin' && referenceEnvoiDirect(referenceSaisie)) {
+      setEnvoi(true);
+      try {
+        const { modeSortie: _issue, justification: _j, ...saisie } = v;
+        const r = await api.envoyerMedecin(fiche.consultation.id, referenceSaisie.medecinId!, { ...saisie, imc: imcCalcule });
+        garde.liberer();
+        alerte.succes(r.message);
+        navigate('/infirmier');
+      } catch (e) {
+        alerte.echec(`Envoi impossible : ${messageErreur(e)}`);
+      } finally {
+        setEnvoi(false);
+        setConfirmation(false);
+      }
+      return;
+    }
     const { medicaments, examens, arret, ...textes } = v;
     const payload: Record<string, unknown> = {};
     for (const [k, val] of Object.entries({ ...textes, imc: imcCalcule })) if (val !== null && val !== '') payload[k] = val;
@@ -573,9 +606,12 @@ export default function FormulaireConsultation() {
       payload.referenceServiceId = serviceExterne;
       if (hopitalExterne) payload.referenceHopitalId = hopitalExterne;
       if (hopitalExterne && medecinExterne) payload.medecinReferenceId = medecinExterne;
+      payload.externeHorsDistrict = expertiseHorsDistrict;
       Object.assign(payload, momentPayload(momentReference));
     }
     if (v.modeSortie === 'teleconsultation') Object.assign(payload, telemedecinePayload(tele));
+    // Référence du patient (infirmier·ère) : issue « reference », interne / externe (remplace « envoi-medecin »)
+    if (v.modeSortie === 'envoi-medecin') Object.assign(payload, referencePayload(referenceSaisie));
     if (maternite) payload.maternite = pn;
     if (accouchement && !fiche.naissance && naissance.declarer && !pn.mort_ne) {
       payload.naissance = {
@@ -614,6 +650,11 @@ export default function FormulaireConsultation() {
       const res = await api.enregistrer(fiche.consultation.id, payload as never);
       garde.liberer();
       alerte.succes(res.message);
+      // Référence du patient : la fiche de référence s'ouvre, prête à imprimer pour le patient
+      if (res.referencePatient) {
+        navigate(`${infirmier ? '/infirmier' : '/medecin'}/consultations/reference/${res.referencePatient.id}?imprimer=1`);
+        return;
+      }
       // Appel d'urgence : l'appel vidéo s'ouvre, puis la fiche de l'urgence (rejoindre / relancer l'appel)
       if (res.appel && res.consultationSuivante) {
         ouvrirAppelVideo(res.appel);
@@ -1199,8 +1240,8 @@ export default function FormulaireConsultation() {
                       {/* « Hospitalisation » retirée des issues (médecin comme infirmier·ère) ; appel d'urgence réservé à l'infirmier·ère */}
                       {/* Fiche en lecture : l'issue choisie reste toujours visible (ex. anciennes consultations avec hospitalisation) */}
                       {/* Médecin : tout sauf « Envoyer au médecin » (réservé à l'infirmier·ère) ; l'appel d'urgence vise les médecins de son service */}
-                      {ISSUES.filter((i) => (lecture && v.modeSortie === i.id) || (i.id !== 'hospitalisation' && (infirmier || i.id !== 'envoi-medecin')))
-                        .map((i) => (!infirmier && i.id === 'urgence' ? { ...i, detail: 'Les médecins de votre service (DMHP) sont appelés' } : i))
+                      {ISSUES.filter((i) => (lecture && v.modeSortie === i.id) || i.id !== 'hospitalisation')
+                        .map((i) => (!infirmier && i.id === 'urgence' ? { ...i, detail: 'Les médecins de votre service, dans le réseau des hôpitaux utilisant GEMMA, sont appelés' } : i))
                         .map((i) => {
                         const actif = i.id === 'teleexpertise' ? expertise : v.modeSortie === i.id;
                         return (
@@ -1235,15 +1276,16 @@ export default function FormulaireConsultation() {
 
                     {v.modeSortie === 'teleconsultation' && !lecture && <IssueTelemedecine valeur={tele} onChange={setTele} />}
 
+                    {/* Référence du patient (interne / externe), infirmier·ère comme médecin */}
+                    {v.modeSortie === 'envoi-medecin' && !lecture && <IssueReference valeur={referenceSaisie} onChange={setReferenceSaisie} envoiDirect={infirmier} />}
+
                     {v.modeSortie === 'urgence' && !lecture && (
                       <p className={s.alerteUrgence}>
                         <FaPhoneVolume aria-hidden="true" />
                         <span>
                           {infirmier
-                            ? 'L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes de tous les hôpitaux de la DMHP : le premier qui décroche prend le patient.'
-                            : 'L’appel vidéo sonne chez tous les médecins de votre service dans les hôpitaux de la DMHP : le premier qui décroche prend le patient.'}
-                          {constantesUrgenceManquantes().length > 0 && ` Constantes à renseigner d’abord : ${constantesUrgenceManquantes().join(', ')}.`}
-                        </span>
+                            ? 'L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.'
+                            : 'L’appel vidéo sonne chez tous les médecins de votre service dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.'}                        </span>
                       </p>
                     )}
 
@@ -1282,7 +1324,7 @@ export default function FormulaireConsultation() {
                           {v.modeSortie === 'refere-interne'
                             ? 'En interne : un médecin de l’hôpital donne son avis à partir des documents partagés.'
                             : v.modeSortie === 'refere-externe'
-                              ? 'En externe : un médecin d’un autre établissement de la DMHP donne son avis à partir des documents partagés.'
+                              ? 'En externe : un médecin d’un autre établissement, dans le réseau des hôpitaux utilisant GEMMA, donne son avis à partir des documents partagés.'
                               : 'Précisez si l’avis est demandé en interne (médecin de l’hôpital) ou en externe (autre établissement).'}
                         </p>
                         {v.modeSortie !== 'teleexpertise' && (
@@ -1305,6 +1347,8 @@ export default function FormulaireConsultation() {
                                 onHopital={setHopitalExterne}
                                 medecin={medecinExterne}
                                 onMedecin={setMedecinExterne}
+                                horsDistrict={expertiseHorsDistrict}
+                                onHorsDistrict={setExpertiseHorsDistrict}
                                 moment={momentReference}
                                 onMoment={setMomentReference}
                                 documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}
@@ -1387,7 +1431,13 @@ export default function FormulaireConsultation() {
             ) : (
               <button type="button" className={c.principal} onClick={demanderFin} disabled={envoi}>
                 {v.modeSortie === 'envoi-medecin' ? <FaPaperPlane aria-hidden="true" /> : <FaSave aria-hidden="true" />}{' '}
-                {envoi ? 'Enregistrement…' : v.modeSortie === 'envoi-medecin' ? 'Envoyer au médecin' : 'Terminer la consultation'}
+                {envoi
+                  ? 'Enregistrement…'
+                  : v.modeSortie === 'envoi-medecin'
+                    ? infirmier && referenceEnvoiDirect(referenceSaisie)
+                      ? 'Envoyer au médecin'
+                      : 'Référer le patient'
+                    : 'Terminer la consultation'}
               </button>
             )}
           </footer>
@@ -1469,6 +1519,21 @@ export default function FormulaireConsultation() {
                 <FaUserMd aria-hidden="true" /> Télé-expertise demandée par {fiche.repriseExpertise.par ?? 'le demandeur'}
               </span>
               <p>Ce qu’il a renseigné lors de sa consultation (anamnèse, constantes, examen, diagnostic, prescriptions…) est repris dans le formulaire : vous pouvez tout modifier.</p>
+            </div>
+          )}
+
+          {/* Patient référé par l'infirmier·ère : sa saisie est reprise, et sa fiche de référence est consultable */}
+          {fiche.repriseReference && (
+            <div className={s.noteInfirmier}>
+              <span>
+                <FaShareSquare aria-hidden="true" /> Patient référé{fiche.repriseReference.par ? ` par ${fiche.repriseReference.par}` : ''}
+              </span>
+              {!lecture && fiche.repriseReference.saisieReprise && (
+                <p>Ce que l’infirmier·ère a renseigné (anamnèse, constantes, examen, diagnostic, prescriptions…) est repris dans le formulaire : vous pouvez tout modifier.</p>
+              )}
+              <Link to={`/medecin/consultations/reference/${fiche.repriseReference.referenceId}`} className={s.lienResultat}>
+                <FaFileDownload aria-hidden="true" /> Voir la fiche de référence
+              </Link>
             </div>
           )}
 

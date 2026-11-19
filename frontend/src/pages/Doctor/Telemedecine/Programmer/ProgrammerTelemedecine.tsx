@@ -68,6 +68,7 @@ function Programmer({ espace }: { espace: Espace }) {
   const [serviceExterne, setServiceExterne] = useState<number | null>(null);
   const [hopitalExterne, setHopitalExterne] = useState<number | null>(null);
   const [medecinExterne, setMedecinExterne] = useState<number | null>(null);
+  const [expertiseHorsDistrict, setExpertiseHorsDistrict] = useState(false);
   const [pieces, setPieces] = useState<PieceEnAttente[]>([]);
   const [motif, setMotif] = useState('');
   const [envoi, setEnvoi] = useState(false);
@@ -112,6 +113,7 @@ function Programmer({ espace }: { espace: Espace }) {
               referenceServiceId: serviceExterne,
               ...(hopitalExterne ? { referenceHopitalId: hopitalExterne } : {}),
               ...(hopitalExterne && medecinExterne ? { medecinReferenceId: medecinExterne } : {}),
+              externeHorsDistrict: expertiseHorsDistrict,
             },
         moment.urgente ? { referenceUrgente: true } : { referenceUrgente: false, referenceDate: moment.date, referenceHeure: moment.heure },
       );
@@ -291,6 +293,8 @@ function Programmer({ espace }: { espace: Espace }) {
                         onHopital={setHopitalExterne}
                         medecin={medecinExterne}
                         onMedecin={setMedecinExterne}
+                        horsDistrict={expertiseHorsDistrict}
+                        onHorsDistrict={setExpertiseHorsDistrict}
                         moment={moment}
                         onMoment={setMoment}
                         documents={<PiecesAJoindre compact facultatif pieces={pieces} onChange={setPieces} />}

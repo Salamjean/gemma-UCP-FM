@@ -206,24 +206,36 @@
 /* --- Tableau --- */
 .tableWrap {
   /* Défilement horizontal des tableaux (téléphone, tablette) : le tableau garde sa largeur et glisse dans son cadre,
-     le défilement vertical de la page reste libre (aucune restriction des gestes tactiles) */
+     le défilement vertical de la page reste libre */
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Gestes tactiles : glisser horizontalement fait défiler le tableau, verticalement la page */
+  touch-action: pan-x pan-y;
+  /* Le glissement horizontal reste dans le tableau (ne fait pas bouger la page) */
+  overscroll-behavior-x: contain;
 }
 
-/* Tablette : le tableau garde une largeur confortable et défile horizontalement au lieu de se tasser */
-@media (max-width: 1280px) {
+/*
+ * Tablette / téléphone, et tout écran tactile : le tableau prend la largeur de son CONTENU (au moins celle du cadre)
+ * au lieu d'être tassé à 100 % — il déborde donc vraiment et défile horizontalement dans son cadre.
+ */
+@media (max-width: 1280px), (pointer: coarse) {
   .tableWrap > .table {
-    min-width: 980px;
+    width: max-content;
+    min-width: 100%;
   }
-}
-
-/* Téléphone */
-@media (max-width: 900px) {
-  .tableWrap > .table {
-    min-width: 760px;
+  .tableWrap > .table th,
+  .tableWrap > .table td {
+    white-space: nowrap;
+  }
+  /* Textes longs (motif, observation…) : passent à la ligne dans une largeur raisonnable */
+  .tableWrap > .table td > :where(p, small),
+  .tableWrap > .table td:where([class*='motif']) {
+    white-space: normal;
+    min-width: 180px;
+    max-width: 280px;
   }
 }
 

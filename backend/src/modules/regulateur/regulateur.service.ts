@@ -97,7 +97,7 @@ export class RegulateurService {
               c.doctor_id, c.infirmier_id, c.motif_consultation,
               DATE_FORMAT(c.desired_date, '%Y-%m-%d') AS desired_date, TIME_FORMAT(c.desired_time, '%H:%i') AS desired_time,
               fx.id AS expertise_id, fx.type AS expertise_type, fx.urgence AS expertise_urgente,
-              tdx.consultation_id AS tele_diffusee, tsx.libelle AS tele_service,
+              COALESCE(tdx.consultation_id, IF(rpx.diffusee = 1, rpx.id, NULL)) AS tele_diffusee, COALESCE(tsx.libelle, rsx.libelle) AS tele_service,
               ${TELE_RETARD} AS tele_retard, ${TELE_RETARD_MIN} AS tele_retard_min,
               ds.libelle AS service_medecin,
               pu.name AS patient_nom, pu.prenom AS patient_prenom, p.code_patient,
@@ -123,6 +123,9 @@ export class RegulateurService {
          -- Téléconsultation envoyée à un service (aucun médecin choisi) : attend qu'un médecin du service la prenne
          LEFT JOIN fm_teleconsultations_diffusees tdx ON tdx.consultation_id = c.id
          LEFT JOIN services tsx ON tsx.id = tdx.service_id
+         -- Patient référé par l'infirmier·ère à un service (aucun médecin choisi) : attend qu'un médecin du service le prenne
+         LEFT JOIN fm_references_patient rpx ON rpx.consultation_destination_id = c.id
+         LEFT JOIN services rsx ON rsx.id = rpx.service_id
         WHERE c.hospital_id = ? AND c.status = 0 AND c.deleted_at IS NULL AND fx.resultat_le IS NULL
           -- Consultations du jour, et télémédecines en retard (quel que soit leur jour)
           AND (c.date_consultation = CURDATE() OR (${TELE_RETARD}) = 1)
@@ -200,14 +203,21 @@ export class RegulateurService {
     };
   }
 
-  /** Réattribution EN EXTERNE : autres hôpitaux de la DMHP qui ont ce service (celui du patient) */
-  async hopitauxService(userId: number, serviceId: number) {
+  /**
+   * Réattribution EN EXTERNE : autres hôpitaux de la DMHP qui ont ce service (celui du patient),
+   * du MÊME district sanitaire que l'hôpital du régulateur, ou des AUTRES districts (horsDistrict).
+   */
+  async hopitauxService(userId: number, serviceId: number, horsDistrict = false) {
     const { hospitalId } = await this.regulateur(userId);
+    const [mien] = await this.db.query("SELECT LOWER(TRIM(COALESCE(district_sanitaire, ''))) AS d FROM hospitals WHERE id = ? LIMIT 1", [hospitalId]);
+    const district = String(mien?.d ?? '');
     const rows: Ligne[] = await this.db.query(
       `SELECT DISTINCT h.id, COALESCE(NULLIF(h.label, ''), h.reference) AS nom
          FROM service_hospitals sh JOIN hospitals h ON h.id = sh.hospital_id AND h.is_ucp_fm = 1 AND h.deleted_at IS NULL
-        WHERE sh.service_id = ? AND sh.status = 0 AND h.id <> ? ORDER BY nom`,
-      [serviceId, hospitalId],
+        WHERE sh.service_id = ? AND sh.status = 0 AND h.id <> ?
+          AND LOWER(TRIM(COALESCE(h.district_sanitaire, ''))) ${horsDistrict ? '<>' : '='} ?
+        ORDER BY nom`,
+      [serviceId, hospitalId, district],
     );
     return rows.map((r) => ({ id: Number(r.id), nom: String(r.nom ?? `Hôpital ${r.id}`) }));
   }

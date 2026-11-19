@@ -6,7 +6,7 @@ import { lancerAppelVideo } from '../../../components/AppelVideo';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
-import type { DoctorTelemedecineItem, DoctorTelemedecines, ExpertiseDisponible, TeleconsultationDisponible } from '../../../types';
+import type { DoctorTelemedecineItem, DoctorTelemedecines, ExpertiseDisponible, ReferenceDisponible, TeleconsultationDisponible } from '../../../types';
 import Chrono, { delaiExpertise } from './Chrono';
 import FiltreType, { correspondType, FiltreStatut, type TypeTelemedecine } from './FiltreType';
 import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
@@ -72,6 +72,7 @@ export default function Telemedecine() {
 
   // Téléconsultations envoyées à mon service (aucun médecin choisi), pas encore prises
   const [teleDisponibles, setTeleDisponibles] = useState<TeleconsultationDisponible[] | null>(null);
+  const [refDisponibles, setRefDisponibles] = useState<ReferenceDisponible[] | null>(null);
 
   useEffect(() => {
     api.doctor.referes
@@ -82,7 +83,27 @@ export default function Telemedecine() {
       .teleconsultationsDisponibles()
       .then(setTeleDisponibles)
       .catch(() => setTeleDisponibles([]));
+    api.doctor
+      .referencesDisponibles()
+      .then(setRefDisponibles)
+      .catch(() => setRefDisponibles([]));
   }, [tick]);
+
+  // Patients référés à mon service par un·e infirmier·ère (sans médecin choisi)
+  const prendreReference = async (x: ReferenceDisponible) => {
+    if (!window.confirm(`Prendre en charge ${x.patient.nom}, référé(e) à votre service ? Il / elle vous sera attribué(e).`)) return;
+    setPrise(-1_000_000 - x.referenceId);
+    try {
+      const r = await api.doctor.prendreReference(x.referenceId);
+      alerte.succes(r.message);
+      navigate(`/medecin/consultations/${r.consultationId}`);
+    } catch (e) {
+      alerte.echec(messageErreur(e));
+      setTick((t) => t + 1);
+    } finally {
+      setPrise(null);
+    }
+  };
 
   const prendreTeleconsultation = async (x: TeleconsultationDisponible) => {
     if (!window.confirm(`Prendre en charge la téléconsultation de ${x.patient.nom} ? Elle vous sera attribuée.`)) return;
@@ -98,7 +119,7 @@ export default function Telemedecine() {
       setPrise(null);
     }
   };
-  const nbAPrendre = (disponibles?.length ?? 0) + (teleDisponibles?.length ?? 0);
+  const nbAPrendre = (disponibles?.length ?? 0) + (teleDisponibles?.length ?? 0) + (refDisponibles?.length ?? 0);
 
   const prendreEnCharge = async (x: ExpertiseDisponible) => {
     if (!window.confirm(`Prendre en charge la télé-expertise de ${x.patient.nom} ? Elle vous sera attribuée.`)) return;
@@ -181,6 +202,44 @@ export default function Telemedecine() {
                 </tr>
               </thead>
               <tbody>
+                {/* Patients référés au service par un·e infirmier·ère : le premier médecin qui le prend l'obtient */}
+                {(refDisponibles ?? []).map((x) => (
+                  <tr key={`ref-${x.referenceId}`}>
+                    <td>
+                      <span className={tab.patient}>
+                        <AvatarPatient patient={x.patient} />
+                        <span>
+                          <strong>{x.patient.nom}</strong>
+                          <small>{x.patient.code}</small>
+                        </span>
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`${c.badge} ${c.badgeNeutre}`}>Référence {x.externe ? 'externe' : 'interne'}</span>
+                      <Chrono compact recueLe={x.recueLe} date={null} heure={null} />
+                    </td>
+                    <td className={tab.motif}>{x.motif ?? '—'}</td>
+                    <td>
+                      <span className={tab.empile}>
+                        <strong>{x.referePar ?? '—'}</strong>
+                        {x.hopital && <small>{x.hopital}</small>}
+                      </span>
+                    </td>
+                    <td>—</td>
+                    <td>
+                      <span className={s.actionsLigne}>
+                        <button
+                          type="button"
+                          className={`${c.principal} ${tab.action}`}
+                          onClick={() => prendreReference(x)}
+                          disabled={prise === -1_000_000 - x.referenceId}
+                        >
+                          <FaHandHoldingMedical aria-hidden="true" /> {prise === -1_000_000 - x.referenceId ? 'Attribution…' : 'Prendre en charge'}
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
                 {/* Téléconsultations envoyées au service : le premier médecin qui la prend l'obtient */}
                 {(teleDisponibles ?? []).map((x) => (
                   <tr key={`tele-${x.consultationId}`}>

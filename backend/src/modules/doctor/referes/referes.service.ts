@@ -20,7 +20,7 @@ const requerant = (r: Ligne) => {
 /** Colonnes communes : référence (fm_references), consultation d'origine, patient, médecin et hôpital d'origine */
 const SELECT_REFERENCE = `
   SELECT fr.id AS reference_id, fr.type, fr.service_id AS service_reference_id, rs.libelle AS service_reference,
-         fr.diffusee, fr.hospital_destination_id, th.label AS hopital_cible,
+         fr.diffusee, fr.hospital_destination_id, fr.district_origine, fr.hors_district, th.label AS hopital_cible,
          DATE_FORMAT(fr.date_prevue, '%Y-%m-%d') AS date_prevue, TIME_FORMAT(fr.heure_prevue, '%H:%i') AS heure_prevue, fr.consultation_origine_id, fr.consultation_destination_id,
          fr.doctor_origine_id, fr.doctor_destination_id, fr.motif AS justification, fr.created_at,
          fr.urgence, fr.programmation_directe, DATE_FORMAT(fr.echeance, '%Y-%m-%dT%H:%i:%sZ') AS echeance,
@@ -61,7 +61,9 @@ const SELECT_REFERENCE = `
  * (anciennes externes sans service : tous) et de l'hôpital visé (NULL : tous les hôpitaux de la DMHP).
  * Paramètres : services.id du médecin, son hôpital.
  */
-const POUR_MON_SERVICE = `(fr.diffusee = 1 AND (fr.service_id IS NULL OR fr.service_id = ?) AND (fr.hospital_destination_id IS NULL OR fr.hospital_destination_id = ?))`;
+const POUR_MON_SERVICE = `(fr.diffusee = 1 AND (fr.service_id IS NULL OR fr.service_id = ?) AND (fr.hospital_destination_id IS NULL OR fr.hospital_destination_id = ?)
+  AND (fr.hospital_destination_id IS NOT NULL OR fr.district_origine IS NULL OR (fr.hors_district = 0 AND fr.district_origine = ?) OR (fr.hors_district = 1 AND fr.district_origine <> ?)))`;
+/* Paramètres de POUR_MON_SERVICE : services.id du médecin, son hôpital, puis son district (deux fois) */
 
 /**
  * MÉDECIN > RÉFÉRÉS (table Gemma FM « fm_references »)
@@ -108,7 +110,7 @@ export class DoctorReferesService {
         `${SELECT_REFERENCE} WHERE fr.type = 'externe' AND o.deleted_at IS NULL
             AND (${POUR_MON_SERVICE} OR fr.doctor_origine_id = ? OR fr.doctor_destination_id = ?)
           ORDER BY fr.created_at DESC LIMIT 300`,
-        [service ?? 0, d.hospital_id, d.id, d.id],
+        [service ?? 0, d.hospital_id, ...Array(2).fill(await this.consultations.districtDe(d.hospital_id)), d.id, d.id],
       ),
     ]);
     const docs = await compterDocuments(this.db, [...internes, ...externes].map((r) => Number(r.consultation_origine_id)));
@@ -158,7 +160,7 @@ export class DoctorReferesService {
           AND COALESCE(fr.doctor_origine_id, 0) <> ?
         ORDER BY fr.urgence DESC, (fr.date_prevue IS NULL) ASC, fr.date_prevue ASC, fr.heure_prevue ASC, fr.created_at ASC
         LIMIT 100`,
-      [service ?? 0, d.hospital_id, d.id],
+      [service ?? 0, d.hospital_id, ...Array(2).fill(await this.consultations.districtDe(d.hospital_id)), d.id],
     );
     const docs = await compterDocuments(this.db, rows.map((r) => Number(r.consultation_origine_id)));
     return rows.map((r) => ({
@@ -194,6 +196,13 @@ export class DoctorReferesService {
       if (Number(r.diffusee) !== 1) throw new ForbiddenException('Cette référence ne vous est pas adressée.');
       if (r.service_reference_id && Number(r.service_reference_id) !== (await this.monService(d.id))) {
         throw new ForbiddenException(`Cette télé-expertise est adressée au service ${texte(r.service_reference) ?? 'choisi'}.`);
+      }
+      if (!r.hospital_destination_id && r.district_origine !== null && r.district_origine !== undefined) {
+        const monDistrict = await this.consultations.districtDe(d.hospital_id);
+        const dansDistrict = monDistrict === String(r.district_origine);
+        if (Number(r.hors_district) === 1 ? dansDistrict : !dansDistrict) {
+          throw new ForbiddenException(Number(r.hors_district) === 1 ? 'Cette télé-expertise est adressée aux hôpitaux hors du district du demandeur.' : 'Cette télé-expertise est adressée aux hôpitaux du district du demandeur.');
+        }
       }
       if (r.hospital_destination_id && Number(r.hospital_destination_id) !== Number(d.hospital_id)) {
         throw new ForbiddenException(`Cette télé-expertise est adressée à ${texte(r.hopital_cible) ?? 'un autre hôpital'}.`);

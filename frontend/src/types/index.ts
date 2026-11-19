@@ -1547,6 +1547,36 @@ export interface DoctorTelemedecineItem {
 }
 
 /** Télé-expertise externe adressée à mon service, à prendre en charge */
+/** Patient référé à mon service par un·e infirmier·ère (aucun médecin choisi), à prendre en charge */
+export interface ReferenceDisponible {
+  referenceId: number;
+  consultationId: number;
+  externe: boolean;
+  recueLe: string;
+  motif: string | null;
+  referePar: string | null;
+  /** Hôpital d'origine */
+  hopital: string | null;
+  service: string | null;
+  patient: DoctorConsultationItem['patient'];
+}
+
+/** Fiche de référence remise au patient */
+export interface FicheReference {
+  id: number;
+  code: string;
+  date: string | null;
+  externe: boolean;
+  motif: string | null;
+  diagnostic: string | null;
+  examenPhysique: string | null;
+  consultation: string | null;
+  origine: { hopital: string | null; contact: string | null; logo: string | null; infirmier: string | null; medecin: string | null };
+  destination: { service: string | null; hopital: string | null; contact: string | null; medecin: string | null; prisePar: string | null; hopitalPrise: string | null };
+  patient: { nom: string; code: string | null; genre: string | null; dateNaissance: string | null; telephone: string | null };
+  constantes: Record<'tension' | 'temperature' | 'pouls' | 'poids' | 'taille' | 'imc' | 'saturation', string | null>;
+}
+
 /** Téléconsultation envoyée à mon service (aucun médecin choisi), à prendre en charge */
 export interface TeleconsultationDisponible {
   consultationId: number;
@@ -1678,7 +1708,9 @@ export interface DocumentReference {
 
 /** Suite donnée à une consultation terminée (télé-expertise, téléconsultation, appel d'urgence) */
 export interface SuiteConsultation {
-  type: 'teleexpertise' | 'teleconsultation' | 'urgence';
+  type: 'teleexpertise' | 'teleconsultation' | 'urgence' | 'reference';
+  /** Référence du patient : fiche de référence imprimable */
+  referenceId?: number;
   externe: boolean;
   /** Télé-expertise urgente (< 30 min) */
   urgente: boolean;
@@ -1698,6 +1730,8 @@ export interface DoctorConsultationFormulaire {
   envoiMedecin: { par: string | null } | null;
   /** Télé-expertise reçue : saisie de la consultation du demandeur (médecin ou infirmier·ère) reprise, modifiable */
   repriseExpertise: { par: string | null } | null;
+  /** Patient référé par l'infirmier·ère (issue « Référence ») : sa saisie reprise, et sa fiche de référence */
+  repriseReference: { par: string | null; referenceId: number; saisieReprise: boolean } | null;
   /** Télé-expertise reçue (médecin expert) : consultation d'origine, résultat déjà envoyé ou non */
   /** urgente : consultation (synchrone) ; programmée : pas de consultation, l'expert joint directement son résultat */
   expertiseRecue: { origineId: number; resultatEnvoye: boolean; urgente: boolean; avecConsultation: boolean } | null;

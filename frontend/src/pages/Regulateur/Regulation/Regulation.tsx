@@ -9,6 +9,7 @@ import type { ConsultationARegler, MedecinPropose, TableauRegulation } from '../
 import s from './Regulation.module.css';
 import { PaginationTableau, usePagination } from '../../../components/Pagination';
 import SelectRecherche from '../../../components/SelectRecherche/SelectRecherche';
+import HorsDistrict from '../../../components/HorsDistrict/HorsDistrict';
 
 const heure = (iso: string) => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 /** Rafraîchissement automatique de la liste */
@@ -242,6 +243,8 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
   const [serviceId, setServiceId] = useState<number | null>(null);
   const [hopital, setHopital] = useState<number | null>(null);
   const [hopitaux, setHopitaux] = useState<{ id: number; nom: string }[] | null>(null);
+  // Externe : hôpitaux du district (par défaut) ou hors du district
+  const [horsDistrict, setHorsDistrict] = useState(false);
 
   // Ouverture : choix par défaut et ses médecins
   useEffect(() => {
@@ -269,13 +272,13 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
     if (portee !== 'externe' || !serviceId) return;
     let actif = true;
     api.regulateur
-      .hopitauxService(serviceId)
+      .hopitauxService(serviceId, horsDistrict)
       .then((l) => actif && setHopitaux(l))
       .catch(() => actif && setHopitaux([]));
     return () => {
       actif = false;
     };
-  }, [portee, serviceId]);
+  }, [portee, serviceId, horsDistrict]);
 
   // Médecins du service du patient : dans l'hôpital (interne) ou l'hôpital choisi (externe)
   const [premierChargement, setPremierChargement] = useState(true);
@@ -373,6 +376,17 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
           </div>
         </div>
 
+        {/* Externe : hôpitaux du district (par défaut) ou hors du district */}
+        {portee === 'externe' && (
+          <HorsDistrict
+            id="reattribution-hors-district"
+            valeur={horsDistrict}
+            onChange={(v) => {
+              setHorsDistrict(v);
+              setHopital(null);
+            }}
+          />
+        )}
         {/* Service du patient (fixe) · hôpital (externe) · médecin — sur la même ligne */}
         <div className={portee === 'externe' ? s.choixTrois : s.choixDeux}>
           {/* Service du patient : non modifiable */}
@@ -394,7 +408,15 @@ function FenetreReattribution({ consultation, onFermer, onFait }: { consultation
                   options={(hopitaux ?? []).map((h) => ({ id: h.id, name: h.nom }))}
                   value={hopital}
                   onChange={setHopital}
-                  placeholder={hopitaux ? (hopitaux.length ? '-- Choisir l’hôpital --' : 'Aucun autre hôpital avec ce service') : 'Chargement…'}
+                  placeholder={
+                    hopitaux
+                      ? hopitaux.length
+                        ? '-- Choisir l’hôpital --'
+                        : horsDistrict
+                          ? 'Aucun hôpital hors du district avec ce service'
+                          : 'Aucun autre hôpital du district avec ce service'
+                      : 'Chargement…'
+                  }
                   placeholderRecherche="Rechercher un hôpital…"
                   aucunResultat="Aucun hôpital ne correspond"
                 />

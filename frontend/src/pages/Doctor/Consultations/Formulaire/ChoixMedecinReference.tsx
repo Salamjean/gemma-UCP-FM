@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { FaBolt, FaHospital, FaHospitalUser, FaRegClock, FaUserMd } from 'react-icons/fa';
+import HorsDistrict from '../../../../components/HorsDistrict/HorsDistrict';
 import SelectRecherche from '../../../../components/SelectRecherche/SelectRecherche';
 import type { MedecinReference } from '../../../../types';
 import { useEspaceConsultation } from './espace';
@@ -243,7 +244,12 @@ export function ChoixServiceExterne({
   moment,
   onMoment,
   documents,
+  horsDistrict,
+  onHorsDistrict,
 }: {
+  /** Envoi hors du district (sinon : hôpitaux du district du demandeur) */
+  horsDistrict: boolean;
+  onHorsDistrict: (v: boolean) => void;
   /** Service (services.id) */
   valeur: number | null;
   onChange: (id: number | null) => void;
@@ -263,26 +269,32 @@ export function ChoixServiceExterne({
   const effectif = momentEffectif(moment);
   const cleMoment = moment.urgente ? 'maintenant' : `${moment.date}-${moment.heure}`;
 
+  // Services des hôpitaux du district (ou hors du district)
   useEffect(() => {
+    setServices(null);
+    let actif = true;
     api
-      .servicesExternes()
-      .then(setServices)
-      .catch(() => setServices([]));
-  }, []);
+      .servicesExternes(horsDistrict)
+      .then((l) => actif && setServices(l))
+      .catch(() => actif && setServices([]));
+    return () => {
+      actif = false;
+    };
+  }, [horsDistrict]);
 
-  // Hôpitaux de la DMHP qui ont le service choisi
+  // Hôpitaux du district (ou hors du district) qui ont le service choisi
   useEffect(() => {
     setHopitaux(null);
     if (!valeur) return;
     let actif = true;
     api
-      .hopitauxService(valeur)
+      .hopitauxService(valeur, horsDistrict)
       .then((l) => actif && setHopitaux(l))
       .catch(() => actif && setHopitaux([]));
     return () => {
       actif = false;
     };
-  }, [valeur]);
+  }, [valeur, horsDistrict]);
 
   // Médecins du service dans l'hôpital choisi, disponibles au moment de la prise en charge
   useEffect(() => {
@@ -309,6 +321,16 @@ export function ChoixServiceExterne({
 
   return (
     <div className={s.hospBloc}>
+      <HorsDistrict
+        id="expertise-hors-district"
+        valeur={horsDistrict}
+        onChange={(v) => {
+          onHorsDistrict(v);
+          onChange(null);
+          onHopital(null);
+          onMedecin(null);
+        }}
+      />
       <div className={s.ligneReferenceExterne}>
         <div>
           <h3 className={s.sousTitre}>
@@ -323,7 +345,7 @@ export function ChoixServiceExterne({
               onHopital(null);
               onMedecin(null);
             }}
-            placeholder={services ? (services.length ? '-- Choisir le service --' : 'Aucun service dans les hôpitaux de la DMHP') : 'Chargement…'}
+            placeholder={services ? (services.length ? '-- Choisir le service --' : horsDistrict ? 'Aucun service hors du district' : 'Aucun service dans le district') : 'Chargement…'}
             placeholderRecherche="Rechercher un service…"
             aucunResultat="Aucun service ne correspond"
           />
@@ -346,8 +368,8 @@ export function ChoixServiceExterne({
                 onHopital(id);
                 onMedecin(null);
               }}
-              optionVide="Tous les hôpitaux de la DMHP"
-              placeholder={hopitaux ? 'Tous les hôpitaux de la DMHP' : 'Chargement…'}
+              optionVide={horsDistrict ? 'Tous les hôpitaux hors du district' : 'Tous les hôpitaux du district'}
+              placeholder={hopitaux ? (horsDistrict ? 'Tous les hôpitaux hors du district' : 'Tous les hôpitaux du district') : 'Chargement…'}
               placeholderRecherche="Rechercher un hôpital…"
               aucunResultat="Aucun hôpital ne correspond"
             />
@@ -385,7 +407,7 @@ export function ChoixServiceExterne({
           ? 'La télé-expertise est adressée à ce médecin, disponible au moment choisi. '
           : hopital
             ? `Tous les médecins de ce service à ${nomHopital ?? 'l’hôpital choisi'} la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. `
-            : 'Tous les médecins de ce service dans les hôpitaux de la DMHP la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. '}
+            : `Tous les médecins de ce service dans les hôpitaux ${horsDistrict ? 'hors de votre district' : 'de votre district'} la reçoivent : le premier qui la prend en charge l’obtient, elle disparaît alors chez les autres. `}
         {moment.urgente ? 'Urgente : réponse attendue en moins de 30 minutes.' : 'Réponse attendue en 24 à 48 heures.'}
       </p>
     </div>

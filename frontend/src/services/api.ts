@@ -88,6 +88,8 @@ import type {
   MedecinReference,
   ExpertiseDisponible,
   TeleconsultationDisponible,
+  ReferenceDisponible,
+  FicheReference,
   DoctorReferes,
   AccesAppelVideo,
   DossierSuiviMereEnfant,
@@ -267,10 +269,19 @@ const formulaireConsultation = (racine: string) => ({
   medicaments: (q: string) => request<{ id: number; nom: string; unite: string | null }[]>(`${racine}/medicaments?q=${encodeURIComponent(q)}`),
   formulaire: (id: number) => request<DoctorConsultationFormulaire>(`${racine}/${id}`),
   documents: (id: number) => request<DocumentsConsultation>(`${racine}/${id}/documents`),
+  /** Fiche de référence du patient (issue « Référence » de l'infirmier·ère), à imprimer */
+  ficheReference: (referenceId: number) => request<FicheReference>(`${racine}/references-patient/${referenceId}`),
   /** Télé-expertise en externe : services des autres établissements de la DMHP */
-  servicesExternes: () => request<{ id: number; libelle: string; hopitaux: number }[]>(`${racine}/services-externes`),
-  /** Télé-expertise en externe : hôpitaux de la DMHP qui ont ce service */
-  hopitauxService: (serviceId: number) => request<{ id: number; nom: string }[]>(`${racine}/services-externes/${serviceId}/hopitaux`),
+  /** horsDistrict : false → hôpitaux du district de l'agent ; true → des autres districts ; absent → toute la DMHP */
+  servicesExternes: (horsDistrict?: boolean) =>
+    request<{ id: number; libelle: string; hopitaux: number }[]>(
+      `${racine}/services-externes${qs({ horsDistrict: horsDistrict === undefined ? undefined : horsDistrict ? 1 : 0 })}`,
+    ),
+  /** Envoi en externe : hôpitaux de la DMHP qui ont ce service (dans le district, ou hors du district) */
+  hopitauxService: (serviceId: number, horsDistrict?: boolean) =>
+    request<{ id: number; nom: string }[]>(
+      `${racine}/services-externes/${serviceId}/hopitaux${qs({ horsDistrict: horsDistrict === undefined ? undefined : horsDistrict ? 1 : 0 })}`,
+    ),
   /** Télé-expertise en externe : médecins du service dans l'hôpital, disponibilité à la date et l'heure */
   medecinsService: (serviceId: number, hospitalId: number, date?: string, heure?: string) =>
     request<MedecinReference[]>(`${racine}/services-externes/${serviceId}/hopitaux/${hospitalId}/medecins${qs({ date, heure })}`),
@@ -305,6 +316,8 @@ const formulaireConsultation = (racine: string) => ({
       consultationSuivante: number | null;
       /** Appel d'urgence : accès à l'appel vidéo */
       appel: AccesAppelVideo | null;
+      /** Référence du patient : fiche de référence à imprimer */
+      referencePatient?: { id: number; code: string } | null;
     }>(`${racine}/${id}`, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -382,6 +395,10 @@ export const api = {
     appels: appelsVideo('/doctor/telemedecines'),
     tableauDeBord: () => request<DoctorDashboard>('/doctor/tableau-de-bord'),
     telemedecines: (filtre = 'en-attente') => request<DoctorTelemedecines>(`/doctor/telemedecines?filtre=${filtre}`),
+    /** Patients référés à mon service (sans médecin choisi), à prendre en charge */
+    referencesDisponibles: () => request<ReferenceDisponible[]>('/doctor/consultations/references-patient/disponibles'),
+    prendreReference: (referenceId: number) =>
+      request<{ success: boolean; message: string; consultationId: number }>(`/doctor/consultations/references-patient/${referenceId}/prendre`, { method: 'POST' }),
     /** Téléconsultations envoyées à mon service (sans médecin choisi), à prendre en charge */
     teleconsultationsDisponibles: () => request<TeleconsultationDisponible[]>('/doctor/consultations/teleconsultations-disponibles'),
     prendreTeleconsultation: (consultationId: number) =>
@@ -647,7 +664,8 @@ export const api = {
         medecins: MedecinPropose[];
       }>(`/regulateur/consultations/${consultationId}/medecins${qs(choix)}`),
     /** Autres hôpitaux de la DMHP qui ont ce service */
-    hopitauxService: (serviceId: number) => request<{ id: number; nom: string }[]>(`/regulateur/services-externes/${serviceId}/hopitaux`),
+    hopitauxService: (serviceId: number, horsDistrict = false) =>
+      request<{ id: number; nom: string }[]>(`/regulateur/services-externes/${serviceId}/hopitaux${horsDistrict ? '?horsDistrict=1' : ''}`),
     /** Externe sans médecin (hospitalId seul) : envoi à tous les médecins du service dans cet hôpital */
     reattribuer: (consultationId: number, data: { doctorId?: number; hospitalId?: number; motif?: string }) =>
       request<{ message: string }>(`/regulateur/consultations/${consultationId}/reattribuer`, { method: 'POST', body: JSON.stringify(data) }),

@@ -7,7 +7,8 @@ const OUI_NON_NA = ['Oui', 'Non', 'NA'];
 
 /** Issues de consultation du formulaire curatif Laravel (currative.blade.php, champ mode_sortie) */
 // « Mise en observation », « À revoir » et « Cas présumé de TB » retirés à la demande (restent lisibles sur les anciennes consultations)
-export const MODES_SORTIE = ['sortie', 'hospitalisation', 'refere-interne', 'refere-externe', 'teleconsultation', 'urgence'] as const;
+/** « reference » : infirmier·ère → référence physique du patient (interne / externe) avec fiche de référence imprimée */
+export const MODES_SORTIE = ['sortie', 'hospitalisation', 'refere-interne', 'refere-externe', 'teleconsultation', 'urgence', 'reference'] as const;
 
 export class MedicamentDto {
   /** drugs.id (médicament choisi dans la liste) — sinon « nom » saisi librement */
@@ -238,6 +239,15 @@ export class ConsultationCurativeDto {
   @IsInt({ message: 'Médecin de la référence invalide.' })
   medecinReferenceId?: number;
 
+  /**
+   * Référence du patient (issue « reference », infirmier·ère) : en interne ou en externe.
+   * Mêmes champs que la télé-expertise : referenceServiceHospitalId (interne) / referenceServiceId + referenceHopitalId (externe),
+   * medecinReferenceId facultatif (sans médecin : tous les médecins du service).
+   */
+  @IsOptional()
+  @IsIn(['interne', 'externe'], { message: 'Précisez si la référence est en interne ou en externe.' })
+  referencePortee?: 'interne' | 'externe';
+
   /** Télé-expertise en interne : service de l'hôpital (service_hospitals.id) — obligatoire */
   @Type(() => Number)
   @IsOptional()
@@ -250,7 +260,15 @@ export class ConsultationCurativeDto {
   @IsInt({ message: 'Service de la référence invalide.' })
   referenceServiceId?: number;
 
-  /** Télé-expertise en externe : hôpital de la DMHP (facultatif ; sans hôpital → tous les hôpitaux de la DMHP) */
+  /**
+   * Envoi EN EXTERNE (télé-expertise, téléconsultation, référence) : false / absent → hôpitaux du MÊME district sanitaire
+   * que le demandeur ; true → hôpitaux des AUTRES districts (bouton « Hors du district »).
+   */
+  @IsOptional()
+  @IsBoolean({ message: 'Choix « hors du district » invalide.' })
+  externeHorsDistrict?: boolean;
+
+  /** Télé-expertise en externe : hôpital de la DMHP (facultatif ; sans hôpital → tous les hôpitaux du district, ou hors du district) */
   @Type(() => Number)
   @IsOptional()
   @IsInt({ message: 'Hôpital de la référence invalide.' })

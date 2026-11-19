@@ -50,8 +50,9 @@ export class RegulateurController {
 
   /** Réattribution en externe : autres hôpitaux de la DMHP qui ont le service du patient */
   @Get('services-externes/:serviceId/hopitaux')
-  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number) {
-    return this.service.hopitauxService(req.user.sub, serviceId);
+  hopitauxService(@Req() req: Req_, @Param('serviceId', ParseIntPipe) serviceId: number, @Query('horsDistrict') hd?: string) {
+    // ?horsDistrict=1 : hôpitaux des autres districts ; sinon ceux du district du régulateur
+    return this.service.hopitauxService(req.user.sub, serviceId, hd === '1');
   }
 
   /**
