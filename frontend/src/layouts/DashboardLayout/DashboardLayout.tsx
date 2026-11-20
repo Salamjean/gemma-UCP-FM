@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaHome } from 'react-icons/fa';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { CentreAppels } from '../../components/AppelVideo';
-import DiagnosticDefilement from '../../components/DiagnosticDefilement/DiagnosticDefilement';
 import { debloquerDefilement } from '../../services/defilement';
 import { useNomHopitalOuvert } from '../../services/contexteHopital';
 import { useAuth } from '../../context/AuthContext';
@@ -82,9 +81,6 @@ export default function DashboardLayout({ space }: { space: RoleSpace }) {
           </motion.main>
         </AnimatePresence>
       </div>
-
-      {/* Diagnostic du défilement (activé depuis « Mon profil », pour la tablette / la PWA installée) */}
-      <DiagnosticDefilement />
 
       {/* Télémédecine : appels vidéo entre médecin et infirmier·ère */}
       {(user.role === 'doctor' || user.role === 'infirmier') && <CentreAppels role={user.role} />}
