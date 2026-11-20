@@ -455,3 +455,12 @@
 .lienPatient:hover strong {
   color: #1f6fc6;
 }
+
+/* Écran tactile (tablette, téléphone) : pas de défilement interne — la liste s'affiche en entier et c'est la PAGE
+   qui défile, où que l'on pose le doigt (sinon le geste reste « accroché » à la liste et la page ne défile pas) */
+@media (pointer: coarse) {
+  .principal .file {
+    max-height: none;
+    overflow-y: visible;
+  }
+}

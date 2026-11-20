@@ -196,3 +196,12 @@
     display: none;
   }
 }
+
+/* Écran tactile (tablette, téléphone) : pas de défilement interne — la liste s'affiche en entier et c'est la PAGE
+   qui défile, où que l'on pose le doigt (sinon le geste reste « accroché » à la liste et la page ne défile pas) */
+@media (pointer: coarse) {
+  .trace {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
