@@ -43,9 +43,13 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Bloque le défilement de la page quand le menu mobile est ouvert
+  // Bloque le défilement de la page quand le menu mobile est ouvert — et le RÉTABLIT quand la barre disparaît
+  // (ex. « Connexion » touché dans le menu ☰ : sans ce nettoyage, la page restait bloquée dans tout l'espace connecté)
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open]);
 
   return (

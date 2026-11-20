@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaHome } from 'react-icons/fa';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { CentreAppels } from '../../components/AppelVideo';
+import DiagnosticDefilement from '../../components/DiagnosticDefilement/DiagnosticDefilement';
+import { debloquerDefilement } from '../../services/defilement';
 import { useNomHopitalOuvert } from '../../services/contexteHopital';
 import { useAuth } from '../../context/AuthContext';
 import styles from './DashboardLayout.module.css';
@@ -20,6 +22,12 @@ export default function DashboardLayout({ space }: { space: RoleSpace }) {
   const location = useLocation();
   const outlet = useOutlet();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Défilement de la page : rétabli à l'arrivée et à chaque changement de page s'il est resté bloqué
+  // (menu ☰ du site public, message SweetAlert2) — sinon la page ne défilait plus verticalement (tablette, PWA)
+  useEffect(() => {
+    debloquerDefilement();
+  }, [location.pathname]);
 
   // Mobile : sidebar fermée par défaut, et refermée après chaque navigation
   useEffect(() => {
@@ -74,6 +82,9 @@ export default function DashboardLayout({ space }: { space: RoleSpace }) {
           </motion.main>
         </AnimatePresence>
       </div>
+
+      {/* Diagnostic du défilement (activé depuis « Mon profil », pour la tablette / la PWA installée) */}
+      <DiagnosticDefilement />
 
       {/* Télémédecine : appels vidéo entre médecin et infirmier·ère */}
       {(user.role === 'doctor' || user.role === 'infirmier') && <CentreAppels role={user.role} />}

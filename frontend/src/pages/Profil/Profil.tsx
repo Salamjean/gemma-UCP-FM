@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { FaCamera, FaCheck, FaEnvelope, FaEye, FaEyeSlash, FaHospital, FaIdBadge, FaKey, FaStethoscope, FaTimes, FaUserEdit } from 'react-icons/fa';
+import { activerDiagnosticDefilement, diagnosticDefilementActif } from '../../components/DiagnosticDefilement/DiagnosticDefilement';
 import { DEFAULT_AVATAR, ROLE_LABELS } from '../../config/roles';
 import { useAuth } from '../../context/AuthContext';
 import { alerte, messageErreur } from '../../services/alertes';
@@ -130,6 +131,12 @@ export default function Profil() {
         <div>
           <p className={c.surtitre}>Mon espace</p>
           <h1 className={c.titre}>Mon profil</h1>
+        </div>
+        {/* Tablette / application installée : diagnostic du défilement (panneau en haut de l'écran) */}
+        <div className={c.boutons}>
+          <button type="button" className={c.secondaire} onClick={() => activerDiagnosticDefilement(!diagnosticDefilementActif())}>
+            Diagnostic du défilement
+          </button>
         </div>
       </header>
 
