@@ -1389,8 +1389,10 @@ export interface AffectationSaisie {
 export interface InscriptionPatientSaisie {
   /** Inscription d'urgence (formulaire court) : seulement pour le journal d'audit */
   urgence?: boolean;
-  nom: string;
-  prenom: string;
+  /** Patient suivi pour VIH/SIDA (anonyme) : pas de nom/prénoms, identifié par son DM */
+  vihSida?: boolean;
+  nom?: string;
+  prenom?: string;
   genre: 'masculin' | 'feminin';
   /** "AAAA-MM-JJ" */
   dateNaissance: string;
@@ -2165,13 +2167,16 @@ export interface PatientIdentite {
   urgenceLien: string | null;
   /** Nouveau-né déclaré à la naissance (« NOUVEAU-NÉ DE … ») */
   nouveauNe: boolean;
+  /** Dossier anonyme (VIH/SIDA) : identifié par son DM */
+  anonymeVih?: boolean;
   mere: { nom: string; code: string | null } | null;
 }
 
 /** PUT …/patients/:id */
 export interface MiseAJourPatientSaisie {
-  nom: string;
-  prenom: string;
+  anonymeVih?: boolean;
+  nom?: string;
+  prenom?: string;
   genre: 'masculin' | 'feminin';
   telephone?: string;
   contact2?: string;

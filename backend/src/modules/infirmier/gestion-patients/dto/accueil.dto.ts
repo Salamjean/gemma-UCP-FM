@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, Min, ValidateIf, ValidateNested } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const texte = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() || undefined : value);
@@ -37,17 +37,24 @@ export class AffectationDto {
  * Mêmes champs obligatoires que Laravel (Secretariat\PatientController@addPatient), sans empreintes ni caisse.
  */
 export class InscriptionPatientDto {
+  /** Patient suivi pour VIH/SIDA (anonymisation) : nom et prénoms non demandés, remplacés par le DM généré */
+  @IsOptional()
+  @IsBoolean()
+  vihSida?: boolean;
+
+  @ValidateIf((o: InscriptionPatientDto) => !o.vihSida)
   @Transform(trim)
   @IsString()
   @IsNotEmpty({ message: 'Le nom est obligatoire.' })
   @MaxLength(191)
-  nom: string;
+  nom?: string;
 
+  @ValidateIf((o: InscriptionPatientDto) => !o.vihSida)
   @Transform(trim)
   @IsString()
   @IsNotEmpty({ message: 'Le prénom est obligatoire.' })
   @MaxLength(191)
-  prenom: string;
+  prenom?: string;
 
   @IsIn(['masculin', 'feminin'], { message: 'Choisissez le sexe du patient.' })
   genre: 'masculin' | 'feminin';
@@ -163,17 +170,23 @@ export class InscriptionPatientDto {
  * Le numéro de dossier (DM), la date et le lieu de naissance ne changent pas.
  */
 export class MiseAJourPatientDto {
+  @IsOptional()
+  @IsBoolean()
+  anonymeVih?: boolean;
+
+  @ValidateIf((o: MiseAJourPatientDto) => !o.anonymeVih)
   @Transform(trim)
   @IsString({ message: 'Le nom est obligatoire.' })
   @IsNotEmpty({ message: 'Le nom est obligatoire.' })
   @MaxLength(191)
-  nom: string;
+  nom?: string;
 
+  @ValidateIf((o: MiseAJourPatientDto) => !o.anonymeVih)
   @Transform(trim)
   @IsString({ message: 'Le prénom est obligatoire.' })
   @IsNotEmpty({ message: 'Le prénom est obligatoire.' })
   @MaxLength(191)
-  prenom: string;
+  prenom?: string;
 
   @IsIn(['masculin', 'feminin'], { message: 'Choisissez le sexe du patient.' })
   genre: 'masculin' | 'feminin';

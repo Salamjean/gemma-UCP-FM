@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaCheck, FaClipboardCheck, FaIdCard, FaUser } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaCheck, FaClipboardCheck, FaIdCard, FaShieldAlt, FaUser } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import SelectRecherche from '../../../components/SelectRecherche';
 import { alerte, messageErreur } from '../../../services/alertes';
@@ -47,6 +47,7 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
   const [envoi, setEnvoi] = useState(false);
 
   // Étape 1
+  const [vihSida, setVihSida] = useState(false);
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [genre, setGenre] = useState<'masculin' | 'feminin' | ''>('');
@@ -97,8 +98,8 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
 
   const tel = (v: string) => v.replace(/\D/g, '').slice(0, 10);
   const erreurs: Record<string, { etape: number; message: string; ko: boolean }> = {
-    nom: { etape: 1, message: 'Le nom est obligatoire.', ko: !nom.trim() },
-    prenom: { etape: 1, message: 'Le prénom est obligatoire.', ko: !prenom.trim() },
+    nom: { etape: 1, message: 'Le nom est obligatoire.', ko: !vihSida && !nom.trim() },
+    prenom: { etape: 1, message: 'Le prénom est obligatoire.', ko: !vihSida && !prenom.trim() },
     genre: { etape: 1, message: 'Choisissez le sexe du patient.', ko: !genre },
     dateNaissance: { etape: 1, message: 'La date de naissance est obligatoire.', ko: !dateNaissance },
     situation: { etape: 1, message: 'Choisissez la situation matrimoniale.', ko: !situation },
@@ -135,8 +136,9 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
     setEnvoi(true);
     try {
       const r = await source.patients.inscrire({
-        nom: nom.trim(),
-        prenom: prenom.trim(),
+        vihSida: vihSida || undefined,
+        nom: vihSida ? undefined : nom.trim(),
+        prenom: vihSida ? undefined : prenom.trim(),
         genre: genre as 'masculin' | 'feminin',
         dateNaissance,
         lieuNaissance: lieuNaissance ?? undefined,
@@ -221,18 +223,50 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
             <motion.div key={etape} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
               {etape === 1 && (
                 <div className={s.grille}>
-                  <div className={`${s.champ} ${ko('nom') ? s.invalide : ''}`}>
-                    <label htmlFor="nom">
-                      Nom <span className={s.requis}>*</span>
-                    </label>
-                    <input id="nom" maxLength={191} placeholder="Ex. KOUASSI" value={nom} onChange={(e) => setNom(e.target.value)} autoFocus />
-                  </div>
-                  <div className={`${s.champ} ${ko('prenom') ? s.invalide : ''}`}>
-                    <label htmlFor="prenom">
-                      Prénom(s) <span className={s.requis}>*</span>
-                    </label>
-                    <input id="prenom" maxLength={191} placeholder="Ex. Aya Marie" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
-                  </div>
+                  <label className={`${s.interrupteur} ${s.large} ${vihSida ? s.interrupteurActif : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={vihSida}
+                      onChange={(e) => {
+                        const actif = e.target.checked;
+                        setVihSida(actif);
+                        if (actif) {
+                          setNom('');
+                          setPrenom('');
+                        }
+                      }}
+                    />
+                    <span className={s.interrupteurPiste} aria-hidden="true" />
+                    <span>
+                      <strong>Patient suivi pour le VIH/SIDA (dossier anonyme)</strong>
+                      <small>
+                        Si activé, le nom et les prénoms ne sont pas demandés : le numéro de dossier (DM) généré est utilisé dans tout le processus.
+                      </small>
+                    </span>
+                  </label>
+                  {vihSida ? (
+                    <div className={`${s.bandeauAnonyme} ${s.large}`}>
+                      <FaShieldAlt aria-hidden="true" />
+                      <span>
+                        Confidentialité activée : le numéro de dossier médical (DM) sera généré automatiquement à l&apos;enregistrement et utilisé partout à la place du nom et des prénoms.
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={`${s.champ} ${ko('nom') ? s.invalide : ''}`}>
+                        <label htmlFor="nom">
+                          Nom <span className={s.requis}>*</span>
+                        </label>
+                        <input id="nom" maxLength={191} placeholder="Ex. KOUASSI" value={nom} onChange={(e) => setNom(e.target.value)} autoFocus />
+                      </div>
+                      <div className={`${s.champ} ${ko('prenom') ? s.invalide : ''}`}>
+                        <label htmlFor="prenom">
+                          Prénom(s) <span className={s.requis}>*</span>
+                        </label>
+                        <input id="prenom" maxLength={191} placeholder="Ex. Aya Marie" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+                      </div>
+                    </>
+                  )}
                   <div className={`${s.champ} ${ko('genre') ? s.invalide : ''}`}>
                     <span className={s.etiquette}>
                       Sexe <span className={s.requis}>*</span>
@@ -389,17 +423,19 @@ export default function InscrirePatient({ espace = 'infirmier' }: { espace?: Esp
               {etape === 3 && (
                 <div className={s.etape3}>
                   <div className={s.recapInscription}>
-                    <span className={s.avatarRecap}>{`${nom.trim()[0] ?? ''}${prenom.trim()[0] ?? ''}`.toUpperCase() || '?'}</span>
+                    <span className={s.avatarRecap}>{vihSida ? 'DM' : `${nom.trim()[0] ?? ''}${prenom.trim()[0] ?? ''}`.toUpperCase() || '?'}</span>
                     <div>
                       <strong>
-                        {nom.toUpperCase()} {prenom}
+                        {vihSida ? 'Dossier anonyme (identifié par son DM)' : `${nom.toUpperCase()} ${prenom}`}
                       </strong>
                       <small>
                         {genre === 'feminin' ? 'Féminin' : genre === 'masculin' ? 'Masculin' : '—'} · {telephone || 'sans téléphone'}
                       </small>
                     </div>
                     <span className={s.recapNote}>
-                      Le numéro de dossier (DM) sera créé à l'enregistrement, puis la consultation s'ouvrira dans votre service.
+                      {vihSida
+                        ? "Le numéro de dossier (DM) sera généré à l'enregistrement et utilisé comme identifiant dans tout le processus."
+                        : "Le numéro de dossier (DM) sera créé à l'enregistrement, puis la consultation s'ouvrira dans votre service."}
                     </span>
                   </div>
                 </div>

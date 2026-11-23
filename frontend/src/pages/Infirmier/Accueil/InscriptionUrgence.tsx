@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { FaArrowLeft, FaCheck } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaShieldAlt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { apiAgent, type EspaceAgent } from '../../../services/api';
@@ -29,6 +29,7 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
   const [verifier, setVerifier] = useState(false);
   const [envoi, setEnvoi] = useState(false);
 
+  const [vihSida, setVihSida] = useState(false);
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [genre, setGenre] = useState<'masculin' | 'feminin' | ''>('');
@@ -63,8 +64,8 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
   const tel = (v: string) => v.replace(/\D/g, '').slice(0, 10);
 
   const erreurs: Record<string, { message: string; ko: boolean }> = {
-    nom: { message: 'Le nom est obligatoire.', ko: !nom.trim() },
-    prenom: { message: 'Le prénom est obligatoire.', ko: !prenom.trim() },
+    nom: { message: 'Le nom est obligatoire.', ko: !vihSida && !nom.trim() },
+    prenom: { message: 'Le prénom est obligatoire.', ko: !vihSida && !prenom.trim() },
     genre: { message: 'Choisissez le sexe du patient.', ko: !genre },
     dateNaissance: { message: 'La date de naissance ou l’âge est obligatoire.', ko: !dateNaissance },
     telephone: { message: 'Le téléphone doit contenir 10 chiffres.', ko: !/^\d{10}$/.test(telephone) },
@@ -80,8 +81,9 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
     try {
       const r = await source.patients.inscrire({
         urgence: true,
-        nom: nom.trim(),
-        prenom: prenom.trim(),
+        vihSida: vihSida || undefined,
+        nom: vihSida ? undefined : nom.trim(),
+        prenom: vihSida ? undefined : prenom.trim(),
         genre: genre as 'masculin' | 'feminin',
         dateNaissance,
         pays: PAYS,
@@ -127,18 +129,50 @@ export default function InscriptionUrgence({ espace = 'infirmier' }: { espace?: 
           <>
             <p className={s.sousTitre}>Patient — informations obligatoires</p>
             <div className={s.grille}>
-              <div className={`${s.champ} ${ko('nom') ? s.invalide : ''}`}>
-                <label htmlFor="u-nom">
-                  Nom <span className={s.requis}>*</span>
-                </label>
-                <input id="u-nom" maxLength={191} placeholder="Ex. KOUASSI" value={nom} onChange={(e) => setNom(e.target.value)} autoFocus />
-              </div>
-              <div className={`${s.champ} ${ko('prenom') ? s.invalide : ''}`}>
-                <label htmlFor="u-prenom">
-                  Prénom(s) <span className={s.requis}>*</span>
-                </label>
-                <input id="u-prenom" maxLength={191} placeholder="Ex. Aya Marie" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
-              </div>
+              <label className={`${s.interrupteur} ${s.large} ${vihSida ? s.interrupteurActif : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={vihSida}
+                  onChange={(e) => {
+                    const actif = e.target.checked;
+                    setVihSida(actif);
+                    if (actif) {
+                      setNom('');
+                      setPrenom('');
+                    }
+                  }}
+                />
+                <span className={s.interrupteurPiste} aria-hidden="true" />
+                <span>
+                  <strong>Patient suivi pour le VIH/SIDA (dossier anonyme)</strong>
+                  <small>
+                    Si activé, le nom et les prénoms ne sont pas demandés : le numéro de dossier (DM) généré est utilisé dans tout le processus.
+                  </small>
+                </span>
+              </label>
+              {vihSida ? (
+                <div className={`${s.bandeauAnonyme} ${s.large}`}>
+                  <FaShieldAlt aria-hidden="true" />
+                  <span>
+                    Confidentialité activée : le numéro de dossier médical (DM) sera généré automatiquement à l&apos;enregistrement et utilisé partout à la place du nom et des prénoms.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className={`${s.champ} ${ko('nom') ? s.invalide : ''}`}>
+                    <label htmlFor="u-nom">
+                      Nom <span className={s.requis}>*</span>
+                    </label>
+                    <input id="u-nom" maxLength={191} placeholder="Ex. KOUASSI" value={nom} onChange={(e) => setNom(e.target.value)} autoFocus />
+                  </div>
+                  <div className={`${s.champ} ${ko('prenom') ? s.invalide : ''}`}>
+                    <label htmlFor="u-prenom">
+                      Prénom(s) <span className={s.requis}>*</span>
+                    </label>
+                    <input id="u-prenom" maxLength={191} placeholder="Ex. Aya Marie" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+                  </div>
+                </>
+              )}
               <div className={`${s.champ} ${ko('genre') ? s.invalide : ''}`}>
                 <span className={s.etiquette}>
                   Sexe <span className={s.requis}>*</span>

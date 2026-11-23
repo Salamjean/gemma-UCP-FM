@@ -95,7 +95,8 @@ export async function smsAffectationPatient(db: { query: (sql: string, params?: 
 /** SMS de bienvenue après l'inscription d'un patient (texte de Laravel, Secretariat\PatientController::addPatient) */
 export function smsBienvenuePatient(p: { telephone: string; nom: string; prenom: string; codePatient: string }) {
   const lien = process.env.PATIENT_APP_URL ?? 'https://patient.gemma-ci.com';
-  const message = `Bienvenue sur GEMMA M/Mme ${p.nom} ${p.prenom}. Votre DM: ${p.codePatient}. L'application est disponible sur App Store et Play Store ou connectez-vous sur : ${lien}`;
+  const identite = p.nom === p.codePatient && !p.prenom ? '' : ` M/Mme ${[p.nom, p.prenom].filter(Boolean).join(' ')}`;
+  const message = `Bienvenue sur GEMMA${identite}. Votre DM: ${p.codePatient}. L'application est disponible sur App Store et Play Store ou connectez-vous sur : ${lien}`;
   // Sans attendre : la réponse au soignant ne dépend pas du fournisseur SMS
   void envoyerSms(p.telephone, message);
 }

@@ -121,6 +121,8 @@ export class InfirmierAccueilService {
       urgenceLien: t(p.lien_personne_cas_urgence),
       /** Nouveau-né déclaré à la naissance (« NOUVEAU-NÉ DE … ») : nom et prénoms à compléter */
       nouveauNe: /^nouveau-n/i.test(String(p.name ?? '')),
+      /** Dossier anonyme (VIH/SIDA) : identifié uniquement par son DM */
+      anonymeVih: Boolean(t(p.code_patient) && t(p.name) === t(p.code_patient) && !t(p.prenom)),
       mere: p.mere_id ? { nom: `${p.mere_nom ?? ''} ${p.mere_prenom ?? ''}`.trim(), code: t(p.mere_code) } : null,
     };
   }
@@ -155,7 +157,12 @@ export class InfirmierAccueilService {
     // ---- Écritures ----
     const now = laravelNow();
     const ancien = `${p.name ?? ''} ${p.prenom ?? ''}`.trim();
-    await this.db.query('UPDATE users SET name = ?, prenom = ?, updated_at = ? WHERE id = ?', [dto.nom, dto.prenom, now, p.user_id]);
+    const estAnonyme = Boolean(
+      p.code_patient && String(p.name ?? '').trim() === String(p.code_patient).trim() && !String(p.prenom ?? '').trim(),
+    );
+    const nomFinal = estAnonyme || dto.anonymeVih ? String(p.code_patient) : (dto.nom ?? '').trim();
+    const prenomFinal = estAnonyme || dto.anonymeVih ? '' : (dto.prenom ?? '').trim();
+    await this.db.query('UPDATE users SET name = ?, prenom = ?, updated_at = ? WHERE id = ?', [nomFinal, prenomFinal, now, p.user_id]);
     await this.db.query(
       `UPDATE patients SET gender = ?, telephone = ?, contact2 = ?, situation_matrimoniale = COALESCE(?, situation_matrimoniale),
               num_cmu = ?, profession = ?, address = ?, residence_actuelle_id = ?,
@@ -177,7 +184,7 @@ export class InfirmierAccueilService {
         p.id,
       ],
     );
-    const nouveau = `${dto.nom} ${dto.prenom}`.trim();
+    const nouveau = `${nomFinal} ${prenomFinal}`.trim();
     await this.audit.log(
       ctx,
       'MODIFICATION',
@@ -300,10 +307,13 @@ export class InfirmierAccueilService {
     const resultat = await this.db.transaction(async (t) => {
       const [{ n }] = await t.query('SELECT COUNT(*) AS n FROM patients WHERE birth_date = ?', [dateNaissance]);
       const codePatient = `DM${j}${m}${a.slice(2)}${Number(n) + 1}${ivoirien ? 225 : 100}`;
+      // Patient VIH/SIDA (anonyme) : le DM généré sert de nom dans tout le processus, sans nom ni prénom
+      const nomFinal = dto.vihSida ? codePatient : (dto.nom ?? '').trim();
+      const prenomFinal = dto.vihSida ? '' : (dto.prenom ?? '').trim();
 
       const u = await t.query(
         "INSERT INTO users (name, prenom, email, role_as, password, created_at, updated_at) VALUES (?, ?, ?, 'patient', ?, ?, ?)",
-        [dto.nom, dto.prenom, dto.email ?? null, password, now, now],
+        [nomFinal, prenomFinal, dto.email ?? null, password, now, now],
       );
       const p = await t.query(
         `INSERT INTO patients (user_id, hospital_id, gender, num_cmu, profession, lieu_de_naissance_id, birth_date,
@@ -347,25 +357,28 @@ export class InfirmierAccueilService {
       const consultationId = dto.affectation
         ? await this.creerConsultation(t, { patientId, codePatient, hospitalId, infirmierId }, dto.affectation, now, verif!.prix)
         : null;
-      return { patientId, codePatient, consultationId };
+      return { patientId, codePatient, consultationId, nomFinal, prenomFinal };
     });
 
+    const identiteAudit = `${resultat.nomFinal} ${resultat.prenomFinal}`.trim();
     await this.audit.log(
       ctx,
       'ENREGISTREMENT',
       'PATIENT',
-      `${dto.urgence ? "Inscription d'urgence" : 'Inscription'} du patient ${dto.nom} ${dto.prenom} [${resultat.codePatient}] par ${auteur}${resultat.consultationId ? ' avec affectation directe' : ''}`,
+      `${dto.urgence ? "Inscription d'urgence" : 'Inscription'}${dto.vihSida ? ' anonyme' : ''} du patient ${identiteAudit} [${resultat.codePatient}] par ${auteur}${resultat.consultationId ? ' avec affectation directe' : ''}`,
       { patient_id: resultat.patientId, consultation_id: resultat.consultationId },
       hospitalId,
     );
 
     // SMS de bienvenue au patient (numéro de dossier + lien de l'application), comme Laravel
-    smsBienvenuePatient({ telephone: dto.telephone, nom: dto.nom, prenom: dto.prenom, codePatient: resultat.codePatient });
+    smsBienvenuePatient({ telephone: dto.telephone, nom: resultat.nomFinal, prenom: resultat.prenomFinal, codePatient: resultat.codePatient });
     // + SMS d'affectation si le patient est affecté dans la foulée (sans attendre)
     if (resultat.consultationId) void smsAffectationPatient(this.db, resultat.consultationId);
 
     return {
-      ...resultat,
+      patientId: resultat.patientId,
+      codePatient: resultat.codePatient,
+      consultationId: resultat.consultationId,
       message: resultat.consultationId
         ? `Patient inscrit (dossier ${resultat.codePatient}) et affecté : ${role === 'doctor' ? 'l’infirmier·ère choisi·e prend ses constantes puis décide de son orientation (consultation, télémédecine…).' : 'vous pouvez prendre ses constantes.'}`
         : `Patient inscrit avec succès. Numéro de dossier : ${resultat.codePatient}.`,

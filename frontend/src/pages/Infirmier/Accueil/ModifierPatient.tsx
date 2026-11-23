@@ -64,26 +64,28 @@ export default function ModifierPatient({ espace = 'infirmier', patientId, local
     e.preventDefault();
     if (!p) return;
     setVerifier(true);
-    const erreur = !p.nom.trim()
-      ? 'Le nom est obligatoire.'
-      : !p.prenom.trim()
-        ? 'Le prénom est obligatoire.'
-        : !p.genre
-          ? 'Choisissez le sexe.'
-          : p.telephone && p.telephone.length !== 10
-            ? 'Le téléphone doit contenir 10 chiffres.'
-            : p.contact2 && p.contact2.length !== 10
-              ? 'Le 2e contact doit contenir 10 chiffres.'
-              : p.urgenceTelephone && p.urgenceTelephone.length !== 10
-                ? 'Le téléphone de la personne à prévenir doit contenir 10 chiffres.'
-                : null;
+    const erreur =
+      !p.anonymeVih && !p.nom.trim()
+        ? 'Le nom est obligatoire.'
+        : !p.anonymeVih && !p.prenom.trim()
+          ? 'Le prénom est obligatoire.'
+          : !p.genre
+            ? 'Choisissez le sexe.'
+            : p.telephone && p.telephone.length !== 10
+              ? 'Le téléphone doit contenir 10 chiffres.'
+              : p.contact2 && p.contact2.length !== 10
+                ? 'Le 2e contact doit contenir 10 chiffres.'
+                : p.urgenceTelephone && p.urgenceTelephone.length !== 10
+                  ? 'Le téléphone de la personne à prévenir doit contenir 10 chiffres.'
+                  : null;
     if (erreur) return void alerte.echec(erreur);
     setEnvoi(true);
     try {
       const vide = (x: string | null) => (x && x.trim() ? x.trim() : undefined);
       const r = await source.patients.modifier(p.id, {
-        nom: p.nom.trim(),
-        prenom: p.prenom.trim(),
+        anonymeVih: p.anonymeVih || undefined,
+        nom: p.anonymeVih ? undefined : p.nom.trim(),
+        prenom: p.anonymeVih ? undefined : p.prenom.trim(),
         genre: p.genre as 'masculin' | 'feminin',
         telephone: vide(p.telephone),
         contact2: vide(p.contact2),
@@ -144,18 +146,27 @@ export default function ModifierPatient({ espace = 'infirmier', patientId, local
 
               <h3 className={m.titre}>Identité</h3>
               <div className={m.grille}>
-                <div className={`${s.champ} ${ko(!p.nom.trim())}`}>
-                  <label htmlFor="maj-nom">
-                    Nom <span className={s.requis}>*</span>
-                  </label>
-                  <input id="maj-nom" maxLength={191} placeholder="Ex. KOUASSI" value={p.nom} onChange={(e) => maj({ nom: e.target.value })} autoFocus />
-                </div>
-                <div className={`${s.champ} ${ko(!p.prenom.trim())}`}>
-                  <label htmlFor="maj-prenom">
-                    Prénom(s) <span className={s.requis}>*</span>
-                  </label>
-                  <input id="maj-prenom" maxLength={191} placeholder="Ex. Aya Marie" value={p.prenom} onChange={(e) => maj({ prenom: e.target.value })} />
-                </div>
+                {p.anonymeVih ? (
+                  <div className={s.champ}>
+                    <label htmlFor="maj-dm-anonyme">Identifiant (Dossier anonyme)</label>
+                    <input id="maj-dm-anonyme" value={p.code ?? p.nom} disabled title="Dossier confidentiel identifié par son DM" />
+                  </div>
+                ) : (
+                  <>
+                    <div className={`${s.champ} ${ko(!p.nom.trim())}`}>
+                      <label htmlFor="maj-nom">
+                        Nom <span className={s.requis}>*</span>
+                      </label>
+                      <input id="maj-nom" maxLength={191} placeholder="Ex. KOUASSI" value={p.nom} onChange={(e) => maj({ nom: e.target.value })} autoFocus />
+                    </div>
+                    <div className={`${s.champ} ${ko(!p.prenom.trim())}`}>
+                      <label htmlFor="maj-prenom">
+                        Prénom(s) <span className={s.requis}>*</span>
+                      </label>
+                      <input id="maj-prenom" maxLength={191} placeholder="Ex. Aya Marie" value={p.prenom} onChange={(e) => maj({ prenom: e.target.value })} />
+                    </div>
+                  </>
+                )}
                 <div className={`${s.champ} ${ko(!p.genre)}`}>
                   <span className={s.etiquette}>
                     Sexe <span className={s.requis}>*</span>

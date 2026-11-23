@@ -403,6 +403,27 @@
   color: var(--dash-muted);
 }
 
+.interrupteurActif {
+  background: #eaf3fe;
+}
+
+.bandeauAnonyme {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eaf3fe;
+  color: #1f6fc6;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.bandeauAnonyme svg {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
 .recapInscription {
   display: flex;
   align-items: center;
