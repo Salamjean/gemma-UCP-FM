@@ -80,6 +80,12 @@ export class DoctorConsultationsController {
   }
 
   /** Téléchargement d'un document joint par l'expert (protégé) */
+  /** GET …/resultats-expertise/:origineId/prescriptions → ordonnance, examens, arrêt de la consultation de l'expert (à imprimer) */
+  @Get('resultats-expertise/:origineId/prescriptions')
+  documentsExpert(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number) {
+    return this.service.documentsExpert(req.user.sub, origineId, 'doctor');
+  }
+
   @Get('resultats-expertise/:origineId/documents/:docId')
   async fichierResultat(@Req() req: Req_, @Param('origineId', ParseIntPipe) origineId: number, @Param('docId') docId: string, @Res() res: Response) {
     const { doc, contenu } = await this.service.fichierResultat(req.user.sub, origineId, docId, 'doctor');

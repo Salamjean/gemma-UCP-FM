@@ -1,4 +1,5 @@
-import { FaClipboardCheck, FaFileAlt, FaShareSquare } from 'react-icons/fa';
+import { FaClipboardCheck, FaFileAlt, FaPhoneAlt, FaShareSquare } from 'react-icons/fa';
+import { lancerAppelVideo } from '../../../../components/AppelVideo';
 import { Link } from 'react-router-dom';
 import type { SuiteConsultation } from '../../../../types';
 import { useEspaceConsultation } from './espace';
@@ -53,6 +54,12 @@ export default function SuiteDonnee({ suite, consultationId }: { suite: SuiteCon
         <Link to={`/${espace}/resultats-expertise/${consultationId}`} className={s.lienResultat}>
           <FaClipboardCheck aria-hidden="true" /> {suite.resultatLe ? 'Voir la réponse de l’expert' : 'Suivre la demande'}
         </Link>
+      )}
+      {/* Téléconsultation demandée par un médecin à un autre médecin : appel vidéo entre médecins */}
+      {espace === 'medecin' && suite.type === 'teleconsultation' && suite.appelPossible && suite.consultationId && (
+        <button type="button" className={s.lienResultat} onClick={() => lancerAppelVideo(suite.consultationId!)}>
+          <FaPhoneAlt aria-hidden="true" /> Appeler le médecin
+        </button>
       )}
       {/* Référence du patient : fiche de référence à imprimer de nouveau */}
       {reference && suite.referenceId && (

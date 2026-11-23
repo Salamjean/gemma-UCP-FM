@@ -2,6 +2,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { existsSync } from 'fs';
+import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { brancherContexteRequete } from './common/contexte-requete';
@@ -12,6 +13,13 @@ async function bootstrap() {
 
   // Toutes les routes commencent par /api (ex. /api/auth/login)
   app.setGlobalPrefix('api');
+
+  // Derrière Apache (reverse proxy sur la même machine) : l'IP réelle du client est lue dans X-Forwarded-For
+  // (nécessaire pour la limite de requêtes par IP et le journal d'audit). Seul le proxy local est cru.
+  app.set('trust proxy', 'loopback');
+  // En-têtes de sécurité HTTP (nosniff, HSTS, anti-clickjacking…). Les images de /api/uploads restent
+  // affichables par le frontend servi depuis un autre domaine/port.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   // Contexte de requête (admin UCP-FM qui ouvre un hôpital : en-tête X-Hopital-Id lu par hopitalDuCompte)
   app.use(brancherContexteRequete);
 

@@ -32,6 +32,13 @@ export const alerte = {
   attention: (text: string) => afficher('warning', text),
 };
 
-/** Message d'une erreur attrapée (Error, texte…) */
-export const messageErreur = (e: unknown, defaut = 'Une erreur est survenue.') =>
-  e instanceof Error && e.message ? e.message : defaut;
+/** Erreurs techniques du réseau renvoyées par les navigateurs (Chrome, Firefox, Safari) */
+const ERREUR_RESEAU = /failed to fetch|networkerror|network request failed|load failed|fetch failed|err_internet_disconnected|err_network/i;
+
+/** Message d'une erreur attrapée (Error, texte…) ; une erreur réseau devient un message de connexion compréhensible */
+export const messageErreur = (e: unknown, defaut = 'Une erreur est survenue.') => {
+  const texte = e instanceof Error && e.message ? e.message : typeof e === 'string' && e ? e : null;
+  if (!texte) return defaut;
+  if (ERREUR_RESEAU.test(texte)) return 'Problème de connexion. Veuillez vérifier votre connexion.';
+  return texte;
+};

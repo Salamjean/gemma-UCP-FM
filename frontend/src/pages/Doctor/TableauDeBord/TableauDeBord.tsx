@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { FaArrowRight, FaClock, FaHistory, FaHospital, FaMugHot, FaPlay, FaSearch, FaStethoscope, FaSyncAlt, FaUserPlus, FaUsers, FaVideo } from 'react-icons/fa';
+import { FaArrowRight, FaClock, FaHistory, FaHospital, FaMugHot, FaPhoneAlt, FaPlay, FaSearch, FaStethoscope, FaSyncAlt, FaUserPlus, FaUsers, FaVideo } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { lancerAppelVideo } from '../../../components/AppelVideo';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { api } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
@@ -264,22 +265,29 @@ export default function TableauDeBord() {
                     </div>
                   </dl>
                 </div>
-                <Link
-                  // Télé-expertise programmée : pas de consultation, le résultat est joint directement
-                  to={
-                    teleProchaine.expertise && !teleProchaine.expertise.avecConsultation
-                      ? `/medecin/referes/${teleProchaine.expertise.origineId}/resultat`
-                      : `/medecin/consultations/${teleProchaine.id}`
-                  }
-                  className={s.commencer}
-                >
-                  <FaPlay aria-hidden="true" />{' '}
-                  {teleProchaine.type === 'teleexpertise'
-                    ? teleProchaine.expertise?.avecConsultation
-                      ? 'Démarrer la télé-expertise'
-                      : 'Joindre la réponse'
-                    : 'Démarrer la téléconsultation'}
-                </Link>
+                {teleProchaine.type === 'teleexpertise' ? (
+                  <Link
+                    // Télé-expertise programmée : pas de consultation, la réponse est jointe directement
+                    to={
+                      teleProchaine.expertise && !teleProchaine.expertise.avecConsultation
+                        ? `/medecin/referes/${teleProchaine.expertise.origineId}/resultat`
+                        : `/medecin/consultations/${teleProchaine.id}`
+                    }
+                    className={s.commencer}
+                  >
+                    <FaPlay aria-hidden="true" /> {teleProchaine.expertise?.avecConsultation ? 'Démarrer la télé-expertise' : 'Joindre la réponse'}
+                  </Link>
+                ) : (
+                  // Téléconsultation : formulaire de consultation, et appel vidéo lancé directement à côté
+                  <div className={s.commencerDouble}>
+                    <Link to={`/medecin/consultations/${teleProchaine.id}`} className={s.commencer}>
+                      <FaPlay aria-hidden="true" /> Démarrer la consultation
+                    </Link>
+                    <button type="button" className={`${s.commencer} ${s.appeler}`} onClick={() => lancerAppelVideo(teleProchaine.id)}>
+                      <FaPhoneAlt aria-hidden="true" /> {teleProchaine.appelEnCours ? 'Rejoindre l’appel' : 'Lancer l’appel'}
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <>

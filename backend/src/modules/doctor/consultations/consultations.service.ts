@@ -1002,7 +1002,7 @@ export class DoctorConsultationsService {
     if (issue === 'teleconsultation' || issue === 'urgence') {
       // Consultation créée au même enregistrement (même patient, juste après, motif posé par l'enregistrement)
       const [x] = await this.db.query(
-        `SELECT n.status, n.is_call_active, n.doctor_id, DATE_FORMAT(n.desired_date, '%Y-%m-%d') AS desired_date, n.desired_time,
+        `SELECT n.id, n.status, n.is_call_active, n.doctor_id, DATE_FORMAT(n.desired_date, '%Y-%m-%d') AS desired_date, n.desired_time,
                 du.name, du.prenom, COALESCE(dh.label, th.label) AS hopital, COALESCE(ds.libelle, ts.libelle) AS service,
                 td.consultation_id AS diffusee, td.type AS portee
            FROM consultations n
@@ -1032,6 +1032,9 @@ export class DoctorConsultationsService {
         medecin: x ? (dr(x.name, x.prenom) ?? (issue === 'urgence' ? 'Pas encore décroché' : x.diffusee ? 'Tous les médecins du service' : null)) : null,
         hopital: texte(x?.hopital) ?? (x?.diffusee && x.portee === 'externe' ? 'Réseau des hôpitaux utilisant GEMMA' : null),
         etat: x?.diffusee && !x.doctor_id && Number(x.status) !== 1 ? 'En attente de prise en charge' : etat(x),
+        /** Téléconsultation créée : le médecin demandeur peut lancer / rejoindre l'appel avec le médecin sollicité */
+        consultationId: x?.id ? Number(x.id) : null,
+        appelPossible: issue === 'teleconsultation' && !!x?.doctor_id && Number(x?.status) !== 1,
       };
     }
     return null;
@@ -1041,7 +1044,8 @@ export class DoctorConsultationsService {
    * Documents imprimables d'une consultation (Laravel : PostConsultationController@Impression,
    * vues pdf/ordonnance, pdf/examen, pdf/arret) : en-tête de l'hôpital, médecin, patient et contenu.
    */
-  async documents(userId: number, consultationId: number, role: 'doctor' | 'infirmier' = 'doctor') {
+  /** sansControle : accès déjà vérifié par l'appelant (ex. demandeur d'une télé-expertise → prescriptions de l'expert) */
+  async documents(userId: number, consultationId: number, role: 'doctor' | 'infirmier' = 'doctor', sansControle = false) {
     const d = await this.acteur(userId, role);
     const [c] = await this.db.query(
       `SELECT c.id, c.code_consultation, c.created_at, c.doctor_id, c.infirmier_id, c.status,
@@ -1075,7 +1079,7 @@ export class DoctorConsultationsService {
       [consultationId],
     );
     if (!c) throw new NotFoundException('Consultation introuvable.');
-    if (!this.lisible(c, d)) {
+    if (!sansControle && !this.lisible(c, d)) {
       if (d.role === 'infirmier') throw new ForbiddenException("Cette consultation n'est pas attribuée à votre compte.");
       // Patient référé : le médecin destinataire (interne) ou tout médecin (externe) voit les documents prescrits
       const [ref] = await this.db.query('SELECT type, diffusee, doctor_destination_id FROM fm_references WHERE consultation_origine_id = ? LIMIT 1', [consultationId]);
@@ -1720,7 +1724,7 @@ export class DoctorConsultationsService {
   }
 
   private static readonly SELECT_RESULTAT = `
-    SELECT fr.id AS reference_id, fr.type, fr.consultation_origine_id, fr.urgence, fr.motif,
+    SELECT fr.id AS reference_id, fr.type, fr.consultation_origine_id, fr.consultation_destination_id, fr.urgence, fr.motif,
            DATE_FORMAT(fr.created_at, '%Y-%m-%dT%H:%i:%sZ') AS demande_le,
            DATE_FORMAT(fr.echeance, '%Y-%m-%dT%H:%i:%sZ') AS echeance,
            DATE_FORMAT(fr.resultat_le, '%Y-%m-%dT%H:%i:%sZ') AS resultat_le,
@@ -1818,6 +1822,57 @@ export class DoctorConsultationsService {
       avis: texte(r.resultat_avis),
       conduite: texte(r.resultat_conduite),
       documentsResultat: (await listerDocuments(this.db, origineId, 'resultat')).map((x) => this.presenterReference(x)),
+      /** Consultation de l'expert terminée : ordonnance, examens et arrêt de travail qu'il a prescrits */
+      prescriptionsExpert: Number(r.destination_status) === 1 && r.consultation_destination_id ? await this.prescriptionsDe(Number(r.consultation_destination_id)) : null,
+    };
+  }
+
+  /**
+   * RÉPONSES D'EXPERTISE : documents imprimables (ordonnance, bulletin d'examens, arrêt de travail) de la consultation
+   * de l'expert — pour le DEMANDEUR (infirmier·ère ou médecin) de la télé-expertise, une fois cette consultation terminée.
+   */
+  async documentsExpert(userId: number, origineId: number, role: 'doctor' | 'infirmier' = 'doctor') {
+    const { filtre, id } = await this.demandeur(userId, role);
+    const [r] = await this.db.query(
+      `SELECT fr.consultation_destination_id, dest.status
+         FROM fm_references fr
+         JOIN consultations o ON o.id = fr.consultation_origine_id AND o.deleted_at IS NULL
+         LEFT JOIN consultations dest ON dest.id = fr.consultation_destination_id AND dest.deleted_at IS NULL
+        WHERE fr.consultation_origine_id = ? AND ${filtre} LIMIT 1`,
+      [origineId, id],
+    );
+    if (!r) throw new NotFoundException('Télé-expertise introuvable.');
+    if (!r.consultation_destination_id || Number(r.status) !== 1) throw new BadRequestException('La consultation de l’expert n’est pas encore terminée.');
+    return this.documents(userId, Number(r.consultation_destination_id), role, true);
+  }
+
+  /** Ordonnance (médicaments), examens demandés et arrêt de travail d'une consultation (null si rien n'a été prescrit) */
+  private async prescriptionsDe(consultationId: number) {
+    const [medicaments, examens, [arret]] = await Promise.all([
+      this.db.query(
+        `SELECT dr.name, dr.unite, pr.quantity, pr.dosage, pr.duration, pr.route_administration, pr.health_dietetic_advice
+           FROM ordonnances o JOIN prescriptions pr ON pr.ordonnance_id = o.id LEFT JOIN drugs dr ON dr.id = pr.drug_id
+          WHERE o.consultation_id = ? AND o.type = 'externe' AND o.deleted_at IS NULL ORDER BY pr.id`,
+        [consultationId],
+      ),
+      this.db.query('SELECT e.nature_examen FROM bulletin_examens b JOIN examens e ON e.bulletin_examen_id = b.id WHERE b.consultation_id = ? ORDER BY e.id', [consultationId]),
+      this.db.query("SELECT DATE_FORMAT(date_debut, '%Y-%m-%d') AS debut, DATE_FORMAT(date_fin, '%Y-%m-%d') AS fin, nb_jour FROM arret_travails WHERE consultation_id = ? ORDER BY id DESC LIMIT 1", [
+        consultationId,
+      ]),
+    ]);
+    if (!medicaments.length && !examens.length && !arret) return null;
+    return {
+      medicaments: medicaments.map((m: Ligne) => ({
+        nom: texte(m.name) ?? 'Médicament',
+        unite: texte(m.unite),
+        quantite: m.quantity !== null && m.quantity !== undefined ? Number(m.quantity) : null,
+        posologie: texte(m.dosage),
+        duree: texte(m.duration),
+        voie: texte(m.route_administration),
+        conseil: texte(m.health_dietetic_advice),
+      })),
+      examens: examens.map((e: Ligne) => String(e.nature_examen ?? '')).filter(Boolean),
+      arret: arret ? { debut: texte(arret.debut), fin: texte(arret.fin), nbJour: Number(arret.nb_jour ?? 0) } : null,
     };
   }
 
@@ -2536,11 +2591,13 @@ export class DoctorConsultationsService {
         'INSERT INTO passage_patients (libelle, hospital_id, date, patient_id, created_at, updated_at) VALUES (?, ?, CURDATE(), ?, ?, ?)',
         [urgence ? 'Appel d’urgence' : 'Téléconsultation', c.hospital_id ?? d.hospital_id, c.patient_id, now, now],
       );
+      // Téléconsultation demandée par un MÉDECIN : il participe à l'appel vidéo avec le médecin sollicité (appel entre médecins)
+      if (!urgence && !infirmier) {
+        await this.db.query('INSERT IGNORE INTO fm_appels_demandeurs (consultation_id, doctor_id, created_at) VALUES (?, ?, UTC_TIMESTAMP())', [consultationSuivante, d.id]);
+      }
       if (urgence) {
-        appelUrgence = await lancerUrgence(this.db, userId, consultationSuivante, { observation: dto.justification });
-        messageTele = infirmier
-          ? `Appel d’urgence lancé : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`
-          : `Appel d’urgence lancé vers les médecins de votre service dans le réseau des hôpitaux utilisant GEMMA : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
+        appelUrgence = await lancerUrgence(this.db, userId, consultationSuivante, { observation: dto.justification, serviceId: dto.urgenceServiceId ?? null });
+        messageTele = `Appel d’urgence lancé vers ${dto.urgenceServiceId ? 'les médecins du service choisi' : 'les médecins de tous les services'} dans le réseau des hôpitaux utilisant GEMMA : ${appelUrgence.medecinsAlertes} médecin(s) alerté(s), le premier qui décroche prend le patient.`;
       } else if (diffusee && teleCible) {
         await this.db.query(
           `INSERT INTO fm_teleconsultations_diffusees (consultation_id, type, service_id, hospital_destination_id, district_origine, hors_district, doctor_origine_id, infirmier_origine_id, created_at)

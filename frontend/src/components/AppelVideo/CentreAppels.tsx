@@ -8,6 +8,7 @@ import type { AccesAppelVideo, AppelEntrant } from '../../types';
 import AppelVideo from './AppelVideo';
 import v from './AppelVideo.module.css';
 import s from './CentreAppels.module.css';
+import { arreterSonnerie, demarrerSonnerie, preparerSonnerie } from './sonnerie';
 
 const EVENEMENT = 'gemma:appel-video';
 
@@ -175,6 +176,18 @@ export default function CentreAppels({ role }: { role: 'doctor' | 'infirmier' })
   };
 
   const visibles = entrants.filter((a) => !ignores.includes(a.consultationId));
+
+  // Le son devient possible au premier geste de l'utilisateur (règle des navigateurs)
+  useEffect(() => preparerSonnerie(), []);
+
+  // SONNERIE : un appel attend qu'on décroche (pas déjà en appel) → ça sonne ; urgence → bips rapides
+  const sonnant = !acces && !ouverture ? visibles.filter((a) => a.statut !== 'in_call') : [];
+  const typeSonnerie = sonnant.length === 0 ? null : sonnant.some((a) => a.urgence) ? 'urgence' : 'normal';
+  useEffect(() => {
+    if (typeSonnerie) demarrerSonnerie(typeSonnerie);
+    else arreterSonnerie();
+  }, [typeSonnerie]);
+  useEffect(() => () => arreterSonnerie(), []);
 
   return (
     <>

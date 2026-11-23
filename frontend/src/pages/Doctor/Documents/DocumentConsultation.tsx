@@ -22,8 +22,20 @@ export const DOCUMENTS: { id: TypeDocument; titre: string; icone: typeof FaPills
  * Reproduction exacte des PDF de Laravel : post-consultation/pdf/ordonnance, pdf/examen, pdf/arret.
  * « Télécharger (PDF) » ouvre l'impression du navigateur : choisir « Enregistrer au format PDF ».
  */
-export default function DocumentConsultation() {
-  const { id, type } = useParams();
+export default function DocumentConsultation({
+  charger,
+  lien,
+  surtitre = 'Documents de la consultation',
+}: {
+  /** Autre source des documents (ex. prescriptions de l'expert pour le demandeur d'une télé-expertise) */
+  charger?: (id: number) => Promise<DocumentsConsultation>;
+  /** Lien vers un autre document de la même source */
+  lien?: (type: TypeDocument) => string;
+  surtitre?: string;
+} = {}) {
+  const params = useParams();
+  const id = params.id ?? params.origineId;
+  const type = params.type;
   const navigate = useNavigate();
   const { api, racine } = useEspaceConsultation();
   const [doc, setDoc] = useState<DocumentsConsultation | null>(null);
@@ -31,8 +43,7 @@ export default function DocumentConsultation() {
   const info = DOCUMENTS.find((d) => d.id === type) ?? DOCUMENTS[0];
 
   useEffect(() => {
-    api
-      .documents(Number(id))
+    (charger ?? api.documents)(Number(id))
       .then(setDoc)
       .catch((e) => {
         setErreur(true);
@@ -56,7 +67,7 @@ export default function DocumentConsultation() {
     <div className={c.page}>
       <header className={`${c.entete} ${s.nonImprime}`}>
         <div>
-          <p className={c.surtitre}>Documents de la consultation</p>
+          <p className={c.surtitre}>{surtitre}</p>
           <h1 className={c.titre}>{info.titre}</h1>
         </div>
         <div className={c.boutons}>
@@ -74,7 +85,7 @@ export default function DocumentConsultation() {
           {DOCUMENTS.map((d) => {
             const dispo = d.id === 'ordonnance' ? doc.ordonnance : d.id === 'examens' ? doc.examens : doc.arret;
             return dispo ? (
-              <Link key={d.id} to={`${racine}/${id}/document/${d.id}`} className={`${s.onglet} ${d.id === type ? s.ongletActif : ''}`}>
+              <Link key={d.id} to={lien ? lien(d.id) : `${racine}/${id}/document/${d.id}`} className={`${s.onglet} ${d.id === type ? s.ongletActif : ''}`}>
                 <d.icone aria-hidden="true" /> {d.titre}
               </Link>
             ) : (

@@ -1711,6 +1711,9 @@ export interface SuiteConsultation {
   type: 'teleexpertise' | 'teleconsultation' | 'urgence' | 'reference';
   /** Référence du patient : fiche de référence imprimable */
   referenceId?: number;
+  /** Téléconsultation : consultation créée, et appel possible (médecin demandeur ↔ médecin sollicité) */
+  consultationId?: number | null;
+  appelPossible?: boolean;
   externe: boolean;
   /** Télé-expertise urgente (< 30 min) */
   urgente: boolean;
@@ -2034,6 +2037,23 @@ export interface ResultatExpertiseDetail extends ResultatExpertiseItem {
   avis: string | null;
   conduite: string | null;
   documentsResultat: DocumentReference[];
+  /** Consultation de l'expert terminée : ce qu'il a prescrit (null si rien) */
+  prescriptionsExpert: PrescriptionsExpert | null;
+}
+
+/** Ordonnance, examens et arrêt de travail prescrits par l'expert lors de sa consultation */
+export interface PrescriptionsExpert {
+  medicaments: {
+    nom: string;
+    unite: string | null;
+    quantite: number | null;
+    posologie: string | null;
+    duree: string | null;
+    voie: string | null;
+    conseil: string | null;
+  }[];
+  examens: string[];
+  arret: { debut: string | null; fin: string | null; nbJour: number } | null;
 }
 
 /* =========================================================

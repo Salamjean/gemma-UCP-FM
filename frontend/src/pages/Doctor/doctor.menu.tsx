@@ -20,7 +20,7 @@ import FicheReference from './Documents/FicheReference';
 import { JoindreResultat, RefereDetail, Referes } from './Referes';
 import { Telemedecine } from './Telemedecine';
 import { ProgrammerTelemedecineMedecin } from './Telemedecine/Programmer';
-import { ResultatExpertiseMedecin, ResultatsExpertiseMedecin } from './ResultatsExpertise';
+import { DocumentExpertiseMedecin, ResultatExpertiseMedecin, ResultatsExpertiseMedecin } from './ResultatsExpertise';
 
 /** Badge du menu : télémédecines en attente */
 const compterTelemedecines = () => api.doctor.telemedecines('en-attente').then((d) => d.compteurs.enAttente);
@@ -87,7 +87,11 @@ export const doctorSpace: RoleSpace = {
       path: 'resultats-expertise',
       element: <ResultatsExpertiseMedecin />,
       badge: compterResultats,
-      hiddenPages: [{ label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseMedecin /> }],
+      hiddenPages: [
+        { label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseMedecin /> },
+        // Prescriptions de l'expert (ordonnance, examens, arrêt) à imprimer / télécharger en PDF
+        { label: 'Prescription de l’expert', path: 'resultats-expertise/:origineId/document/:type', element: <DocumentExpertiseMedecin /> },
+      ],
     },
     // Référés : onglet retiré du menu (les télé-expertises sont dans Télémédecine) ; pages gardées pour les liens
     {

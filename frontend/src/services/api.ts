@@ -143,11 +143,33 @@ const enteteHopital = (path: string): Record<string, string> => {
   return id !== null && path.startsWith('/hospital/') ? { 'X-Hopital-Id': String(id) } : {};
 };
 
+/** Messages affichés à la place des erreurs techniques du réseau (« Failed to fetch », 502…) */
+export const MESSAGE_CONNEXION = 'Problème de connexion. Veuillez vérifier votre connexion.';
+export const MESSAGE_SERVEUR_INDISPONIBLE = 'Problème de connexion au serveur. Veuillez réessayer dans un instant.';
+
+/**
+ * fetch avec un message clair si la requête n'a pas pu partir ou aboutir (pas de réseau, Wi-Fi coupé, serveur injoignable) :
+ * le navigateur ne donne qu'un « Failed to fetch » / « NetworkError » / « Load failed » incompréhensible.
+ */
+async function appelReseau(url: string, init?: RequestInit): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    // Requête annulée volontairement : on laisse passer telle quelle
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new Error(MESSAGE_CONNEXION);
+  }
+  // Serveur arrêté, en redémarrage ou passerelle en erreur
+  if (res.status === 502 || res.status === 503 || res.status === 504) throw new Error(MESSAGE_SERVEUR_INDISPONIBLE);
+  return res;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = tokenStorage.get();
   // Formulaire avec fichier (FormData) : le navigateur fixe lui-même le Content-Type
   const isForm = options?.body instanceof FormData;
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await appelReseau(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
@@ -161,6 +183,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const message = Array.isArray(body?.message) ? body.message[0] : body?.message;
     if (res.status === 401 && token && path !== '/auth/login') onUnauthorized?.();
     if (res.status === 413) throw new Error(path.includes('/references') ? 'Document trop lourd (10 Mo maximum)' : 'Image trop lourde (3 Mo maximum)');
+    // Erreur serveur sans réponse lisible (ex. backend arrêté derrière le proxy) : message de connexion au serveur
+    if (res.status >= 500 && !message) throw new Error(MESSAGE_SERVEUR_INDISPONIBLE);
     throw new Error(message ?? `Erreur ${res.status}`);
   }
   return res.json() as Promise<T>;
@@ -177,7 +201,7 @@ const qs = (p: object) => {
 /** Télécharge un fichier protégé (jeton dans l'en-tête) et l'enregistre sur l'ordinateur */
 async function telecharger(path: string, nomParDefaut: string): Promise<void> {
   const token = tokenStorage.get();
-  const res = await fetch(`${BASE_URL}${path}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...enteteHopital(path) } });
+  const res = await appelReseau(`${BASE_URL}${path}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...enteteHopital(path) } });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.message ?? `Erreur ${res.status}`);
@@ -339,6 +363,8 @@ const resultatsExpertise = (racine: string) => ({
   /** Ouvre le résultat (le marque comme lu) */
   detail: (origineId: number) => request<ResultatExpertiseDetail>(`${racine}/${origineId}`),
   telecharger: (origineId: number, docId: string, nom: string) => telecharger(`${racine}/${origineId}/documents/${docId}`, nom),
+  /** Ordonnance, bulletin d'examens, arrêt de travail de la consultation de l'expert (à imprimer / PDF) */
+  documentsExpert: (origineId: number) => request<DocumentsConsultation>(`${racine}/${origineId}/prescriptions`),
 });
 export type ApiResultatsExpertise = ReturnType<typeof resultatsExpertise>;
 /** API des résultats d'expertise selon l'espace */

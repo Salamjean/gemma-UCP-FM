@@ -310,6 +310,12 @@ export class ConsultationCurativeDto {
   @IsInt({ message: 'Hôpital de la téléconsultation invalide.' })
   teleHopitalId?: number;
 
+  /** Appel d'urgence : service appelé (services.id) ; absent → les médecins de TOUS les services du réseau */
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'Service appelé invalide.' })
+  urgenceServiceId?: number;
+
   /** Téléconsultation : médecin (facultatif), date AAAA-MM-JJ et heure HH:MM */
   @Type(() => Number)
   @IsOptional()

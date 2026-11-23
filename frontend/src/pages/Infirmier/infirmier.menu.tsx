@@ -11,7 +11,7 @@ import {
 import { MdDashboard } from 'react-icons/md';
 import type { RoleSpace } from '../../layouts/DashboardLayout/types';
 import { apiResultatsExpertise, api } from '../../services/api';
-import { ResultatExpertiseInfirmier, ResultatsExpertiseInfirmier } from '../Doctor/ResultatsExpertise';
+import { DocumentExpertiseInfirmier, ResultatExpertiseInfirmier, ResultatsExpertiseInfirmier } from '../Doctor/ResultatsExpertise';
 import { ProgrammerTelemedecineInfirmier } from '../Doctor/Telemedecine/Programmer';
 import type { AuthUser } from '../../types';
 import { AffecterPatient, ChoixInscription, InscriptionUrgence, InscrirePatient } from './Accueil';
@@ -108,7 +108,11 @@ export const infirmierSpace: RoleSpace = {
       path: 'resultats-expertise',
       element: <ResultatsExpertiseInfirmier />,
       badge: compterResultats,
-      hiddenPages: [{ label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseInfirmier /> }],
+      hiddenPages: [
+        { label: 'Réponse', path: 'resultats-expertise/:origineId', element: <ResultatExpertiseInfirmier /> },
+        // Prescriptions de l'expert (ordonnance, examens, arrêt) à imprimer / télécharger en PDF
+        { label: 'Prescription de l’expert', path: 'resultats-expertise/:origineId/document/:type', element: <DocumentExpertiseInfirmier /> },
+      ],
     },
     // Hospitalisations : onglet retiré du menu ; pages gardées pour les liens du tableau de bord
     {

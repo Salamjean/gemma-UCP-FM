@@ -102,7 +102,7 @@ export default function Profil() {
   const changerMotDePasse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mdp.actuel) return void alerte.echec('Saisissez votre mot de passe actuel.');
-    if (mdp.nouveau.length < 6) return void alerte.echec('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+    if (mdp.nouveau.length < 8) return void alerte.echec('Le nouveau mot de passe doit contenir au moins 8 caractères.');
     if (mdp.nouveau !== mdp.confirmation) return void alerte.echec('La confirmation ne correspond pas au nouveau mot de passe.');
     setEnvoiMdp(true);
     try {
@@ -223,7 +223,7 @@ export default function Profil() {
                 </label>
               ))}
             </div>
-            <p className={s.aide}>Au moins 6 caractères. Vous resterez connecté·e sur cet appareil.</p>
+            <p className={s.aide}>Au moins 8 caractères. Vous resterez connecté·e sur cet appareil.</p>
             <div className={s.pied}>
               <motion.button type="submit" className={c.principal} whileTap={{ scale: 0.97 }} disabled={envoiMdp}>
                 <FaKey aria-hidden="true" /> {envoiMdp ? 'Modification…' : 'Changer le mot de passe'}

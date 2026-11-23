@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
-import { FaArrowLeft, FaClipboardCheck, FaEye, FaHospitalAlt, FaSearch, FaUserMd } from 'react-icons/fa';
+import { FaArrowLeft, FaBed, FaClipboardCheck, FaDownload, FaEye, FaFlask, FaHospitalAlt, FaPills, FaSearch, FaUserMd } from 'react-icons/fa';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PaginationTableau, usePagination } from '../../../components/Pagination';
 import { alerte, messageErreur } from '../../../services/alertes';
 import { apiResultatsExpertise } from '../../../services/api';
 import c from '../../../styles/espace.module.css';
-import type { ResultatExpertiseDetail, ResultatExpertiseItem } from '../../../types';
+import type { PrescriptionsExpert, ResultatExpertiseDetail, ResultatExpertiseItem } from '../../../types';
 import { age } from '../../Infirmier/GestionPatients/DossierMedical/outils';
 import { AvatarPatient, heure, jour } from '../Consultations/ListeConsultations';
 import { ContenuResultat } from '../Referes/ResultatExpert';
@@ -285,6 +285,77 @@ export function ResultatExpertiseFiche({ espace }: { espace: Espace }) {
           </div>
         )}
       </section>
+
+      {/* Consultation de l'expert : ordonnance, examens, arrêt de travail qu'il a prescrits */}
+      {d.prescriptionsExpert && <PrescriptionsDeLExpert p={d.prescriptionsExpert} lien={(type) => `${racine(espace)}/${d.origineId}/document/${type}`} />}
     </div>
+  );
+}
+
+const dateFr = (x: string | null) => (x ? x.slice(0, 10).split('-').reverse().join('/') : '—');
+
+/** Prescriptions faites par l'expert lors de sa consultation du patient */
+function PrescriptionsDeLExpert({ p, lien }: { p: PrescriptionsExpert; lien: (type: 'ordonnance' | 'examens' | 'arret') => string }) {
+  const telecharger = (type: 'ordonnance' | 'examens' | 'arret') => (
+    <Link to={lien(type)} className={`${c.secondaire} ${s.boutonDocument}`}>
+      <FaDownload aria-hidden="true" /> Télécharger (PDF)
+    </Link>
+  );
+  return (
+    <section className={c.bloc}>
+      <h2 className={s.titreBloc}>
+        <FaPills aria-hidden="true" /> Prescriptions de l’expert
+      </h2>
+      <div className={s.prescriptions}>
+        {p.medicaments.length > 0 && (
+          <div className={s.prescription}>
+            <h3>
+              <FaPills aria-hidden="true" /> Ordonnance
+            </h3>
+            <ul>
+              {p.medicaments.map((m, i) => (
+                <li key={i}>
+                  <strong>
+                    {m.nom}
+                    {m.unite ? ` (${m.unite})` : ''}
+                  </strong>
+                  <small>
+                    {[m.quantite ? `Qté ${m.quantite}` : null, m.posologie, m.duree, m.voie].filter(Boolean).join(' · ') || 'Selon ordonnance'}
+                  </small>
+                  {m.conseil && <small className={s.conseil}>{m.conseil}</small>}
+                </li>
+              ))}
+            </ul>
+            {telecharger('ordonnance')}
+          </div>
+        )}
+        {p.examens.length > 0 && (
+          <div className={s.prescription}>
+            <h3>
+              <FaFlask aria-hidden="true" /> Examens demandés
+            </h3>
+            <ul>
+              {p.examens.map((e, i) => (
+                <li key={i}>
+                  <strong>{e}</strong>
+                </li>
+              ))}
+            </ul>
+            {telecharger('examens')}
+          </div>
+        )}
+        {p.arret && (
+          <div className={s.prescription}>
+            <h3>
+              <FaBed aria-hidden="true" /> Arrêt de travail
+            </h3>
+            <p>
+              {p.arret.nbJour} jour{p.arret.nbJour > 1 ? 's' : ''} · du {dateFr(p.arret.debut)} au {dateFr(p.arret.fin)}
+            </p>
+            {telecharger('arret')}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

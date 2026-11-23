@@ -276,6 +276,37 @@
   transform: translateY(-1px);
 }
 
+/* Téléconsultation : « Démarrer la consultation » et « Lancer l'appel » côte à côte */
+.commencerDouble {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.commencerDouble .commencer {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+button.commencer {
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Lancer l'appel : vert uni */
+.appeler {
+  background: #0e8a62;
+  color: #ffffff;
+}
+
+@media (max-width: 420px) {
+  .commencerDouble {
+    grid-template-columns: 1fr;
+  }
+}
+
 .prochainVide {
   align-items: center;
   text-align: center;

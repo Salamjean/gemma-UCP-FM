@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { DataSource } from 'typeorm';
@@ -21,6 +22,8 @@ class RejoindreExpertDto {
  * Le code (HMAC lié à la salle de l'appel) remplace la connexion.
  */
 @Controller('teleconsultation/expert')
+@UseGuards(ThrottlerGuard)
+@Throttle({ default: { limit: 30, ttl: 60_000 } })
 export class TeleconsultationExpertController {
   constructor(@InjectDataSource() private readonly db: DataSource) {}
 

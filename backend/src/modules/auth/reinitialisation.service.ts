@@ -70,7 +70,7 @@ export class ReinitialisationService {
 
   async reinitialiser(email: string, code: string, nouveau: string, confirmation: string, ctx: ContexteAudit) {
     if (!/^\d{6}$/.test(code ?? '')) throw new BadRequestException('Le code doit contenir 6 chiffres.');
-    if (!nouveau || nouveau.length < 6) throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+    if (!nouveau || nouveau.length < 8) throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 8 caractères.');
     if (nouveau !== confirmation) throw new BadRequestException('La confirmation ne correspond pas au nouveau mot de passe.');
 
     const invalide = new BadRequestException('Code invalide ou expiré : demandez un nouveau code.');

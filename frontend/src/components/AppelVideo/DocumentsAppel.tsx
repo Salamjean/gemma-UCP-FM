@@ -29,12 +29,12 @@ interface Props {
   envoi: { nom: string; progression: number } | null;
   onEnvoyer: (fichier: File) => void;
   onFermer: () => void;
-  /** Envoi possible (médecin principal et confrère présents) ; sinon : consultation seulement */
+  /** Envoi possible (au moins un autre participant dans l'appel) ; sinon : consultation seulement */
   partage: boolean;
 }
 
 /**
- * PANNEAU « DOCUMENTS » DE L'APPEL — partage entre le médecin principal et le(s) confrère(s) invité(s).
+ * PANNEAU « DOCUMENTS » DE L'APPEL — partage entre tous les participants (médecin, infirmier·ère, confrère invité).
  * Les fichiers passent directement par la salle LiveKit (rien n'est enregistré sur le serveur) :
  * seuls les participants présents au moment de l'envoi les reçoivent.
  */
@@ -65,8 +65,8 @@ export default function DocumentsAppel({ documents, envoi, onEnvoyer, onFermer, 
       />
       <small className={s.docsAide}>
         {partage
-          ? "PDF, images, Word, Excel ou texte · 20 Mo max. Reçu par les médecins présents dans l'appel."
-          : "Le confrère a quitté l'appel : vous pouvez encore ouvrir les documents reçus."}
+          ? "PDF, images, Word, Excel ou texte · 20 Mo max. Reçu par tous les participants de l'appel."
+          : "Plus personne d'autre dans l'appel : vous pouvez encore ouvrir les documents reçus."}
       </small>
 
       {envoi && (

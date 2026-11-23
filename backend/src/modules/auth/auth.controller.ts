@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { contexteAudit } from '../../common/audit/audit.service';
 import { AuthService, type JwtPayload } from './auth.service';
@@ -33,20 +34,27 @@ export class AuthController {
     private readonly reinitialisation: ReinitialisationService,
   ) {}
 
+  // Limites par IP (anti force brute / anti envoi massif d'emails)
   @Post('mot-de-passe-oublie')
   @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   demanderReinitialisation(@Body() dto: DemandeReinitialisationDto, @Req() req: Request) {
     return this.reinitialisation.demander(dto.email, contexteAudit(req, null));
   }
 
   @Post('reinitialiser')
   @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   reinitialiser(@Body() dto: ReinitialisationDto, @Req() req: Request) {
     return this.reinitialisation.reinitialiser(dto.email, dto.code, dto.nouveau, dto.confirmation, contexteAudit(req, null));
   }
 
   @Post('login')
   @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.authService.login(dto, contexteAudit(req));
   }

@@ -9,12 +9,11 @@ import DocumentsAppel, { type DocumentAppel } from './DocumentsAppel';
 const p2 = (n: number) => String(n).padStart(2, '0');
 
 /**
- * PARTAGE DE DOCUMENTS PENDANT L'APPEL — entre le médecin principal (identité « doctor_… »)
- * et les confrères invités (« confrere_… »). L'infirmier·ère (« infirmier_… ») ne reçoit pas les documents.
+ * PARTAGE DE DOCUMENTS PENDANT L'APPEL — entre TOUS les participants : médecin(s) (« doctor_… »),
+ * infirmier·ère (« infirmier_… ») et confrères invités (« confrere_… »), dès qu'au moins une autre personne est dans l'appel.
  */
 const SUJET_DOCUMENTS = 'documents-teleconsultation';
 const TAILLE_MAX_DOCUMENT = 20 * 1024 * 1024;
-const estMedecin = (identite: string) => identite.startsWith('doctor_') || identite.startsWith('confrere_');
 const EXTENSIONS_DOCUMENTS = /\.(pdf|png|jpe?g|gif|webp|docx?|xlsx?|txt)$/i;
 
 /** Message clair quand le navigateur refuse la caméra ou le micro */
@@ -108,7 +107,7 @@ export default function AppelVideo({ acces, onRaccrocher, reduit = false, onBasc
   /** Relit ma piste vidéo (défini dans l'effet de connexion) */
   const majMaVideoRef = useRef<() => void>(() => undefined);
 
-  // Documents partagés (médecin principal ↔ confrères invités)
+  // Documents partagés entre tous les participants de l'appel
   const [documents, setDocuments] = useState<DocumentAppel[]>([]);
   const [envoiDoc, setEnvoiDoc] = useState<{ nom: string; progression: number } | null>(null);
   const [docsOuverts, setDocsOuverts] = useState(false);
@@ -132,9 +131,8 @@ export default function AppelVideo({ acces, onRaccrocher, reduit = false, onBasc
 
     const nomDe = (p: Participant) => p.name || p.identity;
 
-    // Réception d'un document envoyé par un autre médecin de l'appel
+    // Réception d'un document envoyé par un autre participant de l'appel (médecin, infirmier·ère, confrère)
     room.registerByteStreamHandler(SUJET_DOCUMENTS, async (reader, { identity }) => {
-      if (!estMedecin(room.localParticipant.identity) || !estMedecin(identity)) return;
       try {
         const morceaux = await reader.readAll();
         if (!actif) return;
@@ -143,7 +141,7 @@ export default function AppelVideo({ acces, onRaccrocher, reduit = false, onBasc
         const blob = new Blob(morceaux as BlobPart[], { type });
         const url = URL.createObjectURL(blob);
         urlsDocs.current.push(url);
-        const auteur = room.remoteParticipants.get(identity)?.name || 'Un médecin';
+        const auteur = room.remoteParticipants.get(identity)?.name || 'Un participant';
         setDocuments((d) => [...d, { id: info.id, nom: info.name || 'document', taille: blob.size, type, url, auteur, moi: false, heure: new Date() }]);
         if (!docsOuvertsRef.current) {
           setNonLus((n) => n + 1);
@@ -235,11 +233,9 @@ export default function AppelVideo({ acces, onRaccrocher, reduit = false, onBasc
     };
   }, [acces.url, acces.jeton]);
 
-  // Partage possible quand le médecin principal et au moins un confrère invité sont dans l'appel
-  const monIdentite = etat === 'connecte' ? (salle.current?.localParticipant.identity ?? '') : '';
-  const destinatairesDocs = distants.filter((d) => estMedecin(d.id)).map((d) => d.id);
-  const partageDocs =
-    estMedecin(monIdentite) && destinatairesDocs.length > 0 && (monIdentite.startsWith('confrere_') || destinatairesDocs.some((id) => id.startsWith('confrere_')));
+  // Partage possible pour chaque participant (médecin, infirmier·ère, confrère) dès qu'une autre personne est dans l'appel
+  const destinatairesDocs = distants.map((d) => d.id);
+  const partageDocs = etat === 'connecte' && destinatairesDocs.length > 0;
 
   const envoyerDocument = async (fichier: File) => {
     const room = salle.current;

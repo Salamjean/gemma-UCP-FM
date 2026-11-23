@@ -54,7 +54,7 @@ export default function MotDePasseOublie() {
   const reinitialiser = async (e: FormEvent) => {
     e.preventDefault();
     if (!/^\d{6}$/.test(code)) return void alerte.echec('Le code reçu par email contient 6 chiffres.');
-    if (nouveau.length < 6) return void alerte.echec('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+    if (nouveau.length < 8) return void alerte.echec('Le nouveau mot de passe doit contenir au moins 8 caractères.');
     if (nouveau !== confirmation) return void alerte.echec('La confirmation ne correspond pas au nouveau mot de passe.');
     setEnvoi(true);
     try {
@@ -145,7 +145,7 @@ export default function MotDePasseOublie() {
               <input
                 className={form.input}
                 type={voir ? 'text' : 'password'}
-                placeholder="Nouveau mot de passe (6 caractères min.)"
+                placeholder="Nouveau mot de passe (8 caractères min.)"
                 aria-label="Nouveau mot de passe"
                 value={nouveau}
                 onChange={(e) => setNouveau(e.target.value)}

@@ -159,7 +159,7 @@ export class ProfilService {
     const ok = await bcrypt.compare(actuel ?? '', String(u.password).replace(/^\$2y\$/, '$2a$'));
     // 400 et non 401 : le frontend déconnecte l'utilisateur sur toute réponse 401
     if (!ok) throw new BadRequestException('Mot de passe actuel incorrect.');
-    if (!nouveau || nouveau.length < 6) throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+    if (!nouveau || nouveau.length < 8) throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 8 caractères.');
     if (nouveau !== confirmation) throw new BadRequestException('La confirmation ne correspond pas au nouveau mot de passe.');
     if (nouveau === actuel) throw new BadRequestException('Le nouveau mot de passe doit être différent de l’actuel.');
     await this.db.query('UPDATE users SET password = ?, updated_at = ? WHERE id = ?', [await laravelHash(nouveau), laravelNow(), userId]);

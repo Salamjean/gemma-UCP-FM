@@ -28,6 +28,7 @@ import { FaPaperPlane,
 } from 'react-icons/fa';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
+import SelectRecherche from '../../../../components/SelectRecherche/SelectRecherche';
 import { alerte, messageErreur } from '../../../../services/alertes';
 import { api as apiGlobal } from '../../../../services/api';
 import { useEspaceConsultation } from './espace';
@@ -241,6 +242,16 @@ export default function FormulaireConsultation() {
   const [tele, setTele] = useState<TelemedecineSaisie>(telemedecineVide());
   // Issue « Référence » (infirmier·ère) : interne / externe, service, hôpital, médecin
   const [referenceSaisie, setReferenceSaisie] = useState<ReferenceSaisie>(referenceVide());
+  // Issue « Appel d'urgence » : service appelé (null = tous les services du réseau)
+  const [urgenceService, setUrgenceService] = useState<number | null>(null);
+  const [servicesUrgence, setServicesUrgence] = useState<{ id: number; libelle: string; hopitaux: number }[] | null>(null);
+  useEffect(() => {
+    if (v.modeSortie !== 'urgence' || servicesUrgence) return;
+    api
+      .servicesExternes()
+      .then(setServicesUrgence)
+      .catch(() => setServicesUrgence([]));
+  }, [v.modeSortie]);
 
   // Ordonnance : recherche de médicaments
   const [recherche, setRecherche] = useState('');
@@ -610,6 +621,8 @@ export default function FormulaireConsultation() {
       Object.assign(payload, momentPayload(momentReference));
     }
     if (v.modeSortie === 'teleconsultation') Object.assign(payload, telemedecinePayload(tele));
+    // Appel d'urgence : service appelé (sinon tous les services)
+    if (v.modeSortie === 'urgence' && urgenceService) payload.urgenceServiceId = urgenceService;
     // Référence du patient (infirmier·ère) : issue « reference », interne / externe (remplace « envoi-medecin »)
     if (v.modeSortie === 'envoi-medecin') Object.assign(payload, referencePayload(referenceSaisie));
     if (maternite) payload.maternite = pn;
@@ -1280,13 +1293,32 @@ export default function FormulaireConsultation() {
                     {v.modeSortie === 'envoi-medecin' && !lecture && <IssueReference valeur={referenceSaisie} onChange={setReferenceSaisie} envoiDirect={infirmier} />}
 
                     {v.modeSortie === 'urgence' && !lecture && (
-                      <p className={s.alerteUrgence}>
-                        <FaPhoneVolume aria-hidden="true" />
-                        <span>
-                          {infirmier
-                            ? 'L’appel vidéo sonne chez les médecins du même service et chez les médecins généralistes dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.'
-                            : 'L’appel vidéo sonne chez tous les médecins de votre service dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.'}                        </span>
-                      </p>
+                      <div className={s.hospBloc}>
+                        {/* Service appelé : au choix, ou tous les services */}
+                        <div className={s.champ}>
+                          <span>
+                            Service appelé <small className={s.facultatif}>(facultatif)</small>
+                          </span>
+                          <SelectRecherche
+                            id="urgence-service"
+                            options={(servicesUrgence ?? []).map((x) => ({ id: x.id, name: x.libelle, detail: `${x.hopitaux} établissement${x.hopitaux > 1 ? 's' : ''}` }))}
+                            value={urgenceService}
+                            onChange={setUrgenceService}
+                            optionVide="Tous les services"
+                            placeholder={servicesUrgence ? 'Tous les services' : 'Chargement…'}
+                            placeholderRecherche="Rechercher un service…"
+                            aucunResultat="Aucun service ne correspond"
+                          />
+                        </div>
+                        <p className={s.alerteUrgence}>
+                          <FaPhoneVolume aria-hidden="true" />
+                          <span>
+                            {urgenceService
+                              ? `L’appel vidéo sonne chez les médecins du service ${servicesUrgence?.find((x) => x.id === urgenceService)?.libelle ?? 'choisi'} dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.`
+                              : 'L’appel vidéo sonne chez les médecins de tous les services dans le réseau des hôpitaux utilisant GEMMA : le premier qui décroche prend le patient.'}
+                          </span>
+                        </p>
+                      </div>
                     )}
 
                     {v.modeSortie === 'hospitalisation' && !lecture && <IssueHospitalisation valeur={hosp.diagnostic || !v.diagnostic ? hosp : { ...hosp, diagnostic: v.diagnostic }} onChange={setHosp} />}
